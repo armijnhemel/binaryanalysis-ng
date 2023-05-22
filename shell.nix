@@ -17,6 +17,7 @@ let
 
   my-python = pkgs.python3.withPackages (p: with p; [
     brotli
+    click
     deepdiff
     defusedxml
     kaitaistruct
@@ -36,6 +37,7 @@ let
     pyyaml
     rich
     telfhash
+    textual
     tlsh
     xxhash
     zstandard
@@ -45,6 +47,7 @@ in
 pkgs.mkShell {
   buildInputs = with pkgs; [
     binutils
+    bzip3
     cabextract
     e2fsprogs
     e2tools
@@ -52,7 +55,6 @@ pkgs.mkShell {
     kaitai-struct-compiler
     lrzip
     lz4
-    mailcap
     ncompress
     openssl
     my-python

@@ -26,7 +26,10 @@ import logging
 import multiprocessing
 import pathlib
 import sys
+import tarfile
 import time
+
+from collections import deque
 
 import click
 import rich
@@ -36,15 +39,23 @@ import rich.pretty
 import rich.table
 import rich.tree
 
+# import YAML module for the configuration
+from yaml import load
+from yaml import YAMLError
+try:
+    from yaml import CLoader as Loader
+except ImportError:
+    from yaml import Loader
+
 from .scan_environment import *
 from .scan_job import ScanJob, process_jobs, make_scan_pipeline
 from .meta_directory import MetaDirectory, MetaDirectoryException
-from . import signatures
+from . import parser_utils
 from .log import log
 
 BANG_VERSION = "0.0.1"
 
-def create_scan_environment_from_config(config):
+def create_scan_environment_from_config(config=None):
     e = ScanEnvironment(
             unpack_directory = '',
             scan_queue = None,
@@ -59,19 +70,32 @@ def app():
 
 # bang scan <input file>
 @app.command(short_help='Scan a file')
-@click.option('-c', '--config')
+@click.option('-c', '--config', 'config_file', type=click.File('r'))
 @click.option('-v', '--verbose', is_flag=True, help='Enable debug logging')
 @click.option('-u', '--unpack-directory', type=click.Path(path_type=pathlib.Path), default=pathlib.Path('/tmp'), help='Directory to unpack to')
 @click.option('-t', '--temporary-directory', type=click.Path(path_type=pathlib.Path, exists=True), default=pathlib.Path('/tmp'), help='Temporary directory')
-@click.option('-j', '--jobs', default=1, type=int, help='Number of jobs running simultaneously')
+@click.option('-j', '--jobs', default=1, type=click.IntRange(min=1), help='Number of jobs running simultaneously')
 @click.option('--job-wait-time', default=1, type=int, help='Time to wait for a new job')
 @click.argument('path', type=click.Path(exists=True))
-def scan(config, verbose, unpack_directory, temporary_directory, jobs, job_wait_time, path):
+def scan(config_file, verbose, unpack_directory, temporary_directory, jobs, job_wait_time, path):
     '''Scans PATH and unpacks its files to UNPACK_DIRECTORY.
     '''
 
     # record the starting time of the scan
     start_time = datetime.datetime.utcnow()
+    ignore_parsers = []
+    config = None
+
+    if config_file is not None:
+        # read the configuration file. This is in YAML format
+        try:
+            config = load(config_file, Loader=Loader)
+        except (YAMLError, PermissionError, UnicodeDecodeError):
+            print("Cannot open configuration file, exiting", file=sys.stderr)
+            sys.exit(1)
+        if 'parsers' in config:
+            if config['parsers'] is not None:
+                ignore_parsers = config['parsers'].get('ignore', [])
 
     # set up the environment
     scan_environment = create_scan_environment_from_config(config)
@@ -88,10 +112,16 @@ def scan(config, verbose, unpack_directory, temporary_directory, jobs, job_wait_
     # set the unpack_parsers
     # TODO: use config to enable/disable parsers
     #log.debug(f' finding unpack_parsers ')
-    unpack_parsers = signatures.get_unpackers()
-    scan_environment.parsers.unpackparsers = unpack_parsers
+    unpack_parsers = parser_utils.get_unpackers()
+
+    if ignore_parsers != []:
+        scan_environment.parsers.unpackparsers = list(filter(lambda x: x.pretty_name not in ignore_parsers, unpack_parsers))
+    else:
+        scan_environment.parsers.unpackparsers = unpack_parsers
+
     #log.debug(f'{unpack_parsers =}')
     scan_environment.parsers.build_automaton()
+    scan_environment.signature_chunk_size = max(scan_environment.signature_chunk_size, scan_environment.parsers.max_chunk_size)
 
     # set up the process manager and initialize the barrier
     # with the value of the amount of jobs: this is the maximum
@@ -158,6 +188,17 @@ def show(show_all, metadir, pretty):
     console.print(meta_table)
 
     if show_all:
+        reporters = parser_utils.get_reporters()
+        labels = md.info.get("labels", [])
+        for r in reporters:
+            for l in labels:
+                if l in r.tags:
+                    reporter = r()
+                    title, report_results = reporter.create_report(md)
+                    #console.print(title)
+                    for res in report_results:
+                        console.print(res)
+
         # print any unpacked files
         table, link_table, have_unpack_results, have_link_results = build_unpack_link_tables(md, metadir.parent, pretty)
         if have_unpack_results:
@@ -437,6 +478,86 @@ def report_for_file(md, parent, console, pretty=False):
         for k,v in sorted(md.info.get('unpacked_relative_files', {}).items()):
             child_md = MetaDirectory.from_md_path(parent, v)
             report_for_file(child_md, parent, console, pretty)
+
+@app.command(short_help='Pack results in a gzip compressed tar archive')
+@click.argument('metadir', type=click.Path(path_type=pathlib.Path))
+@click.option('-o', '--output', type=click.Path(path_type=pathlib.Path), required=True, help='output archive')
+@click.option('--with-data', is_flag=True, help='include data in archive')
+def pack(metadir, with_data, output):
+    '''Stores results of upacked files stored underneath metadir
+    '''
+    # sanity check: is this a valid BANG unpacking directory?
+    root_pickle = metadir / 'info.pkl'
+    if not root_pickle.exists():
+        print("Not a valid BANG directory, info.pkl not found, exiting",
+              file=sys.stderr)
+        sys.exit(1)
+
+    # then try to open the tarfile in write mode
+    pack_file = tarfile.open(output, mode='w:gz')
+
+    # first grab all of the directories that need to be processed.
+    # This is done by traversing the unpacking tree for a few reasons:
+    #
+    # 1. it allows subtrees to be packed
+    # 2. unpacking trees might have been polluted by reusing the
+    #    same directory for unpacking
+    unpack_directories = [pathlib.Path(metadir.name)]
+    root_md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
+
+    metadirs = deque([root_md])
+
+    while True:
+        try:
+            md = metadirs.popleft()
+        except IndexError:
+            break
+
+        # recurse into all of the children
+        with md.open(open_file=False, info_write=False):
+            for k,v in sorted(md.info.get('extracted_files', {}).items()):
+                child_md = MetaDirectory.from_md_path(metadir.parent, v)
+                metadirs.append(child_md)
+                unpack_directories.append(v)
+
+            for k,v in sorted(md.info.get('unpacked_absolute_files', {}).items()):
+                child_md = MetaDirectory.from_md_path(metadir.parent, v)
+                metadirs.append(child_md)
+                unpack_directories.append(v)
+
+            for k,v in sorted(md.info.get('unpacked_relative_files', {}).items()):
+                child_md = MetaDirectory.from_md_path(metadir.parent, v)
+                metadirs.append(child_md)
+                unpack_directories.append(v)
+
+    for u in unpack_directories:
+        if with_data:
+            pack_file.add(metadir.parent / u, arcname=u, filter=clear_ids)
+        else:
+            pack_file.add(metadir.parent / u / 'info.pkl', arcname=u / 'info.pkl', filter=clear_ids)
+            pack_file.add(metadir.parent / u / 'pathname', arcname=u / 'pathname', filter=clear_ids)
+
+    if with_data and metadir.name == 'root':
+        try:
+            root_file_name = metadir / 'pathname'
+            with open(root_file_name, 'r') as r:
+                root_file = pathlib.Path(r.read())
+            if root_file.exists():
+                pack_file.add(root_file, arcname=root_file.name, filter=clear_ids)
+        except:
+            pass
+
+    pack_file.close()
+
+def clear_ids(tarinfo):
+    '''Rewrite the UID and GIDs to something neutral.
+       From Python's tarfile help page
+    '''
+    tarinfo.uid = 0
+    tarinfo.gid = 0
+    tarinfo.uname = "root"
+    tarinfo.gname = "root"
+    return tarinfo
 
 
 if __name__=="__main__":

@@ -334,7 +334,13 @@ enums:
     14: lzma
     18: ibm_terse
     19: ibm_lz77_z
+    93: zstandard
+    94: mp3
+    95: xz
+    96: jpeg
+    97: wavpack
     98: ppmd
+    99: aex_encryption_marker
   extra_codes:
     # https://github.com/LuaDist/zip/blob/b710806/proginfo/extrafld.txt
     0x0001: zip64
@@ -352,9 +358,33 @@ enums:
     0x0017: strong_encryption_header
     0x0018: record_management_controls
     0x0019: pkcs7_enc_recip_cert_list
+    0x0020: reserved_for_timestamp
+    0x0021: policy_decryption_key
+    0x0022: smartcrypt_key_provider
+    0x0023: smartcrypt_policy_key_data
     0x0065: ibm_s390_uncomp
     0x0066: ibm_s390_comp
+    # https://github.com/PixarAnimationStudios/USD/blob/4d8a92af5a26f7f/pxr/usd/usd/zipFile.cpp#L451
+    0x1986: usd
     0x4690: poszip_4690
     0x5455: extended_timestamp
+    0x554e: xceed_unicode
+    0x5855: infozip_unix_old
+    # https://www.artpol-software.com/ZipArchive/KB/0610242300.aspx
+    0x5a4c: ziparchive_unicode
+    0x5a4d: ziparchive_seekable
+    0x6542: beos
+    0x7075: infozip_unicode_path
+    0x756e: asi_unix
     0x7855: infozip_unix
     0x7875: infozip_unix_var_size
+    0x9901: aex_encryption
+    0xa11e: apache_commons_compress
+    0xa220: microsoft_open_packaging_growth_hint
+    # http://hg.openjdk.java.net/jdk7/jdk7/jdk/file/00cd9dc3c2b5/src/share/classes/java/util/jar/JarOutputStream.java#l46
+    0xcafe: java_jar
+    # https://android.googlesource.com/platform/tools/apksig/+/87d6acee83378201b/src/main/java/com/android/apksig/ApkSigner.java#74
+    # https://developer.android.com/studio/command-line/zipalign
+    0xd935: zip_align
+    0xe57a: alzip_code_page
+    0xfd4a: sms_qdos

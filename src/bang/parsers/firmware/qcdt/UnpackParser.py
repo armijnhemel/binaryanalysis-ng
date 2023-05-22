@@ -71,12 +71,17 @@ class QcdtUnpackParser(UnpackParser):
         ctr = 1
         for entry in self.data.device_entries:
             metadata['device'][ctr] = {
-                'platform_id': entry.platform_id.name,
                 'variant_id': entry.variant_id,
                 'soc_revision': entry.soc_revision
             }
 
+            if type(entry.platform_id) == int:
+                metadata['device'][ctr]['platform_id']: entry.platform_id
+            else:
+                metadata['device'][ctr]['platform_id']: entry.platform_id.name
+
             if self.data.version > 1:
+                metadata['device'][ctr] = {}
                 metadata['device'][ctr]['subtype_id'] = entry.subtype_id
             if self.data.version > 2:
                 metadata['device'][ctr]['pmic0'] = entry.pmic0

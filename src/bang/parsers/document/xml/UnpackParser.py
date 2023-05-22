@@ -33,7 +33,7 @@ from bang.UnpackParserException import UnpackParserException
 # Android has a "binary XML", where the XML data has been translated
 # into a binary file. This is not supported by this parser.
 class XmlUnpackParser(UnpackParser):
-    extensions = ['.xml', '.xsd', '.ncx', '.opf', '.svg']
+    extensions = ['.xml', '.xsd', '.ncx', '.opf', '.svg', '.rss']
     signatures = [
     ]
     pretty_name = 'xml'

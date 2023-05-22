@@ -24,8 +24,8 @@ for the firmware scraper.
 
 Note: this list is vastly incomplete. It is highly recommended to use Nix.
 
-* a recent Linux distribution (Fedora 35 or higher, or equivalent)
-* Python 3.9.x or higher
+* a recent Linux distribution (Fedora 36 or higher, or equivalent)
+* Python 3.10.x or higher
 * pillow (possibly named python3-pillow), a drop in replacement for PIL ( <http://python-pillow.github.io/> )
 * GNU binutils (for 'ar')
 * squashfs-tools (for 'unsquashfs')
@@ -42,7 +42,6 @@ Note: this list is vastly incomplete. It is highly recommended to use Nix.
 * dockerfile-parse (possibly named python3-dockerfile-parse)
 * openssl
 * rzip
-* mailcap (for mime.types)
 * lzop
 * OpenJDK (for 'unpack200')
 * defusedxml (possibly named python3-defusedxml)
@@ -68,7 +67,7 @@ It is assumed that BANG is run on little endian hardware (such as x86 or x86-64)
 
 ## Verified unsupported distributions
 
-* Fedora 34 and earlier
+* Fedora 35 and earlier
 * Ubuntu 16.04 and lower (Python version too old)
 
 This doesn't mean that newer versions of Ubuntu are supported, they just
@@ -112,7 +111,7 @@ larger file, unless stated otherwise.
 17. TrueType fonts/sfnt-housed fonts
 18. OpenType fonts
 19. Vim swap files (whole file only)
-20. Android sparse data image (no Brotli compression, no bsdiff/imgdiff)
+20. Android sparse data image (regular and Brotli compression, no bsdiff/imgdiff)
 21. Android backup files
 22. ICO (MS Windows icons)
 23. Chrome PAK (version 4 & 5, only if offset starts at 0)
@@ -278,6 +277,19 @@ larger file, unless stated otherwise.
 176. Instar BNEG firmware files
 177. Huawei HWNP firmware files
 178. Reolink 'logo' file
+179. FLS firmware files (IP cameras)
+180. TP-Link TX6610v4 firmware
+181. Granite Devices firmware v300
+182. erofs ('inline' data layout only)
+183. bzip3
+184. PX4 autopilot firmware files
+185. SSH known hosts files (whole file)
+186. Unix passwd files (whole file)
+187. Unix group files (whole file)
+188. Unix shadow files (whole file)
+189. Samba password files
+190. Linux fstab files
+1911. Java/Android MANIFEST.MF files (whole file)
 
 The following text formats can be recognized:
 
@@ -286,27 +298,27 @@ The following text formats can be recognized:
 1. Linux kernel configuration files (whole file)
 2. Dockerfile files (whole file)
 3. Python PKG-INFO files (whole file)
-4. Unix group files (whole file)
-5. TRANS.TBL files
-6. CSS
-7. Linux fstab files
+4. TRANS.TBL files
+5. CSS
+6. Subversion hash files (wcprops, all-wcprops, etc.)
+7. iCalendar (RFC 5545) files (whole file only)
 8. Windows INI files (text only)
 9. Linux Software Map files (whole file)
-10. Unix passwd files (whole file)
-11. Unix shadow files (whole file)
-12. Samba password files
-13. SSH known hosts files (whole file)
-14. Subversion hash files (wcprops, all-wcprops, etc.)
-15. pkg-config files
-16. Java/Android MANIFEST.MF files (whole file)
-17. iCalendar (RFC 5545) files (whole file only)
+10. pkg-config files
 
+## Getting started
 
-## Invocation
+This section assumes that you are using Nix to install all dependencies.
+
+1. `git clone` this repository
+2. run `nix-shell` to install all the dependencies and start a complete environment
+3. `cd src`
+4. run `make` to build all the Kaitai Struct parsers. Please note: this might take
+   a while!
 
 To unpack a file run:
 
-    $ python3 bang-scanner -c bang.config -f /path/to/binary
+    $ python3 -m bang.cli scan -u /path/to/unpack/directory /path/to/binary
 
 This will output a directory with inside a number of files and directories.
 The output directory can serve as input to the analysis scripts (and some
@@ -319,7 +331,7 @@ GNU Affero General Public License, version 3 (AGPL-3.0)
 The code for verifying and labeling Android Verified Boot images was heavily
 inspired by code from Android (`avbtool`) found at:
 
-<https://android.googlesource.com/platform/external/avb/+/master/avbtool>
+<https://android.googlesource.com/platform/external/avb/+/refs/heads/master/avbtool.py>
 
 The original license for avbtool:
 

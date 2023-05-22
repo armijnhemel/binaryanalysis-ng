@@ -41,8 +41,11 @@ class PngReporter(Reporter):
             meta_table.add_row('Height', str(metadata['height']))
             meta_table.add_row('Depth', str(metadata['depth']))
             meta_table.add_row('Colour', metadata['color'])
+            meta_table.add_row('Chunk names', ", ".join(metadata['chunk_names']))
             if metadata['png_type'] != []:
                 meta_table.add_row('Type', ", ".join(sorted(metadata['png_type'])))
+            if metadata['unknownchunks'] != []:
+                meta_table.add_row('Unknown chunks', ", ".join(sorted(metadata['unknownchunks'])))
             reports.append(meta_table)
 
             # print any texts if available

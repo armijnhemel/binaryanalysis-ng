@@ -12,7 +12,6 @@ let
     dockerfile-parse
     icalendar
     kaitaistruct
-    #meilisearch
     packageurl-python
     parameterized
     pdfminer
@@ -22,6 +21,7 @@ let
     pyyaml
     qiling
     requests
+    textual
     tinycss2
     tlsh
     yara-python
@@ -32,7 +32,6 @@ pkgs.mkShell {
   buildInputs = with pkgs; [
     apkid
     binutils
-    #cve-bin-tool
     openjdk8
     openssl
     my-python

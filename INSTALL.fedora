@@ -7,14 +7,12 @@
 * java-openjdk
 * lz4
 * lzop
-* mailcap
 * ncompress
 * openssl
 * p7zip-plugins
 * python3-deepdiff
 * python3-defusedxml
 * python3-dockerfile-parse
-* python3-elasticsearch
 * python3-icalendar
 * python3-lz4
 * python3-pillow
