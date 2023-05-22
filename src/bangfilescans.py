@@ -25,9 +25,7 @@
 import sys
 import os
 import shutil
-import binascii
 import tempfile
-import base64
 import re
 import pathlib
 import configparser
