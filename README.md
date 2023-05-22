@@ -289,6 +289,7 @@ larger file, unless stated otherwise.
 188. Unix shadow files (whole file)
 189. Samba password files
 190. Linux fstab files
+1911. Java/Android MANIFEST.MF files (whole file)
 
 The following text formats can be recognized:
 
@@ -303,8 +304,7 @@ The following text formats can be recognized:
 7. iCalendar (RFC 5545) files (whole file only)
 8. Windows INI files (text only)
 9. Linux Software Map files (whole file)
-10. Java/Android MANIFEST.MF files (whole file)
-11. pkg-config files
+10. pkg-config files
 
 ## Getting started
 
