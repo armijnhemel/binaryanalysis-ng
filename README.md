@@ -291,12 +291,13 @@ larger file, unless stated otherwise.
 190. Linux fstab files
 191. Java/Android MANIFEST.MF files (whole file)
 192. Linux kernel configuration files (whole file)
+193. pkg-config files
 
 The following text formats can be recognized:
 
 (NOTE: currently broken)
 
-1. pkg-config files
+1. Linux Software Map files (whole file)
 2. Dockerfile files (whole file)
 3. Python PKG-INFO files (whole file)
 4. TRANS.TBL files
@@ -304,7 +305,6 @@ The following text formats can be recognized:
 6. Subversion hash files (wcprops, all-wcprops, etc.)
 7. iCalendar (RFC 5545) files (whole file only)
 8. Windows INI files (text only)
-9. Linux Software Map files (whole file)
 
 ## Getting started
 
