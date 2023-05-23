@@ -43,13 +43,13 @@ Note: this list is vastly incomplete. It is highly recommended to use Nix.
 * openssl
 * rzip
 * lzop
-* OpenJDK (for 'unpack200')
 * defusedxml (possibly named python3-defusedxml)
 * icalendar (possibly named python3-icalendar)
 * pyyaml (possibly named python3-pyyaml)
 * ncompress
 * util-linux (for 'fsck.cramfs')
 * lz4 (for 'lz4c')
+* bzip3
 
 and many others (see `shell.nix`, `maintenance.nix` and `analysis.nix` for a
 full list).
