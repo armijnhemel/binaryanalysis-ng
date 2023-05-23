@@ -292,6 +292,7 @@ larger file, unless stated otherwise.
 191. Java/Android MANIFEST.MF files (whole file)
 192. Linux kernel configuration files (whole file)
 193. pkg-config files
+194. iCalendar (RFC 5545) files (whole file only)
 
 The following text formats can be recognized:
 
@@ -303,8 +304,7 @@ The following text formats can be recognized:
 4. TRANS.TBL files
 5. CSS
 6. Subversion hash files (wcprops, all-wcprops, etc.)
-7. iCalendar (RFC 5545) files (whole file only)
-8. Windows INI files (text only)
+7. Windows INI files (text only)
 
 ## Getting started
 

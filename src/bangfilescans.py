@@ -33,7 +33,6 @@ import email.parser
 
 # some external packages that are needed
 import dockerfile_parse
-import icalendar
 
 
 # Docker file parsing, only works on whole Dockerfiles
@@ -452,63 +451,6 @@ def unpack_script(fileresult, scanenvironment, offset, unpackdir):
 
 unpack_script.pretty = 'script'
 unpack_script.scope = 'text'
-
-
-# iCalendar files
-# https://www.ietf.org/rfc/rfc5545.txt
-def unpack_ics(fileresult, scanenvironment, offset, unpackdir):
-    '''Verify and label iCalendar files'''
-    filesize = fileresult.filesize
-    filename_full = scanenvironment.unpack_path(fileresult.filename)
-    unpackedfilesandlabels = []
-    labels = []
-    unpackingerror = {}
-    unpackedsize = 0
-
-    isopened = False
-
-    # open the file in text only mode
-    try:
-        checkfile = open(filename_full, 'r')
-        isopened = True
-    except:
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'not a text file'}
-        return {'status': False, 'error': unpackingerror}
-
-    checkfile.seek(0)
-
-    # read the file: Python's text reader will fairly quickly
-    # detect the binary files, so not a lot of extra data will
-    # be read.
-    try:
-        icsbytes = checkfile.read()
-    except:
-        if isopened:
-            checkfile.close()
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'not a text file'}
-        return {'status': False, 'error': unpackingerror}
-    checkfile.close()
-
-    try:
-        icalendar.Calendar.from_ical(icsbytes)
-    except:
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'not valid ICS data'}
-        return {'status': False, 'error': unpackingerror}
-
-    unpackedsize = filesize
-
-    if offset == 0 and unpackedsize == filesize:
-        labels.append("ics")
-        labels.append('resource')
-
-    return {'status': True, 'length': unpackedsize, 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
-
-unpack_ics.extensions = ['.ics']
-unpack_ics.pretty = 'ics'
 
 
 # verify TRANS.TBL files
