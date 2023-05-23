@@ -28,7 +28,6 @@ import shutil
 import tempfile
 import re
 import pathlib
-import configparser
 import email.parser
 
 # some external packages that are needed
@@ -504,41 +503,6 @@ def unpack_trans_tbl(fileresult, scanenvironment, offset, unpackdir):
 
 unpack_trans_tbl.extensions = ['trans.tbl']
 unpack_trans_tbl.pretty = 'trans.tbl'
-
-
-def unpack_ini(fileresult, scanenvironment, offset, unpackdir):
-    '''Verify an INI file '''
-    filesize = fileresult.filesize
-    filename_full = scanenvironment.unpack_path(fileresult.filename)
-    unpackedfilesandlabels = []
-    labels = []
-    unpackingerror = {}
-    unpackedsize = 0
-
-    iniconfig = configparser.ConfigParser()
-    configfile = open(filename_full, 'r')
-
-    try:
-        iniconfig.read_file(configfile)
-        configfile.close()
-    except:
-        # could include:
-        # configparser.MissingSectionHeaderError
-        # configparser.DuplicateOptionErrorr
-        #  configparser.ParsingError
-        configfile.close()
-        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
-                          'reason': 'not a valid INI file'}
-        return {'status': False, 'error': unpackingerror}
-
-    unpackedsize = filesize
-    labels.append('ini')
-
-    return {'status': True, 'length': unpackedsize, 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
-
-unpack_ini.extensions = ['.ini']
-unpack_ini.pretty = 'ini'
 
 
 # file subversion/libsvn_subr/hash.c in Subversion source code
