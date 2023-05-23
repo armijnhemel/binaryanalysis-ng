@@ -294,17 +294,17 @@ larger file, unless stated otherwise.
 193. pkg-config files
 194. iCalendar (RFC 5545) files (whole file only)
 195. Windows INI files (text only)
+196. Linux Software Map files
 
 The following text formats can be recognized:
 
 (NOTE: currently broken)
 
-1. Linux Software Map files (whole file)
+1. Subversion hash files (wcprops, all-wcprops, etc.)
 2. Dockerfile files (whole file)
 3. Python PKG-INFO files (whole file)
 4. TRANS.TBL files
 5. CSS
-6. Subversion hash files (wcprops, all-wcprops, etc.)
 
 ## Getting started
 
