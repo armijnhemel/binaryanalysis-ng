@@ -45,6 +45,7 @@ class DataUriUnpackParser(UnpackParser):
         (0, b'data:application/json;base64,'),
         (0, b'data:application/json;charset=utf-8;base64,'),
         (0, b'data:application/octet-stream;base64,'),
+        (0, b'data:application/pdf;base64,'),
         #(0, b'sourceMappingURL=data:application/json;charset=utf-8;base64,'),
     ]
     pretty_name = 'data_uri'
@@ -96,6 +97,9 @@ class DataUriUnpackParser(UnpackParser):
         elif b'application/octet-stream' in header:
             self.filetype = 'octet-stream'
             seek_offset = 37
+        elif b'application/pdf' in header:
+            self.filetype = 'pdf'
+            seek_offset = 28
 
         self.infile.seek(seek_offset, os.SEEK_CUR)
         bytes_read += seek_offset
