@@ -45,11 +45,12 @@ class DataUriUnpackParser(UnpackParser):
         (0, b'data:application/json;base64,'),
         (0, b'data:application/json;charset=utf-8;base64,'),
         (0, b'data:application/octet-stream;base64,'),
+        #(0, b'sourceMappingURL=data:application/json;charset=utf-8;base64,'),
     ]
     pretty_name = 'data_uri'
 
     valid_base64_chars = set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n\r')
-    valid_eob = [b'"', b'\'', b')']
+    valid_eob = [b'"', b'\'', b')', b' ']
 
     def parse(self):
         bytes_read = 0
@@ -83,9 +84,12 @@ class DataUriUnpackParser(UnpackParser):
         elif b'application/x-font-ttf;charset=utf-8' in header:
             self.filetype = 'ttf'
             seek_offset = 49
+        elif b'sourceMappingURL=data:application/json;charset=utf-8;base64,' in header:
+            self.filetype = 'sourcemap.json'
+            seek_offset = 60
         elif b'application/json;charset=utf-8' in header:
             self.filetype = 'json'
-            seek_offset = 45
+            seek_offset = 43
         elif b'application/json' in header:
             self.filetype = 'json'
             seek_offset = 29
