@@ -244,7 +244,7 @@ larger file, unless stated otherwise.
 144. zchunk
 145. ubifs
 146. Performance Co-Pilot metadata files
-147. data URI (png, gif, jpeg, web, certain fonts, JSON and octet-stream objects)
+147. data URI (PNG, GIF, JPEG, WEBP, certain fonts, SVG, PDF, JSON and octet-stream objects)
 148. DHTB signed files
 149. Android AAPT2 container format
 150. Android update image (version 2 only, full OTA image only)
