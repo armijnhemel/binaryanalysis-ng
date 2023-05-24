@@ -22,7 +22,6 @@ let
     qiling
     requests
     textual
-    tinycss2
     tlsh
     yara-python
   ]);

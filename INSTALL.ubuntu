@@ -28,5 +28,4 @@ or, in a single line:
 
 The following packages do not seem to be available for all Ubuntu versions:
 
-* tinycss2
 * dockerfile_parse

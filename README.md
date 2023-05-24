@@ -38,7 +38,6 @@ Note: this list is vastly incomplete. It is highly recommended to use Nix.
 * psycopg2 (possibly named python3-psycopg2)
 * python-snappy (possibly named python3-snappy)
 * python-tlsh (possibly named python3-tlsh)
-* tinycss2 (possibly named python3-tinycss2, not available on Fedora 26 and earlier)
 * dockerfile-parse (possibly named python3-dockerfile-parse)
 * openssl
 * rzip
@@ -304,7 +303,6 @@ The following text formats can be recognized:
 2. Dockerfile files (whole file)
 3. Python PKG-INFO files (whole file)
 4. TRANS.TBL files
-5. CSS
 
 ## Getting started
 
