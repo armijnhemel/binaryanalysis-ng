@@ -20,10 +20,11 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import os
-import pathlib
 import base64
 import binascii
+import os
+import pathlib
+import sys
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
@@ -34,47 +35,100 @@ class DataUriUnpackParser(UnpackParser):
     signatures = [
         (0, b'data:image/gif;base64,'),
         (0, b'data:image/jpeg;base64,'),
+        (0, b'data:image/webp;base64,'),
         (0, b'data:image/png;base64,'),
+        (0, b'data:image/x-png;base64,'),
+        (0, b'data:image/svg+xml;base64,'),
+        (0, b'data:application/font-woff;base64,'),
+        (0, b'data:application/font-woff;charset=utf-8;base64,'),
+        (0, b'data:application/x-font-ttf;charset=utf-8;base64,'),
+        (0, b'data:application/json;base64,'),
+        (0, b'data:application/json;charset=utf-8;base64,'),
+        (0, b'data:application/octet-stream;base64,'),
     ]
     pretty_name = 'data_uri'
 
     valid_base64_chars = set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n\r')
+    valid_eob = [b'"', b'\'', b')']
 
     def parse(self):
         bytes_read = 0
-        header = self.infile.peek(25)[:25]
-        if b'gif' in header:
-            self.filetype = 'gif'
-            self.infile.seek(22, os.SEEK_CUR)
-            bytes_read += 22
-        elif b'jpeg' in header:
-            self.filetype = 'jpg'
-            self.infile.seek(23, os.SEEK_CUR)
-            bytes_read += 23
-        elif b'png' in header:
-            self.filetype = 'png'
-            self.infile.seek(22, os.SEEK_CUR)
-            bytes_read += 22
 
-        block_size = 1024
+        max_len_signature = max([len(x[1]) for x in self.signatures])
+        header = self.infile.peek(max_len_signature)[:max_len_signature]
+        if b'image/gif' in header:
+            self.filetype = 'gif'
+            seek_offset = 22
+        elif b'image/jpeg' in header:
+            self.filetype = 'jpg'
+            seek_offset = 23
+        elif b'image/webp' in header:
+            self.filetype = 'webp'
+            seek_offset = 23
+        elif b'image/png' in header:
+            self.filetype = 'png'
+            seek_offset = 22
+        elif b'image/x-png' in header:
+            self.filetype = 'png'
+            seek_offset = 24
+        elif b'image/svg+xml' in header:
+            self.filetype = 'svg'
+            seek_offset = 26
+        elif b'data:application/font-woff;charset=utf-8;base64,' in header:
+            self.filetype = 'woff'
+            seek_offset = 48
+        elif b'application/font-woff' in header:
+            self.filetype = 'woff'
+            seek_offset = 34
+        elif b'application/x-font-ttf;charset=utf-8' in header:
+            self.filetype = 'ttf'
+            seek_offset = 49
+        elif b'application/json;charset=utf-8' in header:
+            self.filetype = 'json'
+            seek_offset = 45
+        elif b'application/json' in header:
+            self.filetype = 'json'
+            seek_offset = 29
+        elif b'application/octet-stream' in header:
+            self.filetype = 'octet-stream'
+            seek_offset = 37
+
+        self.infile.seek(seek_offset, os.SEEK_CUR)
+        bytes_read += seek_offset
+
+        block_size = 16384
         self.payload_data = b''
-        eob = False
+        seen_eob = False
+
         # check the data, verify that the data is valid base64 data
         while True:
             data = self.infile.read(block_size)
             if data == b'':
                 raise UnpackParserException("end of file reached")
 
-            # TODO: also valid eob are "'", " " and ")"
-            if b'"' in data:
-                eob = True
-            check_data = data.split(b'"', 1)[0]
+            max_eob = sys.maxsize
+            for e in self.valid_eob:
+                ofs = data.find(e)
+                if ofs == -1:
+                    continue
+                seen_eob = True
+                if ofs < max_eob:
+                    max_eob = min(max_eob, data.find(e))
+                    eob = e
+
+            if seen_eob:
+                check_data = data.split(eob, 1)[0]
+            else:
+                check_data = data
+
             for i in check_data:
                 if chr(i) not in self.valid_base64_chars:
                     raise UnpackParserException("invalid base64")
+
             self.payload_data += check_data
             bytes_read += len(check_data)
-            if eob:
+
+            if seen_eob:
                 if len(self.payload_data) == 0:
                     raise UnpackParserException("no uri data for base64")
                 try:
