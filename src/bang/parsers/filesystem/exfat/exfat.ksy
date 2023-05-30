@@ -41,7 +41,6 @@ instances:
   root_directory:
     pos: 0
     io: data_region.heap.cluster[main_boot_region.boot_sector.first_cluster_of_root_directory-2]._io
-    size: 32
     type: directory
 types:
   boot_region:
@@ -170,8 +169,11 @@ types:
             repeat: eos
   directory:
     seq:
-      - id: first_entry
+      - id: entries
+        size: 32
         type: entry
+        repeat: until
+        repeat-until: _.end_of_directory
     types:
       entry:
         seq:
@@ -195,6 +197,8 @@ types:
           type_code:
             value: entry_type & 0b11111
             #enum: code
+          end_of_directory:
+            value: entry_type == 0
         enums:
           type_importance:
             0: critical
