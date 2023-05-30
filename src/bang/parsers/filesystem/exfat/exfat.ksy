@@ -181,12 +181,10 @@ types:
             type: u1
           - id: data
             type:
-              switch-on: type_code
+              switch-on: importance
               cases:
-                code::volume_label: volume_label
-                code::allocation_bitmap: allocation_bitmap
-                code::up_case_table: up_case_table
-                _: generic
+                type_importance::critical: critical(category, type_code)
+                type_importance::benign: benign(category, type_code)
         instances:
           in_use:
             value: entry_type & 0x80 != 0
@@ -198,19 +196,129 @@ types:
             enum: type_importance
           type_code:
             value: entry_type & 0b11111
-            enum: code
+            #enum: code
         enums:
-          type_category:
-            0: primary
-            1: secondary
           type_importance:
             0: critical
             1: benign
-          code:
-            1: allocation_bitmap
-            2: up_case_table
-            3: volume_label
+          type_category:
+            0: primary
+            1: secondary
         types:
+          critical:
+            params:
+              - id: category
+                type: u1
+                enum: type_category
+              - id: code
+                type: u4
+            seq:
+              - id: entry
+                type:
+                  switch-on: category
+                  cases:
+                    type_category::primary: primary(code)
+                    type_category::secondary: secondary(code)
+            types:
+              primary:
+                params:
+                  - id: code
+                    type: u4
+                seq:
+                  - id: data
+                    type:
+                      switch-on: type_code
+                      cases:
+                        code::allocation_bitmap: allocation_bitmap
+                        code::up_case_table: up_case_table
+                        code::volume_label: volume_label
+                        code::file_directory: file_directory
+                        _: generic
+                instances:
+                  type_code:
+                    value: code
+                    enum: code
+                enums:
+                  code:
+                    1: allocation_bitmap
+                    2: up_case_table
+                    3: volume_label
+                    5: file_directory
+              secondary:
+                params:
+                  - id: code
+                    type: u4
+                seq:
+                  - id: data
+                    type:
+                      switch-on: type_code
+                      cases:
+                        code::stream_extension: stream_extension
+                        code::file_name_directory: file_name_directory
+                        _: generic
+                instances:
+                  type_code:
+                    value: code
+                    enum: code
+                enums:
+                  code:
+                    0: stream_extension
+                    1: file_name_directory
+          benign:
+            params:
+              - id: category
+                type: u1
+                enum: type_category
+              - id: code
+                type: u4
+            seq:
+              - id: entry
+                type:
+                  switch-on: category
+                  cases:
+                    type_category::primary: primary(code)
+                    type_category::secondary: secondary(code)
+            types:
+              primary:
+                params:
+                  - id: code
+                    type: u4
+                seq:
+                  - id: data
+                    type:
+                      switch-on: type_code
+                      cases:
+                        code::volume_guid: volume_guid
+                        #code::texfat_padding: texfat_padding
+                        _: generic
+                instances:
+                  type_code:
+                    value: code
+                    enum: code
+                enums:
+                  code:
+                    0: volume_guid
+                    1: texfat_padding
+              secondary:
+                params:
+                  - id: code
+                    type: u4
+                seq:
+                  - id: data
+                    type:
+                      switch-on: type_code
+                      cases:
+                        code::vendor_extension: vendor_extension
+                        code::vendor_allocation: vendor_allocation
+                        _: generic
+                instances:
+                  type_code:
+                    value: code
+                    enum: code
+                enums:
+                  code:
+                    0: vendor_extension
+                    1: vendor_allocation
           allocation_bitmap:
             seq:
               - id: bitmap_flags
@@ -244,6 +352,92 @@ types:
                 #encoding: utf16le
               - id: reserved
                 size: 8
+          file_directory:
+            seq:
+              - id: secondary_count
+                type: u1
+              - id: set_checksum
+                type: u2
+              - id: file_attributes
+                type: u2
+              - id: reserved_1
+                size: 2
+              - id: ctime
+                type: u4
+              - id: mtime
+                type: u4
+              - id: atime
+                type: u4
+              - id: ctime_ms_increment
+                type: u1
+              - id: mtime_ms_increment
+                type: u1
+              - id: ctime_utc_offset
+                type: u1
+              - id: mtime_utc_offset
+                type: u1
+              - id: atime_utc_offset
+                type: u1
+              - id: reserved_2
+                size: 7
+          stream_extension:
+            seq:
+              - id: general_secondary_flags
+                type: u1
+              - id: reserved_1
+                size: 1
+              - id: len_name
+                type: u1
+              - id: name_hash
+                type: u2
+              - id: reserved_2
+                size: 2
+              - id: valid_data_length
+                type: u8
+              - id: reserved_3
+                size: 4
+              - id: first_cluster
+                type: u4
+              - id: len_data
+                type: u8
+          file_name_directory:
+            seq:
+              - id: general_secondary_flags
+                type: u1
+              - id: file_name
+                size-eos: true
+          vendor_allocation:
+            seq:
+              - id: general_secondary_flags
+                type: u1
+              - id: vendor_guid
+                size: 16
+              - id: vendor_defined
+                type: u2
+              - id: first_cluster
+                type: u4
+              - id: len_data
+                type: u8
+          vendor_extension:
+            seq:
+              - id: general_secondary_flags
+                type: u1
+              - id: vendor_guid
+                size: 16
+              - id: vendor_defined
+                size: 14
+          volume_guid:
+            seq:
+              - id: secondary_count
+                type: u1
+              - id: set_checksum
+                type: u2
+              - id: general_primary_flags
+                type: u2
+              - id: volume_guid
+                size: 16
+              - id: reserved
+                size: 10
           generic:
             seq:
               - id: custom
@@ -252,3 +446,7 @@ types:
                 type: u4
               - id: len_data
                 type: u8
+enums:
+  type_importance:
+    0: critical
+    1: benign
