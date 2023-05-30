@@ -353,13 +353,13 @@ types:
                 size: 12
               - id: first_cluster
                 type: u4
-              - id: len_data
+              - id: len_table
                 type: u8
             instances:
               table:
                 pos: (first_cluster - 2) * _root.len_cluster
                 io: _root.data_region.heap._io
-                size: len_data
+                size: len_table
           volume_label:
             seq:
               - id: num_characters
