@@ -38,9 +38,11 @@ instances:
       max: 25 - bytes_per_sector_shift
   sectors_per_cluster:
     value: 1 << sectors_per_cluster_shift
+  len_cluster:
+    value: sectors_per_cluster * len_sector
   root_directory:
     pos: 0
-    io: data_region.heap.cluster[main_boot_region.boot_sector.first_cluster_of_root_directory-2]._io
+    io: data_region.clusters.cluster[main_boot_region.boot_sector.first_cluster_of_root_directory-2]._io
     type: directory
 types:
   boot_region:
@@ -156,15 +158,20 @@ types:
       - id: heap_alignment
         size: (_root.main_boot_region.boot_sector.ofs_cluster_heap - (_root.main_boot_region.boot_sector.ofs_fat + _root.main_boot_region.boot_sector.len_fat * _root.main_boot_region.boot_sector.num_fat)) * _root.len_sector
       - id: heap
-        size: _root.main_boot_region.boot_sector.num_clusters * _root.sectors_per_cluster * _root.len_sector
-        type: clusters
+        size: _root.main_boot_region.boot_sector.num_clusters * _root.len_cluster
+        type: bytes_with_io
       - id: excess_space
         size-eos: true
+    instances:
+      clusters:
+        pos: 0
+        io: heap._io
+        type: clusters
     types:
       clusters:
         seq:
           - id: cluster
-            size: _root.sectors_per_cluster * _root.len_sector
+            size: _root.len_cluster
             type: bytes_with_io
             repeat: eos
   directory:
@@ -343,6 +350,11 @@ types:
                 type: u4
               - id: len_data
                 type: u8
+            instances:
+              table:
+                pos: (first_cluster - 2) * _root.len_cluster
+                io: _root.data_region.heap._io
+                size: len_data
           volume_label:
             seq:
               - id: num_characters
