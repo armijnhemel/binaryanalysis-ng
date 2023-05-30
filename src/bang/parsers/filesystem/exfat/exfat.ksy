@@ -172,7 +172,7 @@ types:
             repeat: eos
   directory:
     seq:
-      - id: entry
+      - id: first_entry
         type: entry
     types:
       entry:
@@ -181,7 +181,42 @@ types:
             type: u1
           - id: custom
             size: 19
+            type:
+              switch-on: type_code
+              cases:
+                code::volume_label: volume_label
           - id: first_cluster
             type: u4
           - id: len_data
             type: u8
+        instances:
+          in_use:
+            value: entry_type & 0x80 != 0
+          category:
+            value: (entry_type & 0x40 != 0).to_i
+            enum: type_category
+          importance:
+            value: (entry_type & 0x20 != 0).to_i
+            enum: type_importance
+          type_code:
+            value: entry_type & 0b11111
+            enum: code
+        enums:
+          type_category:
+            0: primary
+            1: secondary
+          type_importance:
+            0: critical
+            1: benign
+          code:
+            3: volume_label
+        types:
+          volume_label:
+            seq:
+              - id: num_characters
+                type: u1
+              - id: label
+                size-eos: true
+                #size: num_characters
+                #type: strz
+                #encoding: utf16le
