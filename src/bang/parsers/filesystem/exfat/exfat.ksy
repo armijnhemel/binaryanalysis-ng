@@ -94,9 +94,7 @@ types:
         type: u2
       - id: bytes_per_sector_shift
         type: u1
-        valid:
-          min: 9
-          max: 12
+        valid: _root.bytes_per_sector_shift
       - id: sectors_per_cluster_shift
         type: u1
         valid:
