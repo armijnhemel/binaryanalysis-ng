@@ -336,8 +336,13 @@ types:
                 size: 18
               - id: first_cluster
                 type: u4
-              - id: len_data
+              - id: len_bitmap
                 type: u8
+            instances:
+              bitmap:
+                pos: (first_cluster - 2) * _root.len_cluster
+                io: _root.data_region.heap._io
+                size: len_bitmap
           up_case_table:
             seq:
               - id: reserved_1
