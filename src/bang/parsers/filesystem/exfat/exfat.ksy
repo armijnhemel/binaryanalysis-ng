@@ -179,16 +179,14 @@ types:
         seq:
           - id: entry_type
             type: u1
-          - id: custom
-            size: 19
+          - id: data
             type:
               switch-on: type_code
               cases:
                 code::volume_label: volume_label
-          - id: first_cluster
-            type: u4
-          - id: len_data
-            type: u8
+                code::allocation_bitmap: allocation_bitmap
+                code::up_case_table: up_case_table
+                _: generic
         instances:
           in_use:
             value: entry_type & 0x80 != 0
@@ -209,14 +207,48 @@ types:
             0: critical
             1: benign
           code:
+            1: allocation_bitmap
+            2: up_case_table
             3: volume_label
         types:
+          allocation_bitmap:
+            seq:
+              - id: bitmap_flags
+                type: u1
+              - id: reserved
+                size: 18
+              - id: first_cluster
+                type: u4
+              - id: len_data
+                type: u8
+          up_case_table:
+            seq:
+              - id: reserved_1
+                size: 3
+              - id: table_checksum
+                type: u4
+              - id: reserved_2
+                size: 12
+              - id: first_cluster
+                type: u4
+              - id: len_data
+                type: u8
           volume_label:
             seq:
               - id: num_characters
                 type: u1
               - id: label
-                size-eos: true
+                size: 22
                 #size: num_characters
                 #type: strz
                 #encoding: utf16le
+              - id: reserved
+                size: 8
+          generic:
+            seq:
+              - id: custom
+                size: 19
+              - id: first_cluster
+                type: u4
+              - id: len_data
+                type: u8
