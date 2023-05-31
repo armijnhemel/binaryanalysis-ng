@@ -294,6 +294,7 @@ larger file, unless stated otherwise.
 194. iCalendar (RFC 5545) files (whole file only)
 195. Windows INI files (text only)
 196. Linux Software Map files
+197. exFAT ("no FAT chains" only)
 
 The following text formats can be recognized:
 
