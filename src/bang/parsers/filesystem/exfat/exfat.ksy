@@ -213,6 +213,8 @@ types:
                 type_category::primary: primary(importance, type_code)
                 type_category::secondary: secondary(importance, type_code)
         instances:
+          secondary_count:
+            value: 'category == type_category::secondary ? 0 : data.as<generic_primary_template>.secondary_count'
           in_use:
             value: entry_type & 0x80 != 0
           category:
@@ -241,12 +243,15 @@ types:
               - id: code
                 type: u4
             seq:
-              - id: entry
+              - id: data
                 type:
                   switch-on: importance
                   cases:
                     type_importance::critical: critical(code)
                     type_importance::benign: benign(code)
+            instances:
+              secondary_count:
+                value: data.as<generic_primary_template>.secondary_count
             types:
               critical:
                 params:
@@ -261,8 +266,10 @@ types:
                         code::up_case_table: up_case_table
                         code::volume_label: volume_label
                         code::file_directory: file_directory
-                        _: generic
+                        _: generic_primary_template
                 instances:
+                  secondary_count:
+                    value: data.as<generic_primary_template>.secondary_count
                   type_code:
                     value: code
                     enum: code
@@ -283,7 +290,7 @@ types:
                       cases:
                         code::volume_guid: volume_guid
                         #code::texfat_padding: texfat_padding
-                        _: generic
+                        _: generic_primary_template
                 instances:
                   type_code:
                     value: code
@@ -300,7 +307,7 @@ types:
               - id: code
                 type: u4
             seq:
-              - id: entry
+              - id: data
                 type:
                   switch-on: importance
                   cases:
@@ -318,7 +325,7 @@ types:
                       cases:
                         code::stream_extension: stream_extension
                         code::file_name_directory: file_name_directory
-                        _: generic
+                        _: generic_secondary_template
                 instances:
                   type_code:
                     value: code
@@ -338,7 +345,7 @@ types:
                       cases:
                         code::vendor_extension: vendor_extension
                         code::vendor_allocation: vendor_allocation
-                        _: generic
+                        _: generic_secondary_template
                 instances:
                   type_code:
                     value: code
@@ -358,6 +365,8 @@ types:
               - id: len_bitmap
                 type: u8
             instances:
+              secondary_count:
+                value: 0
               bitmap:
                 pos: (first_cluster - 2) * _root.len_cluster
                 io: _root.data_region.heap._io
@@ -375,6 +384,8 @@ types:
               - id: len_table
                 type: u8
             instances:
+              secondary_count:
+                value: 0
               table:
                 pos: (first_cluster - 2) * _root.len_cluster
                 io: _root.data_region.heap._io
@@ -390,6 +401,9 @@ types:
                 #encoding: utf16le
               - id: reserved
                 size: 8
+            instances:
+              secondary_count:
+                value: 0
           file_directory:
             seq:
               - id: secondary_count
@@ -519,7 +533,7 @@ types:
                 value: general_primary_flags & 1 != 0
               no_fat_chain:
                 value: general_primary_flags & 2 != 0
-          generic:
+          generic_template:
             seq:
               - id: custom
                 size: 19
@@ -527,6 +541,40 @@ types:
                 type: u4
               - id: len_data
                 type: u8
+          generic_primary_template:
+            seq:
+              - id: secondary_count
+                type: u1
+              - id: set_checksum
+                type: u2
+              - id: general_primary_flags
+                type: u2
+              - id: custom
+                size: 14
+              - id: first_cluster
+                type: u4
+              - id: len_data
+                type: u8
+            instances:
+              allocation_possible:
+                value: general_primary_flags & 1 != 0
+              no_fat_chain:
+                value: general_primary_flags & 2 != 0
+          generic_secondary_template:
+            seq:
+              - id: general_secondary_flags
+                type: u1
+              - id: custom
+                size: 18
+              - id: first_cluster
+                type: u4
+              - id: len_data
+                type: u8
+            instances:
+              allocation_possible:
+                value: general_secondary_flags & 1 != 0
+              no_fat_chain:
+                value: general_secondary_flags & 2 != 0
   timestamp:
     seq:
       - id: double_seconds
