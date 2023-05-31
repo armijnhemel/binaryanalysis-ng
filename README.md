@@ -38,18 +38,17 @@ Note: this list is vastly incomplete. It is highly recommended to use Nix.
 * psycopg2 (possibly named python3-psycopg2)
 * python-snappy (possibly named python3-snappy)
 * python-tlsh (possibly named python3-tlsh)
-* tinycss2 (possibly named python3-tinycss2, not available on Fedora 26 and earlier)
 * dockerfile-parse (possibly named python3-dockerfile-parse)
 * openssl
 * rzip
 * lzop
-* OpenJDK (for 'unpack200')
 * defusedxml (possibly named python3-defusedxml)
 * icalendar (possibly named python3-icalendar)
 * pyyaml (possibly named python3-pyyaml)
 * ncompress
 * util-linux (for 'fsck.cramfs')
 * lz4 (for 'lz4c')
+* bzip3
 
 and many others (see `shell.nix`, `maintenance.nix` and `analysis.nix` for a
 full list).
@@ -245,7 +244,7 @@ larger file, unless stated otherwise.
 144. zchunk
 145. ubifs
 146. Performance Co-Pilot metadata files
-147. data URI (png, gif, jpeg only)
+147. data URI (PNG, GIF, JPEG, WEBP, certain fonts, SVG, PDF, JSON and octet-stream objects)
 148. DHTB signed files
 149. Android AAPT2 container format
 150. Android update image (version 2 only, full OTA image only)
@@ -289,22 +288,22 @@ larger file, unless stated otherwise.
 188. Unix shadow files (whole file)
 189. Samba password files
 190. Linux fstab files
-1911. Java/Android MANIFEST.MF files (whole file)
+191. Java/Android MANIFEST.MF files (whole file)
+192. Linux kernel configuration files (whole file)
+193. pkg-config files
+194. iCalendar (RFC 5545) files (whole file only)
+195. Windows INI files (text only)
+196. Linux Software Map files
+197. exFAT ("no FAT chains" only)
 
 The following text formats can be recognized:
 
 (NOTE: currently broken)
 
-1. Linux kernel configuration files (whole file)
+1. Subversion hash files (wcprops, all-wcprops, etc.)
 2. Dockerfile files (whole file)
 3. Python PKG-INFO files (whole file)
 4. TRANS.TBL files
-5. CSS
-6. Subversion hash files (wcprops, all-wcprops, etc.)
-7. iCalendar (RFC 5545) files (whole file only)
-8. Windows INI files (text only)
-9. Linux Software Map files (whole file)
-10. pkg-config files
 
 ## Getting started
 

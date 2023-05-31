@@ -20,6 +20,7 @@ let
     click
     deepdiff
     defusedxml
+    icalendar
     kaitaistruct
     leb128
     lz4

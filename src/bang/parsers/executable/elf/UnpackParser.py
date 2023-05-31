@@ -271,7 +271,8 @@ class ElfUnpackParser(UnpackParser):
                 # * .qtmimedatabase: compressed version of the freedesktop.org MIME database
                 # * .BTF and .BTF.ext: eBPF related files
                 # * .rom_info: Mediatek preloader(?)
-                if header.name in ['.gnu_debugdata', '.qtmimedatabase', '.BTF', '.BTF.ext', '.rom_info']:
+                # * .init.data: Linux kernel init data, sometimes contains initial ramdisk
+                if header.name in ['.gnu_debugdata', '.qtmimedatabase', '.BTF', '.BTF.ext', '.rom_info', '.init.data']:
                     interesting = True
 
                 # GNOME/glib GVariant database
