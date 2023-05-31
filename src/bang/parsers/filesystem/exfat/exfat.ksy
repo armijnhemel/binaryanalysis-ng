@@ -196,12 +196,21 @@ types:
             repeat: eos
   directory:
     seq:
-      - id: entries
-        size: 32
-        type: entry
+      - id: directory_sets
+        type: directory_set
         repeat: until
-        repeat-until: _.end_of_directory
+        repeat-until: _.primary.end_of_directory
     types:
+      directory_set:
+        seq:
+          - id: primary
+            size: 32
+            type: entry
+          - id: secondaries
+            size: 32
+            type: entry
+            repeat: expr
+            repeat-expr: primary.secondary_count
       entry:
         seq:
           - id: entry_type
