@@ -182,8 +182,4 @@ class JavaManifestUnpackParser(UnpackParser):
         pass
 
     labels = ['java_manifest']
-
-    @property
-    def metadata(self):
-        metadata = {}
-        return metadata
+    metadata = {}

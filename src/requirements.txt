@@ -3,7 +3,6 @@ pytest
 kaitaistruct==0.9
 parameterized
 py-tlsh
-tinycss2
 python-snappy
 Pillow
 lz4

@@ -20,25 +20,30 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import tinycss2
+import configparser
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 
 
-class CssUnpackParser(UnpackParser):
-    extensions = ['.css']
+class IniUnpackParser(UnpackParser):
+    extensions = ['.ini']
     signatures = [
     ]
-    pretty_name = 'css'
+    pretty_name = 'ini'
 
     def parse(self):
-        # tinycss2 cannot process files that should be carved
-        check_condition(False, "unsupported")
+        ini_config = configparser.ConfigParser()
+
+        # open the file again, but then in text mode
         try:
-            self.data = tinycss2.parse_stylesheet_bytes(self.infile.read())
+            with open(self.infile.name, 'r') as ini_file:
+                ini_config.read_file(ini_file)
         except Exception as e:
             raise UnpackParserException(e.args)
 
-    labels = ['css']
+    def calculate_unpacked_size(self):
+        self.unpacked_size = self.infile.size
+
+    labels = ['ini']
     metadata = {}
