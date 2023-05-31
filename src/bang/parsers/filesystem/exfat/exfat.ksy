@@ -223,7 +223,6 @@ types:
             enum: type_importance
           type_code:
             value: entry_type & 0b11111
-            #enum: code
           end_of_directory:
             value: entry_type == 0
         enums:
