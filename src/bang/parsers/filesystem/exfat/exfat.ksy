@@ -403,11 +403,14 @@ types:
               - id: reserved_1
                 size: 2
               - id: ctime
-                type: u4
+                size: 4
+                type: timestamp
               - id: mtime
-                type: u4
+                size: 4
+                type: timestamp
               - id: atime
-                type: u4
+                size: 4
+                type: timestamp
               - id: ctime_ms_increment
                 type: u1
               - id: mtime_ms_increment
@@ -524,6 +527,25 @@ types:
                 type: u4
               - id: len_data
                 type: u8
+  timestamp:
+    seq:
+      - id: double_seconds
+        type: b5le
+      - id: minute
+        type: b6le
+      - id: hour
+        type: b5le
+      - id: day
+        type: b5le
+      - id: month
+        type: b4le
+      - id: year_from_1980
+        type: b7le
+    instances:
+      year:
+        value: year_from_1980 + 1980
+      seconds:
+        value: double_seconds * 2
 enums:
   type_importance:
     0: critical
