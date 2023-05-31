@@ -484,6 +484,14 @@ types:
                 value: general_secondary_flags & 1 != 0
               no_fat_chain:
                 value: general_secondary_flags & 2 != 0
+              directory:
+                value: _parent._parent._parent._parent.primary.data.as<generic_primary_template>.data.as<generic_primary_template>.data.as<file_directory>.directory
+              subdirectory:
+                pos: 0
+                io: _root.data_region.clusters.cluster[first_cluster-2]._io
+                type: directory
+                size: len_data
+                if: directory
           file_name_directory:
             seq:
               - id: general_secondary_flags
