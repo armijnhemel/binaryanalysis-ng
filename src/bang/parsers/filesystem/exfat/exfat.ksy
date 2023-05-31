@@ -486,12 +486,19 @@ types:
                 value: general_secondary_flags & 2 != 0
               directory:
                 value: _parent._parent._parent._parent.primary.data.as<generic_primary_template>.data.as<generic_primary_template>.data.as<file_directory>.directory
+              archive:
+                value: _parent._parent._parent._parent.primary.data.as<generic_primary_template>.data.as<generic_primary_template>.data.as<file_directory>.archive
               subdirectory:
-                pos: 0
-                io: _root.data_region.clusters.cluster[first_cluster-2]._io
+                pos: (first_cluster - 2) * _root.len_cluster
+                io: _root.data_region.heap._io
                 type: directory
                 size: len_data
                 if: directory
+              data:
+                pos: (first_cluster - 2) * _root.len_cluster
+                io: _root.data_region.heap._io
+                size: len_data
+                if: archive and no_fat_chain
           file_name_directory:
             seq:
               - id: general_secondary_flags
