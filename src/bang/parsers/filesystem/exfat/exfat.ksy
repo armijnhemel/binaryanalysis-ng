@@ -394,6 +394,8 @@ types:
             seq:
               - id: secondary_count
                 type: u1
+                valid:
+                  min: 2
               - id: set_checksum
                 type: u2
               - id: attributes
@@ -451,12 +453,22 @@ types:
                 type: u4
               - id: len_data
                 type: u8
+            instances:
+              allocation_possible:
+                value: general_secondary_flags & 1 != 0
+              no_fat_chain:
+                value: general_secondary_flags & 2 != 0
           file_name_directory:
             seq:
               - id: general_secondary_flags
                 type: u1
               - id: file_name
                 size-eos: true
+            instances:
+              allocation_possible:
+                value: general_secondary_flags & 1 != 0
+              no_fat_chain:
+                value: general_secondary_flags & 2 != 0
           vendor_allocation:
             seq:
               - id: general_secondary_flags
@@ -469,6 +481,11 @@ types:
                 type: u4
               - id: len_data
                 type: u8
+            instances:
+              allocation_possible:
+                value: general_secondary_flags & 1 != 0
+              no_fat_chain:
+                value: general_secondary_flags & 2 != 0
           vendor_extension:
             seq:
               - id: general_secondary_flags
@@ -477,6 +494,11 @@ types:
                 size: 16
               - id: vendor_defined
                 size: 14
+            instances:
+              allocation_possible:
+                value: general_secondary_flags & 1 != 0
+              no_fat_chain:
+                value: general_secondary_flags & 2 != 0
           volume_guid:
             seq:
               - id: secondary_count
@@ -489,6 +511,11 @@ types:
                 size: 16
               - id: reserved
                 size: 10
+            instances:
+              allocation_possible:
+                value: general_primary_flags & 1 != 0
+              no_fat_chain:
+                value: general_primary_flags & 2 != 0
           generic:
             seq:
               - id: custom
