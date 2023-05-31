@@ -115,6 +115,28 @@ types:
         contents: [0x55, 0xaa]
       - id: excess
         size-eos: true
+    instances:
+      active_fat:
+        value: volume_flags & 1
+        enum: active
+      volume_dirty:
+        value: volume_flags & 2
+        enum: dirty
+      media_failure:
+        value: volume_flags & 4
+        enum: media_failure
+      clear_to_zero:
+        value: volume_flags & 8
+    enums:
+      active:
+        0: first
+        1: second
+      media_failure:
+        0: no_failure
+        1: failure
+      dirty:
+        0: consistent
+        1: inconsistent
     types:
       revision:
         seq:
@@ -375,7 +397,7 @@ types:
                 type: u1
               - id: set_checksum
                 type: u2
-              - id: file_attributes
+              - id: attributes
                 type: u2
               - id: reserved_1
                 size: 2
@@ -397,6 +419,19 @@ types:
                 type: u1
               - id: reserved_2
                 size: 7
+            instances:
+              read_only:
+                value: attributes & 1 != 0
+              hidden:
+                value: attributes & 2 != 0
+              system:
+                value: attributes & 4 != 0
+              reserved:
+                value: attributes & 8 != 0
+              directory:
+                value: attributes & 0x10 != 0
+              archive:
+                value: attributes & 0x20 != 0
           stream_extension:
             seq:
               - id: general_secondary_flags
