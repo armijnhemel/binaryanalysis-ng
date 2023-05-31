@@ -208,10 +208,10 @@ types:
             type: u1
           - id: data
             type:
-              switch-on: importance
+              switch-on: category
               cases:
-                type_importance::critical: critical(category, type_code)
-                type_importance::benign: benign(category, type_code)
+                type_category::primary: primary(importance, type_code)
+                type_category::secondary: secondary(importance, type_code)
         instances:
           in_use:
             value: entry_type & 0x80 != 0
@@ -233,22 +233,22 @@ types:
             0: primary
             1: secondary
         types:
-          critical:
+          primary:
             params:
-              - id: category
+              - id: importance
                 type: u1
-                enum: type_category
+                enum: type_importance
               - id: code
                 type: u4
             seq:
               - id: entry
                 type:
-                  switch-on: category
+                  switch-on: importance
                   cases:
-                    type_category::primary: primary(code)
-                    type_category::secondary: secondary(code)
+                    type_importance::critical: critical(code)
+                    type_importance::benign: benign(code)
             types:
-              primary:
+              critical:
                 params:
                   - id: code
                     type: u4
@@ -272,42 +272,7 @@ types:
                     2: up_case_table
                     3: volume_label
                     5: file_directory
-              secondary:
-                params:
-                  - id: code
-                    type: u4
-                seq:
-                  - id: data
-                    type:
-                      switch-on: type_code
-                      cases:
-                        code::stream_extension: stream_extension
-                        code::file_name_directory: file_name_directory
-                        _: generic
-                instances:
-                  type_code:
-                    value: code
-                    enum: code
-                enums:
-                  code:
-                    0: stream_extension
-                    1: file_name_directory
-          benign:
-            params:
-              - id: category
-                type: u1
-                enum: type_category
-              - id: code
-                type: u4
-            seq:
-              - id: entry
-                type:
-                  switch-on: category
-                  cases:
-                    type_category::primary: primary(code)
-                    type_category::secondary: secondary(code)
-            types:
-              primary:
+              benign:
                 params:
                   - id: code
                     type: u4
@@ -327,7 +292,42 @@ types:
                   code:
                     0: volume_guid
                     1: texfat_padding
-              secondary:
+          secondary:
+            params:
+              - id: importance
+                type: u1
+                enum: type_importance
+              - id: code
+                type: u4
+            seq:
+              - id: entry
+                type:
+                  switch-on: importance
+                  cases:
+                    type_importance::critical: critical(code)
+                    type_importance::benign: benign(code)
+            types:
+              critical:
+                params:
+                  - id: code
+                    type: u4
+                seq:
+                  - id: data
+                    type:
+                      switch-on: type_code
+                      cases:
+                        code::stream_extension: stream_extension
+                        code::file_name_directory: file_name_directory
+                        _: generic
+                instances:
+                  type_code:
+                    value: code
+                    enum: code
+                enums:
+                  code:
+                    0: stream_extension
+                    1: file_name_directory
+              benign:
                 params:
                   - id: code
                     type: u4
