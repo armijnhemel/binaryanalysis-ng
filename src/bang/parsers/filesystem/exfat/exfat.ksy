@@ -503,7 +503,7 @@ types:
             seq:
               - id: general_secondary_flags
                 type: u1
-              - id: file_name
+              - id: name
                 size-eos: true
             instances:
               allocation_possible:
