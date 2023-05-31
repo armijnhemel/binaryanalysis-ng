@@ -80,7 +80,7 @@ class ExfatUnpacker(UnpackParser):
                                 if s.data.data.type_code == exfat.Exfat.Directory.Entry.Secondary.Critical.Code.stream_extension:
                                     for ds in s.data.data.data.subdirectory.directory_sets:
                                         directory_sets.append((ds, name))
-                        elif directory_set.primary.data.data.data.archive:
+                        else:
                             # force read the data to get Kaitai Struct to evaluate
                             for s in directory_set.secondaries:
                                 if s.data.data.type_code == exfat.Exfat.Directory.Entry.Secondary.Critical.Code.stream_extension:
@@ -125,7 +125,7 @@ class ExfatUnpacker(UnpackParser):
                             if s.data.data.type_code == exfat.Exfat.Directory.Entry.Secondary.Critical.Code.stream_extension:
                                 for ds in s.data.data.data.subdirectory.directory_sets:
                                     directory_sets.append((ds, name))
-                    elif directory_set.primary.data.data.data.archive:
+                    else:
                         for s in directory_set.secondaries:
                             if s.data.data.type_code == exfat.Exfat.Directory.Entry.Secondary.Critical.Code.stream_extension:
                                 with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):

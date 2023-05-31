@@ -498,7 +498,7 @@ types:
                 pos: (first_cluster - 2) * _root.len_cluster
                 io: _root.data_region.heap._io
                 size: len_data
-                if: archive and no_fat_chain
+                if: not directory and no_fat_chain
           file_name_directory:
             seq:
               - id: general_secondary_flags
