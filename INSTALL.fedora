@@ -7,7 +7,6 @@
 * java-openjdk
 * lz4
 * lzop
-* mailcap
 * ncompress
 * openssl
 * p7zip-plugins
@@ -22,7 +21,6 @@
 * python3-snappy
 * python3-parameterized
 * python3-pytest
-* python3-tinycss2
 * python3-tlsh
 * qemu-img
 * rzip

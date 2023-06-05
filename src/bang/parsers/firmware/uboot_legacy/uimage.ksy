@@ -454,6 +454,9 @@ enums:
     42:
       id: fdt_legacy
       doc: Binary Flat Device Tree Blob	in a Legacy Image
+    43:
+      id: renesas_spkg
+      doc: Renesas SPKG image
   magic_types:
     0x27051956:
       id: uimage

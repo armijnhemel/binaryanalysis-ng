@@ -20,29 +20,30 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import xml.dom
-import defusedxml.minidom
+import configparser
+
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 
 
-# There are a few variants of XML. The first one is the "regular"
-# one, which is documented at:
-# https://www.w3.org/TR/2008/REC-xml-20081126/
-#
-# Android has a "binary XML", where the XML data has been translated
-# into a binary file. This is not supported by this parser.
-class XmlUnpackParser(UnpackParser):
-    extensions = ['.xml', '.xsd', '.ncx', '.opf', '.svg', '.rss']
+class IniUnpackParser(UnpackParser):
+    extensions = ['.ini']
     signatures = [
     ]
-    pretty_name = 'xml'
+    pretty_name = 'ini'
 
     def parse(self):
+        ini_config = configparser.ConfigParser()
+
+        # open the file again, but then in text mode
         try:
-            self.data = defusedxml.minidom.parse(self.infile)
+            with open(self.infile.name, 'r') as ini_file:
+                ini_config.read_file(ini_file)
         except Exception as e:
             raise UnpackParserException(e.args)
 
-    labels = ['xml']
+    def calculate_unpacked_size(self):
+        self.unpacked_size = self.infile.size
+
+    labels = ['ini']
     metadata = {}

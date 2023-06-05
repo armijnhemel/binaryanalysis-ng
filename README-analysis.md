@@ -1,5 +1,8 @@
 # Running the BANG analysis scripts
 
+NOTE: the analysis scripts will be rewritten soon and should be considered
+unstable.
+
 BANG is conceptually split into three parts:
 
 1. firmware unpacker

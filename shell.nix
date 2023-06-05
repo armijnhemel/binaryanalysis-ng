@@ -20,6 +20,7 @@ let
     click
     deepdiff
     defusedxml
+    icalendar
     kaitaistruct
     leb128
     lz4
@@ -47,6 +48,7 @@ in
 pkgs.mkShell {
   buildInputs = with pkgs; [
     binutils
+    bzip3
     cabextract
     e2fsprogs
     e2tools
@@ -54,7 +56,6 @@ pkgs.mkShell {
     kaitai-struct-compiler
     lrzip
     lz4
-    mailcap
     ncompress
     openssl
     my-python

@@ -24,8 +24,8 @@ for the firmware scraper.
 
 Note: this list is vastly incomplete. It is highly recommended to use Nix.
 
-* a recent Linux distribution (Fedora 35 or higher, or equivalent)
-* Python 3.9.x or higher
+* a recent Linux distribution (Fedora 36 or higher, or equivalent)
+* Python 3.10.x or higher
 * pillow (possibly named python3-pillow), a drop in replacement for PIL ( <http://python-pillow.github.io/> )
 * GNU binutils (for 'ar')
 * squashfs-tools (for 'unsquashfs')
@@ -38,19 +38,17 @@ Note: this list is vastly incomplete. It is highly recommended to use Nix.
 * psycopg2 (possibly named python3-psycopg2)
 * python-snappy (possibly named python3-snappy)
 * python-tlsh (possibly named python3-tlsh)
-* tinycss2 (possibly named python3-tinycss2, not available on Fedora 26 and earlier)
 * dockerfile-parse (possibly named python3-dockerfile-parse)
 * openssl
 * rzip
-* mailcap (for mime.types)
 * lzop
-* OpenJDK (for 'unpack200')
 * defusedxml (possibly named python3-defusedxml)
 * icalendar (possibly named python3-icalendar)
 * pyyaml (possibly named python3-pyyaml)
 * ncompress
 * util-linux (for 'fsck.cramfs')
 * lz4 (for 'lz4c')
+* bzip3
 
 and many others (see `shell.nix`, `maintenance.nix` and `analysis.nix` for a
 full list).
@@ -68,7 +66,7 @@ It is assumed that BANG is run on little endian hardware (such as x86 or x86-64)
 
 ## Verified unsupported distributions
 
-* Fedora 34 and earlier
+* Fedora 35 and earlier
 * Ubuntu 16.04 and lower (Python version too old)
 
 This doesn't mean that newer versions of Ubuntu are supported, they just
@@ -246,7 +244,7 @@ larger file, unless stated otherwise.
 144. zchunk
 145. ubifs
 146. Performance Co-Pilot metadata files
-147. data URI (png, gif, jpeg only)
+147. data URI (PNG, GIF, JPEG, WEBP, certain fonts, SVG, PDF, JSON and octet-stream objects)
 148. DHTB signed files
 149. Android AAPT2 container format
 150. Android update image (version 2 only, full OTA image only)
@@ -282,35 +280,44 @@ larger file, unless stated otherwise.
 180. TP-Link TX6610v4 firmware
 181. Granite Devices firmware v300
 182. erofs ('inline' data layout only)
+183. bzip3
+184. PX4 autopilot firmware files
+185. SSH known hosts files (whole file)
+186. Unix passwd files (whole file)
+187. Unix group files (whole file)
+188. Unix shadow files (whole file)
+189. Samba password files
+190. Linux fstab files
+191. Java/Android MANIFEST.MF files (whole file)
+192. Linux kernel configuration files (whole file)
+193. pkg-config files
+194. iCalendar (RFC 5545) files (whole file only)
+195. Windows INI files (text only)
+196. Linux Software Map files
+197. exFAT ("no FAT chains" only)
 
 The following text formats can be recognized:
 
 (NOTE: currently broken)
 
-1. Linux kernel configuration files (whole file)
+1. Subversion hash files (wcprops, all-wcprops, etc.)
 2. Dockerfile files (whole file)
 3. Python PKG-INFO files (whole file)
-4. Unix group files (whole file)
-5. TRANS.TBL files
-6. CSS
-7. Linux fstab files
-8. Windows INI files (text only)
-9. Linux Software Map files (whole file)
-10. Unix passwd files (whole file)
-11. Unix shadow files (whole file)
-12. Samba password files
-13. SSH known hosts files (whole file)
-14. Subversion hash files (wcprops, all-wcprops, etc.)
-15. pkg-config files
-16. Java/Android MANIFEST.MF files (whole file)
-17. iCalendar (RFC 5545) files (whole file only)
+4. TRANS.TBL files
 
+## Getting started
 
-## Invocation
+This section assumes that you are using Nix to install all dependencies.
+
+1. `git clone` this repository
+2. run `nix-shell` to install all the dependencies and start a complete environment
+3. `cd src`
+4. run `make` to build all the Kaitai Struct parsers. Please note: this might take
+   a while!
 
 To unpack a file run:
 
-    $ python3 bang-scanner -c bang.config -f /path/to/binary
+    $ python3 -m bang.cli scan -u /path/to/unpack/directory /path/to/binary
 
 This will output a directory with inside a number of files and directories.
 The output directory can serve as input to the analysis scripts (and some
@@ -323,7 +330,7 @@ GNU Affero General Public License, version 3 (AGPL-3.0)
 The code for verifying and labeling Android Verified Boot images was heavily
 inspired by code from Android (`avbtool`) found at:
 
-<https://android.googlesource.com/platform/external/avb/+/master/avbtool>
+<https://android.googlesource.com/platform/external/avb/+/refs/heads/master/avbtool.py>
 
 The original license for avbtool:
 
