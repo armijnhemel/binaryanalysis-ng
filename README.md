@@ -296,6 +296,7 @@ larger file, unless stated otherwise.
 196. Linux Software Map files
 197. exFAT ("no FAT chains" only)
 198. Subversion hash files (wcprops, all-wcprops, etc.)
+199. Python PKG-INFO files (whole file)
 
 The following text formats can be recognized:
 
@@ -303,7 +304,6 @@ The following text formats can be recognized:
 
 1. TRANS.TBL files
 2. Dockerfile files (whole file)
-3. Python PKG-INFO files (whole file)
 
 ## Getting started
 
