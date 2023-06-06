@@ -297,13 +297,13 @@ larger file, unless stated otherwise.
 197. exFAT ("no FAT chains" only)
 198. Subversion hash files (wcprops, all-wcprops, etc.)
 199. Python PKG-INFO files (whole file)
+200. Dockerfile files (whole file)
 
 The following text formats can be recognized:
 
 (NOTE: currently broken)
 
 1. TRANS.TBL files
-2. Dockerfile files (whole file)
 
 ## Getting started
 

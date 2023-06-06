@@ -28,50 +28,6 @@ import shutil
 import tempfile
 import re
 import pathlib
-import email.parser
-
-# some external packages that are needed
-import dockerfile_parse
-
-
-# Docker file parsing, only works on whole Dockerfiles
-def unpack_dockerfile(fileresult, scanenvironment, offset, unpackdir):
-    '''Verify a Dockerfile.'''
-    filesize = fileresult.filesize
-    filename_full = scanenvironment.unpack_path(fileresult.filename)
-    unpackedfilesandlabels = []
-    labels = []
-    unpackingerror = {}
-    unpackedsize = 0
-
-    renamed = False
-    if not filename_full.name.endswith('Dockerfile'):
-        dockerdir = pathlib.Path(tempfile.mkdtemp(dir=scanenvironment.temporarydirectory))
-        shutil.copy(filename_full, dockerdir / 'Dockerfile')
-        dockerfileparser = dockerfile_parse.DockerfileParser(str(dockerdir / 'Dockerfile'))
-        renamed = True
-    else:
-        dockerfileparser = dockerfile_parse.DockerfileParser(str(filename_full))
-
-    try:
-        dfcontent = dockerfileparser.content
-    except Exception:
-        if renamed:
-            shutil.rmtree(dockerdir)
-        unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'not a valid Dockerfile'}
-        return {'status': False, 'error': unpackingerror}
-
-    labels.append('dockerfile')
-    if renamed:
-        shutil.rmtree(dockerdir)
-
-    return {'status': True, 'length': filesize, 'labels': labels,
-            'filesandlabels': unpackedfilesandlabels}
-
-unpack_dockerfile.extensions = ['dockerfile', '.dockerfile']
-unpack_dockerfile.pretty = 'dockerfile'
-#unpack_dockerfile.scope = 'text'
 
 
 # verify TRANS.TBL files
