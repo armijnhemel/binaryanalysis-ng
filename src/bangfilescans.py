@@ -22,13 +22,6 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import sys
-import os
-import shutil
-import tempfile
-import re
-import pathlib
-
 
 # verify TRANS.TBL files
 # https://en.wikipedia.org/wiki/TRANS.TBL
