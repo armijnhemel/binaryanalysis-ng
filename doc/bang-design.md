@@ -1,9 +1,9 @@
 # BANG design document
 
 Binary Analysis Next Generation (BANG) is a framework for unpacking files (like
-firmware) recursively and running checks on the unpacked files. Its intended
-use is to able to find out the provenance of the unpacked files and
-classify/label files, making them available for further analysis.
+firmware files) recursively and running analysis tools on the unpacked files.
+Its intended use is to able to find out the provenance of the unpacked files
+and classify/label files, making them available for further analysis.
 
 This file explains the design of the program and how to write new unpackers
 for certain file types.
@@ -17,27 +17,51 @@ reverse engineering and security meet.
 
 Experience creating earlier tools shows that the sometimes simplistic and
 naive approaches from other tools (assuming correct files instead of broken
-data, reliance on magic headers) is not realistic.
+data, reliance on magic headers, assuming a single file only contains one
+single file format) is not the best way to tackle the problem and more
+thorough checks are needed, also to detect edge cases.
+
+This is why BANG tries to do a lot more work and focus on correctness of
+data that is unpacked by parsing and verifying contents (and still then it
+gets it sometimes wrong).
 
 ## Framework
 
-The main part of the program is (currently) the scan queue and the result
-queue. This is where the paths of the files that need to be processed are
-stored. There are various threads (configurable) that pick tasks from the
-scan queue, analyze the file, write the result to the result queue, and move
-on to the next file, until no files are left to be processed.
+Conceptually BANG is divided into two parts:
 
-In case in a scan files are unpacked (from for example a ZIP file) then
-these files are added to the scan queue as well.
+1. an unpacking program that recursively unpacks files
+2. a set of analysis programs that are run on the unpacked files
 
-This works because unpacking a single file is completely independent and
-does not rely on unpacking other files (although in some cases the presence
-of other files might be needed).
+with an additional set of tools to create data sources that are used by
+the analysis programs.
 
-After all files have been unpacked results regarding unpacking are written
-to an output file and the files can be further analyzed by other scripts.
+The unpacking program consists of a scan queue from which threads pick tasks.
+A task contains a reference to a file. The file from the task is parsed by
+one or more parsers. Which parsers are run is based on known signatures
+("magic" headers which many file formats have) or known extensions if there
+isn't a known signature, but there is a known extension.
+
+If any files are unpacked during the scanning process, a new task is created
+for each of the unpacked files and the tasks are inserted into the queue to
+be scanned. This continues until there are no files left to scan.
+
+For each file that is scanned metadata is stored in a separate file. Metadata
+contains information such as names, hashes, unpacked files, and so on.
 
 ### Unpacking
+
+When BANG analyzes a file, it will check whether it can process the file,
+whether it is a padding file, whether it can check it by the extension, or
+whether it can recognize parts from matching signatures at a specific offset.
+
+The check functions in `process_job` use iterators to yield *meta directories*
+(see below), in which they store information about the file. If the file
+consists of multiple concatenated files, they will automatically result in
+multiple meta directories and record the different files as extracted files in
+the main file.
+
+When a file is an archive, the `unpack` method on the `UnpackParser` object
+will yield all the unpacked files, which `process_job` then immediately queues.
 
 For each file from the scanning queue the following is done:
 
@@ -49,6 +73,9 @@ For each file from the scanning queue the following is done:
     archive, compresed file, etcetera), or if it is a regular file with data
     appended to it, or prepended in front of it.
 3.  compute various checksums (MD5, SHA1, SHA256, optionally TLSH and telfhash)
+
+This is done in a so called *pipe line* (see below), which concatenates the
+different kinds of parsers.
 
 Many file types have a certain header that indicates what file type they
 are. On Linux systems these file types are typically described in a
@@ -72,182 +99,55 @@ There are three different types of files that can currently be unpacked:
 The files are scanned in the above order to prevent false positives as much
 as possible. Sometimes extra information will be used to make a better guess.
 
-There are two types of unpackers:
+The UnpackParser class is the base class for recognizing, analyzing and
+unpacking files. It has methods to parse, to write information to a meta
+directory, and to unpack to a meta directory.
 
-1. legacy unpackers, where parsing and unpacking are combined
-2. modern unpackers, where parsing and unpacking have been split
+#### Meta directories
 
-The former are currently still supported, but are being replaced by the
-latter. In a future rewrite the legacy unpackers will no longer be supported.
+The analysis for each file will record metadata, extracted files (if the file
+consists of multiple concatenated files), and unpacked files (in case the file
+contains files itself).  All this information is stored in a *meta directory*.
 
-#### Legacy unpackers
+The top meta directory is called `root`, and every extracted or unpacked file
+will have its own meta directory with its own unique name. The meta directory
+will not contain its file, but it refers to by storing the pathname in the meta
+directory's `pathname` file. The meta directory's `info.pkl` file contains a
+data structure that maps extracted and unpacked paths to other meta
+directories. It also contains general metadata and unpacked symlinks.
 
-Each legacy unpacker has a specific interface:
+Unpacked files that have absolute paths can be found under `abs`, while those
+with relative paths are under `rel`. Files that are carved from a larger file
+are stored in a directory `extracted`.
 
-def unpacker(fileresult, scanenvironment, offset, unpackdir)
+This structure makes it harder to navigate, but unpacked files will not clutter
+the directory structure. To navigate the results there are tools, see the file
+`showing-results.md` for more information.
 
-1.  fileresult: an object containing information about the file, including
-    the full file name, file size, parent object, and so on
-2.  scanenvironment: an object containing information about the scan
-    environment
-3.  offset: offset inside the file where the file system, compressed
-    file media file possibly starts
-4.  unpackdir: the target directory where data should be written to
+The file `unpacking-examples.md` explains the unpacking structure and the
+concept of meta directories in more detail.
 
-For each file that is successfully unpacked, a result is returned in the
-form of a dictionary, containing the following fields:
+#### Pipe lines
 
-* unpack status (boolean) to indicate whether or not any data was
-  unpacked
-
-1.  unpack size to indicate what part of the data was unpacked
-2.  a list of tuples (file, labels) that were unpacked from the file.
-    The labels could be used to indicate that a file has a certain
-    status and that it should not be unpacked as it is already known
-    what the file is (example: PNG)
-3.  a list of labels for the file
-4.  a dict with extra information (structure depending on type
-    of scan)
-5.  (optional) offset indicating the start of the data
-
-If a file is successfully unpacked the above information is used to store
-the following about the unpacked data:
-
-1.  the type of file or data that was unpacked (example: gzip, ext2 file
-    system).
-2.  the byte range of the unpacked data, indicating where the file or data
-    starts and where it ends. This is useful if different files have been
-    concatenated (example: a flash dump with different partitions)
-3.  paths of any files (and sometimes directories, symbolic links and special
-    files) that were unpacked (example: contents of a ZIP file)
-4.  labels describing the unpacked data. These can later be used to more
-    quickly identify files and run specific checks on them.
-
-If a file is not successfully unpacked the result will contain an error
-message, as well as the offset at which place in the file the error occured
-which is stored in a log file for later analysis, if needed. The result will
-then be:
-
-* a dict with a possible error.
-
-The error dict has the following items:
-
-1.  fatal: boolean to indicate whether or not the error is a fatal
-    error (such as disk full, etc.) so BANG should be stopped.
-    Non-fatal errors are format violations (files, etc.)
-2.  offset: offset where the error occured
-3.  reason: human readable description of the error
-
-##### Legacy unpacker return values
-
-The data that is returned from the legacy unpackers is a dictionary with
-a key "status" and various other elements, depending whether a scan was
-successful or not. If the scan was successful, then the following fields
-will also be present:
-
-*   length: an integer indicating the size of the data that is unpacked
-*   list of files and labels: a list of tuples with the name of each file
-    that was unpacked, plus a list of associated labels (empty most of the time)
-*   labels: a list of labels for the file that was scanned
-*   offset (optional): an offset where the data starts. Only needs to be set
-    if the offset where the data starts isn't the offset that was given as a
-    parameter (example: coreboot images)
-*   metadata (optional): a data structure with scan specific information.
-    Example scans that have this: unpack_elf and unpack_png
-
-If the scan was unsuccessful then the dictionary will contain:
-
-*   error message: a dictionary with information about possible errors that
-    occured.
-
-An error message is a dictionary, with the following elements:
-
-*   offset: offset in the file at which the error occured
-*   fatal: boolean indicating whether or not the error is fatal and the
-    program should be stopped (this is currently ignored)
-*   reason: a human readable description of the error
-
-An example of an error message:
-
-    {'offset': 0, 'fatal': False, 'reason': 'invalid PNG data according to PIL'}
-
-#### Unpacking directory
-
-Files that are unpacked from a container, or which are carved from a
-larger file are written in a directory structure that looks like this:
-
-    $filename-$type-$counter/
-
-for example:
-
-    example.gz-gzip-1/
-
-For each subsequent gzip file that is unpacked from the file the counter
-will be increased, for example:
-
-    example.bin-gzip-1/
-    example.bin-gzip-2/
-    example.bin-gzip-3/
-
-and so on.
-
-Not every successful verification of a file will have a directory structure
-like this. If the entire file is a file from which nothing can be unpacked,
-then the directory will not be returned. Examples of this are graphics files
-(PNG, GIF, JPEG, WebP, etcetera) or audio files.
-
-Files that have been unpacked are written to this directory and when returned
-will be added to the scanning queue.
-
-The offsets of the data inside the original file and the size will be stored
-in internal data structures with metadata.
-
-#### Carving
-
-Carving a file from a larger file is a bit different than unpacking data
-from a file. The code that carves data from a file already verifies the data
-to find the end of the data. Files that are marked as "unpacked" are not
-processed by BANG as an optimization.
-
-#### Data stored
-
-The data generated during the scan is separated in two parts:
-
-1. data describing the structure of the data, as well as certain metadata (UID,
-   GID, permissions, parent file, offset in the archive, etc.)
-2. data specific to the file
-
-The difference between the two is that the latter will always be the same
-(except when the scanner changes), while the former can change: an ELF
-executable can be included in two different files, but with different
-permissions, different ownership, and so on. The data specific to the file
-(the contents) wouldn't change, but the metadata would.
-
-The structure of the scan is stored in a Python pickle file called
-"bang.pickle" found at the top level of the scan directory. The file
-specific data is stored as Python pickle files in the directory "results"
-found at the top level of the scan directory.
+Pipe lines are concatenations of parsers.
 
 ## Optimizations
 
 There are many optimizations in BANG aimed at reducing disk I/O to allow
 scanning of very large collections of files.
 
-In the main scaning loop some checks from the unpacking checks are duplicated
-to perform a look ahead during the search for magic headers to see if the magic
-headers really are valid, or if they are false positives. This is to prevent
-that methods are run unnecessarily. Method calls in Python are quite expensive
-and preventing large amounts of them can easily shave a few minutes off for
-large files (for example: Android firmwares).
-
-Carving some file types means parsing the file format (example: PNG, Java class
-files, etcetera). To prevent these files being scanned again they are
-explicitly flagged as already having been scanned.
+* No double parsing: Extracted files that have been parsed already will not be
+  parsed again, because the processing code will assign it a fresh meta
+  directory in which the UnpackParser can store its information.
+* Minimize opening files: A meta directory will open the file and provide a
+  file object to the parsers.
+* Pre-parsing checks: UnpackParsers can implement quick heuristic checks before
+  doing large parses.
 
 ## Reducing I/O with buffers and memoryviews
 
-For some unpackers it has been attempted to reduce memory usage
-using techniques described in this blog post:
+For some unpackers it has been attempted to reduce memory usage using
+techniques described in this blog post:
 
 <https://eli.thegreenplace.net/2011/11/28/less-copies-in-python-with-the-buffer-protocol-and-memoryviews>
 

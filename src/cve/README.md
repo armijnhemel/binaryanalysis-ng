@@ -1,3 +1,5 @@
+DO NOT USE, WILL BE REPLACED
+
 # Process ELF binaries with cve-bin-tool
 
 `cve-bin-tool` (<https://github.com/intel/cve-bin-tool>) is a tool to search

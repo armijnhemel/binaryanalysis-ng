@@ -3,12 +3,10 @@ pytest
 kaitaistruct==0.9
 parameterized
 py-tlsh
-tinycss2
 python-snappy
 Pillow
 lz4
 icalendar
-elasticsearch
 dockerfile-parse
 defusedxml
 mutf8
@@ -19,3 +17,4 @@ telfhash
 python-lzo
 zstandard
 protobuf
+Click

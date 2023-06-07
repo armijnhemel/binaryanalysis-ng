@@ -2,7 +2,7 @@
 
 # Binary Analysis Next Generation (BANG!)
 #
-# Copyright 2022 - Armijn Hemel
+# Copyright - Armijn Hemel, Tjaldur Software Governance Solutions
 # Licensed under the terms of the GNU Affero General Public License version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
@@ -13,12 +13,13 @@ file in a proximity matching database using a few metrics:
 * TLSH of the whole file
 * telfhash (if any)
 * TLSH generated from any identifiers (if any)
-* MalwareBazaar
+* MalwareBazaar (if configured)
 
 The result is a TLSH hash for each positive match. This hash then needs to
 be searched in an another external data source, for example a database.
 '''
 
+import collections
 import os
 import pathlib
 import pickle
@@ -123,105 +124,117 @@ def main(config_file, result_directory, identifiers):
     session = requests.Session()
 
     # open the top level pickle
-    bang_pickle = result_directory / 'bang.pickle'
+    bang_pickle = result_directory / 'info.pkl'
     if not bang_pickle.exists():
-        print("BANG result pickle does not exist, exiting",
-              file=sys.stderr)
+        print("result pickle not found, exiting", file=sys.stderr)
         sys.exit(1)
 
-    # open the top level pickle
-    try:
-        bang_data = pickle.load(open(bang_pickle, 'rb'))
-    except:
-        print("Could not open BANG result pickle, exiting",
-              file=sys.stderr)
-        sys.exit(1)
+    # load the pickle
+    bang_data = pickle.load(open(bang_pickle, 'rb'))
 
-    for bang_file in bang_data['scantree']:
-        if 'elf' in bang_data['scantree'][bang_file]['labels']:
-            # load the pickle for the ELF file
-            sha256 = bang_data['scantree'][bang_file]['hash']['sha256']
-            suffix = pathlib.Path(bang_file).suffix
+    # create a deque to store results in and retrieve results from
+    file_deque = collections.deque()
+    file_deque.append(bang_pickle)
 
-            if suffix in ignored_suffixes:
-                continue
+    # walk the unpack tree recursively and grab all the ELF files
+    while True:
+        try:
+            file_pickle = file_deque.popleft()
+        except:
+            break
 
-            metadata = {}
+        if 'labels' in bang_data:
+            if 'elf' in bang_data['labels']:
+                filename = file_pickle.parent / 'pathname'
+                if filename.exists():
+                    # store result data
+                    result_data = {}
 
-            # open the result pickle
-            try:
-                results_data = pickle.load(open(result_directory / 'results' / ("%s.pickle" % sha256), 'rb'))
-            except:
-                continue
+                    # now read the contents
+                    with open(filename, 'r') as pathname:
+                        elf_file = pathname.read()
 
-            if 'tlsh' in results_data:
-                metadata['tlsh'] = results_data['tlsh']
+                        if 'tlsh' in bang_data['metadata']['hashes']:
+                            result_data['tlsh'] = bang_data['metadata']['hashes']['tlsh']
 
-            if 'metadata' in results_data:
-                if 'telfhash' in results_data['metadata']:
-                    metadata['telfhash'] = results_data['metadata']['telfhash']
+                        if 'metadata' in bang_data:
+                            if 'telfhash' in bang_data['metadata']:
+                                result_data['telfhash'] = bang_data['metadata']['telfhash']
 
-                strings = set()
-                functions = set()
-                variables = set()
-                if results_data['metadata']['strings'] != []:
-                    for s in results_data['metadata']['strings']:
-                        if len(s) < string_min_cutoff:
-                            continue
-                        if len(s) > string_max_cutoff:
-                            continue
-                        # ignore whitespace-only strings
-                        if re.match(r'^\s+$', s) is None:
-                            strings.add(s)
-                if results_data['metadata']['symbols'] != []:
-                    for s in results_data['metadata']['symbols']:
-                        if s['section_index'] == 0:
-                            continue
-                        if ignore_weak_symbols:
-                            if s['binding'] == 'weak':
-                                continue
-                        if len(s['name']) < identifier_cutoff:
-                            continue
-                        if '@@' in s['name']:
-                            identifier_name = s['name'].rsplit('@@', 1)[0]
-                        elif '@' in s['name']:
-                            identifier_name = s['name'].rsplit('@', 1)[0]
-                        else:
-                            identifier_name = s['name']
-                        if s['type'] == 'func':
-                            if identifier_name in lq_identifiers['elf']['functions']:
-                                continue
-                            functions.add(identifier_name)
-                        elif s['type'] == 'object':
-                            if identifier_name in lq_identifiers['elf']['variables']:
-                                continue
-                            variables.add(identifier_name)
+                        strings = set()
+                        functions = set()
+                        variables = set()
+                        if bang_data['metadata']['strings'] != []:
+                            for s in bang_data['metadata']['strings']:
+                                if len(s) < yara_env['string_min_cutoff']:
+                                    continue
+                                if len(s) > yara_env['string_max_cutoff']:
+                                    continue
+                                # ignore whitespace-only strings
+                                if re.match(r'^\s+$', s) is None:
+                                    strings.add(s)
+                        if bang_data['metadata']['symbols'] != []:
+                            for s in bang_data['metadata']['symbols']:
+                                if s['section_index'] == 0:
+                                    continue
+                                if yara_env['ignore_weak_symbols']:
+                                    if s['binding'] == 'weak':
+                                        continue
+                                if len(s['name']) < yara_env['identifier_cutoff']:
+                                    continue
+                                if '@@' in s['name']:
+                                    identifier_name = s['name'].rsplit('@@', 1)[0]
+                                elif '@' in s['name']:
+                                    identifier_name = s['name'].rsplit('@', 1)[0]
+                                else:
+                                    identifier_name = s['name']
+                                if s['type'] == 'func':
+                                    functions.add(identifier_name)
+                                elif s['type'] == 'object':
+                                    variables.add(identifier_name)
 
-                # concatenate the identifiers:
-                # first strings, then functions, then variables
-                all_identifiers = sorted(strings) + sorted(functions) + sorted(variables)
-                data = " ".join(all_identifiers).encode()
+                    # concatenate the identifiers:
+                    # first strings, then functions, then variables
+                    all_identifiers = sorted(strings) + sorted(functions) + sorted(variables)
+                    data = " ".join(all_identifiers).encode()
 
-                # compute TLSH for identifiers
-                tlsh_result = tlsh.hash(data)
-                if tlsh_result != 'TNULL':
-                    metadata['tlsh_identifiers'] = tlsh_result
+                    # compute TLSH for identifiers
+                    tlsh_result = tlsh.hash(data)
+                    if tlsh_result != 'TNULL':
+                        result_data['tlsh_identifiers'] = tlsh_result
 
-            # query the TLSH hash
-            for h in metadata:
-                if h in endpoints:
-                    endpoint = endpoints[h]
-                    try:
-                        if metadata[h] == '':
-                            continue
-                        req = session.get('%s/%s' % (endpoint, metadata[h]))
-                        json_results = req.json()
-                        if json_results['match']:
-                            if json_results['distance'] <= maximum_distance:
-                                print(endpoint, bang_file, json_results['tlsh'])
-                                sys.stdout.flush()
-                    except requests.exceptions.RequestException:
-                        pass
+                    # query the end points hash
+                    for h in metadata:
+                        if h in endpoints:
+                            endpoint = endpoints[h]
+                            try:
+                                if metadata[h] == '':
+                                    continue
+                                req = session.get('%s/%s' % (endpoint, metadata[h]))
+                                json_results = req.json()
+                                if json_results['match']:
+                                    if json_results['distance'] <= maximum_distance:
+                                        print(endpoint, bang_file, json_results['tlsh'])
+                                        sys.stdout.flush()
+                            except requests.exceptions.RequestException:
+                                pass
+
+        # finally add the unpacked/extracted files to the queue
+        if 'unpacked_relative_files' in bang_data:
+            for unpacked_file in bang_data['unpacked_relative_files']:
+                file_meta_directory = bang_data['unpacked_relative_files'][unpacked_file]
+                file_pickle = result_directory.parent / file_meta_directory / 'info.pkl'
+                file_deque.append(file_pickle)
+        if 'unpacked_absolute_files' in bang_data:
+            for unpacked_file in bang_data['unpacked_absolute_files']:
+                file_meta_directory = bang_data['unpacked_absolute_files'][unpacked_file]
+                file_pickle = result_directory.parent / file_meta_directory / 'info.pkl'
+                file_deque.append(file_pickle)
+        if 'extracted_files' in bang_data:
+            for unpacked_file in bang_data['extracted_files']:
+                file_meta_directory = bang_data['extracted_files'][unpacked_file]
+                file_pickle = result_directory.parent / file_meta_directory / 'info.pkl'
+                file_deque.append(file_pickle)
 
 
 if __name__ == "__main__":

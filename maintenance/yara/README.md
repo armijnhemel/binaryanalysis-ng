@@ -20,7 +20,7 @@ created or processed.
 
 Generating rules from binaries seems to work really well for the vast
 majority of dynamically linked ELF binaries but not for for example
-Dalvik `.dex` files.
+statically linked ELF binaries or Dalvik `.dex` files.
 
 ### Dynamically linked ELF binaries
 
@@ -31,6 +31,33 @@ are of course exceptions, for example when there is a complete copy of
 third party software included in the package), so the separation between
 package and third party code tends to be clean. Information extracted from
 binaries in a package usually is from just that package.
+
+Extracting identifiers from the binary has advantages over extracting
+identifiers from the source code: in many packages not all source code files
+are used for building a specific program, so there might be too many
+identifiers in a fingerprint.
+
+For programs written in C++ there is also a difference between function names
+and variable names in source code and binary code: in binary code these are
+typically in so called "mangled form" and first need to be demangled when
+using fingerprints generated from source code. When using fingerprints
+extracted from binaries this step can be skipped.
+
+### Statically linked ELF binaries
+
+Statically linked ELF binaries not only includes the data from the program
+itself, but also code from dependencies that are used, for example the C
+library. Because in ELF static linking there are no symbols that are imported
+or exported (as all have been resolved) the only identifiers that can be used
+are strings, and function names and variable names cannot be used (as they are
+not present).
+
+Because all of the dependencies are included in the same binary it means that
+not just the strings of the program, but also its dependencies are extracted
+by BANG. This makes strings extracted from a statically linked ELF binary not
+suitable if the goal is to only fingerprint only the program. They are only
+useful if trying to match the combination of program and dependencies that is
+used.
 
 ### Android Dex files
 
@@ -47,17 +74,19 @@ such as Android Studio:
 
 which advertises obfuscation of class names and method names as a feature.
 
-This makes rules generated from binary `.dex` files not very well suited.
-It is much better to create rules from source code and focus on other
-identifiers, such as the strings embedded in `.dex` files.
+This makes rules generated from binary `.dex` files not very well suited as
+there will be a lot of junk. Results will be much better with rules created
+from source code with other identifiers than class names or method names,
+such as the strings embedded in `.dex` files.
 
 ## Source code processor
 
 The source code processor is split into two scripts:
-`bang_extract_identifiers.py` extracts identifiers from source code files and
-writes these identifiers, with associated metadata, to output files as JSON.
-The script `yara_from_source.py` takes these JSON output files and generates
-YARA rule files.
+
+1. `bang_extract_identifiers.py` - extracts identifiers from source code files and
+   writes these identifiers, with associated metadata, to output files as JSON.
+2. `yara_from_source.py` - takes JSON output files from step 1 and generates
+   YARA rule files.
 
 ### `bang_extract_identifiers.py`
 
@@ -173,11 +202,14 @@ arguments: a configuration file (in YAML format) and the directory with BANG
 scan results. An exanple configuration file `yara-config.yaml` is provided
 in this directory and should be adapted to your local settings.
 
-An example invocation could look like this:
+If a package was unpacked in the directory `~/tmp/debian`, then an example
+invocation could look like this:
 
 ```console
 $ python3 yara_from_bang.py -c yara-config.yaml -r ~/tmp/debian
 ```
+
+This will generate a YARA file for each ELF file.
 
 There are some settings in the configuration that determine which identifiers
 will be written to the YARA files. These are described in the sample

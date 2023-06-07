@@ -37,7 +37,8 @@ Odex 036 and regular Dex 035.
 
 Android 12L uses the `android_fbpk` version 1 and version 2 format,
 `android_vendor_boot` version 4 and `android_boot_img` version 4. It uses
-Oat 199, Art 099, Vdex 027, Dex 035, Dex 038 and Dex 039.
+Oat 199, Art 099, Vdex 027, Dex 035, Dex 038 and Dex 039. It also contains
+`napp_header` (nano app).
 
 ## raven-sd1a.210817.015.a4-factory-bd6cb030.zip
 
@@ -48,7 +49,7 @@ Art 099, Oat 195, Vdex 027, Dex 035, Dex 038 and Dex 039.
 ## razorg-JLS36C-factory-834eab41.zip
 
 The Nexus 7 2013 Mobile (codename "razorg") was made by ASUS. The firmware
-uses `androidasusboot` format. It uses Odex 036 and regular Dex 035.
+uses `androidmsmboot` format. It uses Odex 036 and regular Dex 035.
 
 ## redfin-rd1a.200810.020-factory-c3ea1715.zip
 
@@ -71,7 +72,7 @@ The Nexus 6 (codename "shamu") was made by Motorola Mobility. It uses the
 ## soju-grk39f-factory-8e283784.zip
 
 The Nexus S (codename "crespo") was made by Samsung. It uses the `android_boot_img`
-version 0 format and Dex 035 and Odex 036.
+version 0 format and Dex 035 and Odex 036. It also has `kcm` files.
 
 ## walleye-opm1.171019.011-factory-f74dd4fd.zip
 
@@ -102,12 +103,16 @@ and Dex 035.
 From <https://dl.twrp.me/marlin/>. Uses the `android_boot_img` version 0 format
 and Dex 035.
 
+## lineage-18.1-20220401-recovery-FP2.img
+
+Uses `qcdt`.
+
 # Official firmware files
 
 ## htc_d027_9_7inch_wm3732_phonesdk_gc2035_gc0308_de_201210122.img
 
-Rockchip based, uses `rk_crc`, `rockchip` and `android_boot_img` version 0
-formats. Uses Dex 035 and Dex 036 (which officially doesn't exist).
+Rockchip based, uses `rk_crc`, `rockchip`, `rkboot` and `android_boot_img`
+version 0 formats. Uses Dex 035 and Dex 036 (which officially doesn't exist).
 
 ## I9300XXUFMB3_I9300OJKFMB3_ILO.zip
 
@@ -124,6 +129,11 @@ called `Acer E130 Tool Setup.msi` which can be unpacked with `7z`. Inside
 there is a CAB file called `_D73E97C33A4BA86CBC3B146ECFF38C2C` which can be
 unpacked with `cabextract` and which contains a file called
 `_B8D67569E4EF4C3386C854FEE4260157` which is the actual firmware file.
+
+## OPEN-ZS590KS-32.0501.0403.4-BSP-2206-user-20220705.zip
+
+ASUS Zenfone 8, contains `android_super`. Uses Oat 183, Vdex 021. Also has
+`chromatix` and `aapt`.
 
 # Random files
 
@@ -153,7 +163,7 @@ Mediatek MT6572 based, uses Dex 035 and Odex 036.
 
 ## Eurostar_Onyx_1_Plus_MT6580_06262017_6.0.zip
 
-Mediatek MT6580 based, uses `mtk_bootrom` amongst others.
+Mediatek MT6580 based, uses `mtk_bootrom` amongst others. Uses `android_mediatek_logo`.
 
 ## fw-vendor_phoenix_miui_PHOENIX_20.9.3_cf0b9e25cc_10.0.zip
 
@@ -196,9 +206,18 @@ Allwinner based, uses the `allwinner_img` file format.
 
 Spreadtrum based, uses `spreadtrum_pac`
 
+## Symphony_V94_HW1_V9_05012019_SPD.zip
+
+Spreadtrum based (Pike 2?), uses `spreadtrum_pac`, `dhtb`, Dex 037, Oat 131, Vdex 010
+
+## TCL_A996_08032012_CMD.zip
+
+Broadcom bcm21553 based (unsure, but likely). Uses `yaffs2`, `android_boot_img`
+version 0 and Dex 035.
+
 ## Titan_8_Plus_MT6572_20180126_4.4.2.zip
 
-Mediatek MT6572 based, uses `mtk_bootrom` amongst others.
+Mediatek MT6572 based, uses `mtk_bootrom`, `android_mediatek_logo` amongst others.
 
 ## Vega_Tab_67_C543G_MT6572_16122016.zip
 

@@ -6,7 +6,8 @@ with matching Nix expressions:
 
 1. firmware unpacking phase - `shell.nix`
 2. maintenance phase - `maintenance.nix`
-3. analysis phase - `analysis.nix`
+3. scraper phase - `scraper.nix`
+4. analysis phase - `analysis.nix`
 
 For each of the different phases a different environment should be initiated.
 The rationale behind this is that these phases can be run on different

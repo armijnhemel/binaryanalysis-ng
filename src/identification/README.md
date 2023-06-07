@@ -47,6 +47,9 @@ names to put into Meilisearch. The search script only uses the strings.
 This method is very noisy due to how Meilisearch works, so it is not
 recommended to use except as a last resort.
 
+To enable make sure to install the right packages (via `analysis.nix` and
+`maintenance.nix`), as they are not installed by default.
+
 ## VulnerableCode in BANG
 
 Data in VulnerableCode can be accessed via a Web API. Code that wraps around
