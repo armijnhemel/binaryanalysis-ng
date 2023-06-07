@@ -20,6 +20,8 @@ let
     click
     deepdiff
     defusedxml
+    dockerfile-parse
+    icalendar
     kaitaistruct
     leb128
     lz4

@@ -188,3 +188,6 @@ enums:
     0x11de784a:
       id: m0sense
       doc: "M0SENSE BL702"
+    0x4b684d71:
+      id: "maixplayu4"
+      doc: "Sipeed MaixPlay-U4(BL618)"
