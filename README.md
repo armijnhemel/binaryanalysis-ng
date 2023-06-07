@@ -295,15 +295,10 @@ larger file, unless stated otherwise.
 195. Windows INI files (text only)
 196. Linux Software Map files
 197. exFAT ("no FAT chains" only)
-
-The following text formats can be recognized:
-
-(NOTE: currently broken)
-
-1. Subversion hash files (wcprops, all-wcprops, etc.)
-2. Dockerfile files (whole file)
-3. Python PKG-INFO files (whole file)
-4. TRANS.TBL files
+198. Subversion hash files (wcprops, all-wcprops, etc.)
+199. Python PKG-INFO files (whole file)
+200. Dockerfile files (whole file)
+201. TRANS.TBL files
 
 ## Getting started
 
