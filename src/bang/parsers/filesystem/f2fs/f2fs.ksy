@@ -33,15 +33,15 @@ instances:
 types:
   checkpoint_segment:
     seq:
-      - id: checkpoint
+      - id: checkpoint_and_bitmaps
         size: _root.segment_size
-        type: checkpoint
-      - id: checkpoint2
+        type: checkpoint_and_bitmaps
+      - id: checkpoint_and_bitmaps2
         size: _root.segment_size
-        type: checkpoint
+        type: checkpoint_and_bitmaps
     instances:
       active:
-        value: 'checkpoint.version > checkpoint2.version ? checkpoint : checkpoint2'
+        value: 'checkpoint_and_bitmaps.checkpoint.version > checkpoint_and_bitmaps2.checkpoint.version ? checkpoint_and_bitmaps : checkpoint_and_bitmaps2'
   superblock_segment:
     seq:
       - id: superblock
@@ -213,6 +213,15 @@ types:
         type: strz
       - id: total_segments
         type: u4
+  checkpoint_and_bitmaps:
+    seq:
+      - id: checkpoint
+        size: 192
+        type: checkpoint
+      - id: sit_version_bitmap
+        size: checkpoint.sit_ver_bitmap_bytesize
+      - id: nat_version_bitmap
+        size: checkpoint.nat_ver_bitmap_bytesize
   checkpoint:
     seq:
       - id: version
