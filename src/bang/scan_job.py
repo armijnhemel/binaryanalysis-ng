@@ -182,6 +182,9 @@ def check_by_extension(scan_environment, checking_meta_directory):
                     log.debug(f'check_by_extension[{checking_meta_directory.md_path}]: parser parsed entire file')
                     checking_meta_directory.unpack_parser = unpack_parser
                     yield checking_meta_directory
+
+                    # stop after first successful extension parse
+                    return
                 else:
                     log.debug(f'check_by_extension[{checking_meta_directory.md_path}]: parser parsed [0:{unpack_parser.parsed_size}], leaving [{unpack_parser.parsed_size}:{checking_meta_directory.size}] ({checking_meta_directory.size - unpack_parser.parsed_size} bytes)')
                     # yield the checking_meta_directory with a ExtractingUnpackParser, in

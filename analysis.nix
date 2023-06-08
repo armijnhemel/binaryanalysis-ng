@@ -9,8 +9,6 @@ let
     click
     deepdiff
     defusedxml
-    dockerfile-parse
-    icalendar
     kaitaistruct
     packageurl-python
     parameterized
