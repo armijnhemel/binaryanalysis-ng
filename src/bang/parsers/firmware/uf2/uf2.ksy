@@ -191,3 +191,6 @@ enums:
     0x4b684d71:
       id: "maixplayu4"
       doc: "Sipeed MaixPlay-U4(BL618)"
+    0x9517422f:
+      id: "rza1lu"
+      doc: "Renesas RZ/A1LU (R7S7210xx)"
