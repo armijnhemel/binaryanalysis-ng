@@ -116,11 +116,11 @@ types:
         type: u4
       - id: main_area_block_address
         type: u4
-      - id: root_inode_numner
+      - id: root_inode_number
         type: u4
-      - id: node_inode_numner
+      - id: node_inode_number
         type: u4
-      - id: meta_inode_numner
+      - id: meta_inode_number
         type: u4
       - id: uuid
         size: 16
