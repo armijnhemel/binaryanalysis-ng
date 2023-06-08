@@ -34,8 +34,14 @@ types:
   checkpoint_segment:
     seq:
       - id: checkpoint
-        size: 192
+        size: _root.segment_size
         type: checkpoint
+      - id: checkpoint2
+        size: _root.segment_size
+        type: checkpoint
+    instances:
+      active:
+        value: 'checkpoint.version > checkpoint2.version ? checkpoint : checkpoint2'
   superblock_segment:
     seq:
       - id: superblock
