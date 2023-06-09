@@ -222,6 +222,10 @@ types:
         size: checkpoint.sit_ver_bitmap_bytesize
       - id: nat_version_bitmap
         size: checkpoint.nat_ver_bitmap_bytesize
+    instances:
+      checksum:
+        pos: checkpoint.ofs_checksum
+        type: u4
   checkpoint:
     seq:
       - id: version
