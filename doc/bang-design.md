@@ -65,14 +65,14 @@ will yield all the unpacked files, which `process_job` then immediately queues.
 
 For each file from the scanning queue the following is done:
 
-1.  check if the file is a regular file, or if it is a special file, like
-    a block or character device, a socket file, or if it is a directory.
-    Only regular files are scanned.
-2.  analyze the file to verify what kind of file it is, and if any data
-    can be extracted from it in case it is a container format (file system,
-    archive, compresed file, etcetera), or if it is a regular file with data
-    appended to it, or prepended in front of it.
-3.  compute various checksums (MD5, SHA1, SHA256, optionally TLSH and telfhash)
+1. check if the file is a regular file, or if it is a special file, like
+   a block or character device, a socket file, or if it is a directory.
+   Only regular files are scanned.
+2. analyze the file to verify what kind of file it is, and if any data
+   can be extracted from it in case it is a container format (file system,
+   archive, compresed file, etcetera), or if it is a regular file with data
+   appended to it, or prepended in front of it.
+3. compute various checksums (MD5, SHA1, SHA256, optionally TLSH and telfhash)
 
 This is done in a so called *pipe line* (see below), which concatenates the
 different kinds of parsers.
@@ -87,14 +87,14 @@ and other Google products).
 
 There are three different types of files that can currently be unpacked:
 
-1.  files with a known extension, but without a known magic header. This is
-    for for example Android sparse data image formats (for example "protobuf"
-    files), or several other Android or Google formats (Chrome PAK, etc.)
-2.  files which are inspected for known headers, after which several checks
-    are run and data is possibly carved from a larger file.
-3.  text only files, where it is not immediately clear what
-    is inside and where the file possibly first has to be
-    converted to a binary (examples: Intel Hex).
+1. files with a known extension, but without a known magic header. This is
+   for for example Android sparse data image formats (for example "protobuf"
+   files), or several other Android or Google formats (Chrome PAK, etc.)
+2. files with known magic headers which are searched for, after which several
+   checks are run and data is possibly carved from a larger file.
+3. featureless files, where it is not immediately clear what is inside and the
+   parser is basically just trying to see if it can get lucky. An example is
+   the `base64` parser.
 
 The files are scanned in the above order to prevent false positives as much
 as possible. Sometimes extra information will be used to make a better guess.
