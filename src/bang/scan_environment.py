@@ -62,7 +62,7 @@ class ParserCollection:
     def add(self, unpackparser):
         self._unpackparsers[unpackparser.pretty_name] = unpackparser
         for ext in unpackparser.extensions:
-            self._unpackparsers_for_extensions.setdefault(ext,[]).append(unpackparser)
+            self._unpackparsers_for_extensions.setdefault(ext.lower(),[]).append(unpackparser)
         for signature in unpackparser.signatures:
             self._unpackparsers_for_signatures.setdefault(signature,[]).append(unpackparser)
         if unpackparser.scan_if_featureless:
