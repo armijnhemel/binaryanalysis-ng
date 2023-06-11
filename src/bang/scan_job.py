@@ -640,4 +640,4 @@ def process_jobs(pipeline, scan_environment):
 
 def matches_file_pattern(filename, extension):
     '''checks whether a file ends in the string extension (case insensitive).'''
-    return filename.name.lower().endswith(extension.lower())
+    return filename.name.lower().endswith(extension)
