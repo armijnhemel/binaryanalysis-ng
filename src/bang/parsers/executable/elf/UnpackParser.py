@@ -303,6 +303,12 @@ class ElfUnpackParser(UnpackParser):
                             unpacked_md.info['propagated'] = {'parent': parent_name}
                             unpacked_md.info['propagated']['name'] = 'freedesktop.org.xml'
                             unpacked_md.info['propagated']['type'] = 'Qt MIME database'
+                    elif header.name == '.BTF':
+                        with unpacked_md.open(open_file=False):
+                            unpacked_md.info['suggested_parsers'] = ['btf']
+                    elif header.name == '.BTF.ext':
+                        with unpacked_md.open(open_file=False):
+                            unpacked_md.info['suggested_parsers'] = ['btf_ext']
                     yield unpacked_md
 
     def write_info(self, to_meta_directory):
