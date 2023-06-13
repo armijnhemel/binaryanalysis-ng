@@ -309,3 +309,19 @@ types:
         value: flags & 0x1000 == 0x1000
       resizefs:
         value: flags & 0x4000 == 0x4000
+  extent:
+    seq:
+      - id: ofs_file
+        type: u4
+      - id: block_address
+        type: u4
+      - id: len_extent
+        type: u4
+  sit_entry:
+    seq:
+      - id: vblocks
+        type: u2
+      - id: valid_bitmap
+        size: 64
+      - id: mtime
+        type: u8
