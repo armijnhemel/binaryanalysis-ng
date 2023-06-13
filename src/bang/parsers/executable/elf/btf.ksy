@@ -6,34 +6,39 @@ meta:
   endian: le
 doc-ref: https://docs.kernel.org/bpf/btf.html
 seq:
-  - id: magic
-    contents: [0x9f, 0xeb]
-  - id: version
-    type: u1
-  - id: flags
-    type: u1
-  - id: len_header
-    type: u4
-  - id: rest_of_header
+  - id: header
     type: header
-    size: len_header - magic._sizeof - version._sizeof - flags._sizeof - len_header._sizeof
   - id: type_section
-    size: rest_of_header.len_type_section
+    size: header.rest_of_header.len_type_section
     #type: type_section
   - id: string_section
-    size: rest_of_header.len_string_section
+    size: header.rest_of_header.len_string_section
     type: string_section
 types:
   header:
     seq:
-      - id: ofs_type_section
+      - id: magic
+        contents: [0x9f, 0xeb]
+      - id: version
+        type: u1
+      - id: flags
+        type: u1
+      - id: len_header
         type: u4
-      - id: len_type_section
-        type: u4
-      - id: ofs_string_section
-        type: u4
-      - id: len_string_section
-        type: u4
+      - id: rest_of_header
+        type: rest_of_header
+        size: len_header - magic._sizeof - version._sizeof - flags._sizeof - len_header._sizeof
+    types:
+      rest_of_header:
+        seq:
+          - id: ofs_type_section
+            type: u4
+          - id: len_type_section
+            type: u4
+          - id: ofs_string_section
+            type: u4
+          - id: len_string_section
+            type: u4
   info:
     meta:
       bit-endian: le
@@ -96,13 +101,13 @@ types:
         type: u4
   btf_kind_enum:
     params:
-      - id: num_elem
+      - id: num_enums
         type: b15
     seq:
       - id: enums
         type: btf_enum
         repeat: expr
-        repeat-expr: num_elem
+        repeat-expr: num_enums
     types:
       btf_enum:
         seq:
@@ -112,13 +117,13 @@ types:
             type: s4
   btf_kind_enum64:
     params:
-      - id: num_elem
+      - id: num_enums
         type: b15
     seq:
       - id: enums
         type: btf_enum64
         repeat: expr
-        repeat-expr: num_elem
+        repeat-expr: num_enums
     types:
       btf_enum64:
         seq:
@@ -130,13 +135,13 @@ types:
             type: u4
   btf_kind_function_proto:
     params:
-      - id: num_elem
+      - id: num_function_protos
         type: b15
     seq:
       - id: function_protos
         type: btf_function_proto
         repeat: expr
-        repeat-expr: num_elem
+        repeat-expr: num_function_protos
     types:
       btf_function_proto:
         seq:
@@ -163,13 +168,13 @@ types:
         4: bool
   btf_kind_section:
     params:
-      - id: num_elem
+      - id: num_sections
         type: b15
     seq:
       - id: sections
         type: btf_section
         repeat: expr
-        repeat-expr: num_elem
+        repeat-expr: num_sections
     types:
       btf_section:
         seq:
@@ -181,13 +186,13 @@ types:
             type: u4
   btf_kind_union:
     params:
-      - id: num_elem
+      - id: num_members
         type: b15
     seq:
       - id: members
         type: member
         repeat: expr
-        repeat-expr: num_elem
+        repeat-expr: num_members
     types:
       member:
         seq:
