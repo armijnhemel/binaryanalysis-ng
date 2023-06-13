@@ -127,6 +127,9 @@ def find_extension_parsers(scan_environment):
 
 def check_with_suggested_parsers(scan_environment, checking_meta_directory):
     for unpack_parser_cls in ( scan_environment.parsers.get(p) for p in checking_meta_directory.info.get('suggested_parsers',[]) ):
+        if unpack_parser_cls is None:
+            continue
+
         try:
             unpack_parser = unpack_parser_cls(checking_meta_directory, 0, scan_environment.configuration)
             log.debug(f'check_with_suggested_parsers[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
