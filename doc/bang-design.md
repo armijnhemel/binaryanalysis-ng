@@ -85,16 +85,27 @@ But this is not true for every file type where other information has to
 be used, such as a known extension (quite popular on for example Android
 and other Google products).
 
-There are three different types of files that can currently be unpacked:
+To determine which parser should be run the following steps are taken:
 
-1. files with a known extension, but without a known magic header. This is
-   for for example Android sparse data image formats (for example "protobuf"
-   files), or several other Android or Google formats (Chrome PAK, etc.)
-2. files with known magic headers which are searched for, after which several
-   checks are run and data is possibly carved from a larger file.
-3. featureless files, where it is not immediately clear what is inside and the
-   parser is basically just trying to see if it can get lucky. An example is
-   the `base64` parser.
+1. see if one or more parsers were suggested by the previous unpacker: there
+   is a mechanism to give hints to the unpacker to select the correct parser.
+   This is useful if the file can only be one kind of file, but there are
+   overlapping signatures or there are no features that would normally be used
+   to determine the file type. The suggested parsers can be propagated by
+   passing them in the meta directory as `suggested_parsers`. An example of a
+   parser doing this is the ELF parser that uses it for any unpacked `.BTF`
+   and `.BTF.ext` sections.
+2. check for a known extension. This is for files that always have the same
+   extension, but that have no known magic header. Examples are Android sparse
+   data image formats (for example "protobuf" files), or several other Android
+   or Google formats (Chrome PAK, etc.)
+3. search for known magic headers for a file, after which several checks are
+   run and data is possibly carved from a larger file. Most parsers are in this
+   category. Good examples are the PNG and GIF parsers.
+4. run leftover parsers for so called "featureless files", where it is not
+   immediately clear what is inside and the parser is basically just trying
+   to see if it can get lucky. An example is the `base64` parser, which has no
+   known extension and no magic header.
 
 The files are scanned in the above order to prevent false positives as much
 as possible. Sometimes extra information will be used to make a better guess.
