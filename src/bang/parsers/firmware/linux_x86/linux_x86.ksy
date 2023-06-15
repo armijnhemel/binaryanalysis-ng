@@ -118,11 +118,11 @@ types:
     seq:
       - id: minor
         type: u1
-        valid: 2
-      - id: major
-        type: u1
         valid:
           min: 2
+      - id: major
+        type: u1
+        valid: 2
 enums:
   hardware_subarchs:
     0:
