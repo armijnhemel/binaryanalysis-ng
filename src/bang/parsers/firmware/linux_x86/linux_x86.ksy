@@ -60,23 +60,32 @@ types:
         type: u2
       - id: cmdline_size
         type: u4
+        if: version.minor >= 6
       - id: hardware_subarch
         type: u4
         enum: hardware_subarchs
+        if: version.minor >= 7
       - id: hardware_subarch_data
         size: 8
+        if: version.minor >= 7
       - id: ofs_payload
         type: u4
+        if: version.minor >= 8
       - id: len_payload
         type: u4
+        if: version.minor >= 8
       - id: setup_data
         type: u8
+        if: version.minor >= 9
       - id: pref_address
         type: u8
+        if: version.minor >= 10
       - id: init_size
         type: u4
+        if: version.minor >= 10
       - id: handover_offset
         type: u4
+        if: version.minor >= 11
     instances:
       setup_code_size:
         value: 'common_header.setup_sects == 0 ? 4*512 : common_header.setup_sects * 512'
