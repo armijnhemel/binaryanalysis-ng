@@ -98,6 +98,10 @@ types:
         pos: real_mode_code_size + ofs_payload
         size: len_payload
         if: ofs_payload != 0
+      kernel_version_string:
+        pos: kernel_version + 0x200
+        type: strz
+        encoding: ASCII
   common_header:
     seq:
       - id: reserved
