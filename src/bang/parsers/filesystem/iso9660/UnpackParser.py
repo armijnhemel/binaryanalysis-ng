@@ -306,7 +306,7 @@ class Iso9660UnpackParser(UnpackParser):
         file_path = pathlib.Path('system_area')
         with meta_directory.unpack_regular_file(file_path, is_block=True) as (unpacked_md, outfile):
             outfile.write(self.data.system_area)
-            yield meta_directory
+            yield unpacked_md
 
         # then process the actual data
         for descriptor in self.data.data_area:
