@@ -81,6 +81,11 @@ types:
             kind::variable: btf_kind_variable
             kind::section: btf_kind_section(info.vlen)
             kind::decl_tag: btf_kind_decl_tag
+    instances:
+      name:
+        pos: ofs_name
+        io: _root.string_section._io
+        type: strz
   btf_kind_array:
     seq:
       - id: btf_array
@@ -115,6 +120,11 @@ types:
             type: u4
           - id: val
             type: s4
+        instances:
+          name:
+            pos: ofs_name
+            io: _root.string_section._io
+            type: strz
   btf_kind_enum64:
     params:
       - id: num_enums
@@ -133,6 +143,11 @@ types:
             type: u4
           - id: val_hi32
             type: u4
+        instances:
+          name:
+            pos: ofs_name
+            io: _root.string_section._io
+            type: strz
   btf_kind_function_proto:
     params:
       - id: num_function_protos
@@ -149,6 +164,11 @@ types:
             type: u4
           - id: type
             type: u4
+        instances:
+          name:
+            pos: ofs_name
+            io: _root.string_section._io
+            type: strz
   btf_kind_int:
     seq:
       - id: int_flags
@@ -203,6 +223,11 @@ types:
             enum: kind
           - id: member_offset
             type: u4
+        instances:
+          name:
+            pos: ofs_name
+            io: _root.string_section._io
+            type: strz
   btf_kind_variable:
     seq:
       - id: linkage
