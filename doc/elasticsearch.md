@@ -1,5 +1,8 @@
 # Configuration of the Elasticsearch reporter in BANG
 
+NOTE: ElasticSearch support was removed from BANG. Below you can only find
+some historical information which will be removed in the near future.
+
 BANG can write its results to Elasticsearch and make it available for further
 investigation and processing using standard Elasticsearch tools.
 

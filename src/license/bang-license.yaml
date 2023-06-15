@@ -1,0 +1,10 @@
+---
+general:
+    # directory for unpacking. By default this is /tmp or
+    # whatever the default set by the system is.
+    # tempdir: /tmp
+    #verbose: true
+    verbose: false
+yara:
+    # directory where pre-compiled yara rules can be found
+    license_rules: /home/armijn/yara/licenses

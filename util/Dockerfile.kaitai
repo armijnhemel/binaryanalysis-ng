@@ -3,15 +3,17 @@ FROM mozilla/sbt as builder
 # Assume kaitai_struct contains git clone --recursive of https://github.com/kaitai-io/kaitai_struct.git
 COPY kaitai_struct /kaitai_struct
 WORKDIR /kaitai_struct
-RUN git checkout 0b611f58947f1e74e6f5ea58dc8cd99a7a81313c .
+RUN git checkout 0.9
+RUN git submodule update --recursive
 WORKDIR /kaitai_struct/compiler
 RUN sbt compilerJVM/universal:packageBin
 
-RUN unzip -d / jvm/target/universal/kaitai-struct-compiler-0.9-SNAPSHOT.zip
+RUN ls -l jvm/target/universal/
+RUN unzip -d / jvm/target/universal/kaitai-struct-compiler-0.9.zip
 
 FROM openjdk:jre-slim
 
-COPY --from=builder /kaitai-struct-compiler-0.9-SNAPSHOT /kaitai-struct-compiler
+COPY --from=builder /kaitai-struct-compiler-0.9 /kaitai-struct-compiler
 COPY --from=builder /kaitai_struct /kaitai_struct
 
 ENTRYPOINT ["/kaitai-struct-compiler/bin/kaitai-struct-compiler"]

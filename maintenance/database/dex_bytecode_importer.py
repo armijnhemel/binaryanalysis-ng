@@ -2,7 +2,7 @@
 
 # Binary Analysis Next Generation (BANG!)
 #
-# Copyright 2021 - Armijn Hemel
+# Copyright 2021-2022 - Armijn Hemel
 # Licensed under the terms of the GNU Affero General Public License version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
@@ -11,16 +11,16 @@ This script processes data from Dex files processed by BANG
 and puts the relevant data in a PostgreSQL database.
 '''
 
-import sys
-import os
-import argparse
-import stat
+import collections
 import pathlib
 import pickle
+import sys
 
 # import some modules for dependencies, requires psycopg2 2.7+
 import psycopg2
 import psycopg2.extras
+
+import click
 
 # import YAML module for the configuration
 from yaml import load
@@ -30,44 +30,21 @@ try:
 except ImportError:
     from yaml import Loader
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", action="store", dest="cfg",
-                        help="path to F-Droid configuration file", metavar="FILE")
-    parser.add_argument("-r", "--result-directory", action="store", dest="result_directory",
-                        help="path to BANG result directories", metavar="DIR")
-    args = parser.parse_args()
 
-    # sanity checks for the configuration file
-    if args.cfg is None:
-        parser.error("No configuration file provided, exiting")
-
-    # the configuration file should exist ...
-    if not os.path.exists(args.cfg):
-        parser.error("File %s does not exist, exiting." % args.cfg)
-
-    # ... and should be a real file
-    if not stat.S_ISREG(os.stat(args.cfg).st_mode):
-        parser.error("%s is not a regular file, exiting." % args.cfg)
-
-    # sanity checks for the result directory
-    if args.result_directory is None:
-        parser.error("No result directory provided, exiting")
-
-    result_directory = pathlib.Path(args.result_directory)
-
-    # the result directory should exist ...
-    if not result_directory.exists():
-        parser.error("File %s does not exist, exiting." % args.result_directory)
+@click.command(short_help='load Dex bytecode information into database')
+@click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
+@click.option('--result-directory', '-r', required=True, help='BANG result directory', type=click.Path(exists=True))
+def main(config_file, result_directory):
+    result_directory = pathlib.Path(result_directory)
 
     # ... and should be a real directory
     if not result_directory.is_dir():
-        parser.error("%s is not a directory, exiting." % args.result_directory)
+        print("%s is not a directory, exiting." % result_directory, file=sys.stderr)
+        sys.exit(1)
 
     # read the configuration file. This is in YAML format
     try:
-        configfile = open(args.cfg, 'r')
-        config = load(configfile, Loader=Loader)
+        config = load(config_file, Loader=Loader)
     except (YAMLError, PermissionError):
         print("Cannot open configuration file, exiting", file=sys.stderr)
         sys.exit(1)
@@ -101,7 +78,7 @@ def main():
                                   password=postgresql_password,
                                   port=postgresql_port, host=postgresql_host)
         cursor.close()
-    except psycopg2.Error:
+    except psycopg2.Error as e:
         print("Database server not running or malconfigured, exiting.",
               file=sys.stderr)
         sys.exit(1)
@@ -125,32 +102,72 @@ def main():
 
     dex_counter = 0
     method_counter = 0
+
     # walk the results directory
-    for bang_directory in result_directory.iterdir():
-        bang_pickle = bang_directory / 'bang.pickle'
-        if not bang_pickle.exists():
+    bang_pickle = result_directory / 'info.pkl'
+    if not bang_pickle.exists():
+        print("Not a valid BANG meta directory")
+        sys.exit(1)
+
+    # store the paths of pickes of Dex files for processing
+    dex_files = []
+    file_deque = collections.deque()
+
+    file_deque.append(bang_pickle)
+
+    # walk the unpack tree recursively and grab all the APK files
+    while True:
+        try:
+            file_pickle = file_deque.popleft()
+        except:
+            break
+
+        try:
+            bang_data = pickle.load(open(file_pickle, 'rb'))
+        except:
             continue
 
-        # open the top level pickle
-        bang_data = pickle.load(open(bang_pickle, 'rb'))
-        db_rows = []
-        for bang_file in bang_data['scantree']:
-            if 'dex' in bang_data['scantree'][bang_file]['labels']:
-                sha256 = bang_data['scantree'][bang_file]['hash']['sha256']
+        if 'labels' in bang_data:
+            if 'dex' in bang_data['labels']:
+                dex_files.append(file_pickle)
 
-                # open the result pickle
-                results_data = pickle.load(open(bang_directory / 'results' / ("%s.pickle" % sha256), 'rb'))
-                for r in results_data['metadata']['classes']:
-                    class_name = r['classname']
-                    for m in r['methods']:
-                        method_name = m['name']
-                        if 'bytecode_hashes' in m:
-                             bytecode_sha256 = m['bytecode_hashes']['sha256']
-                             bytecode_tlsh = ''
-                             if m['bytecode_hashes']['tlsh'] is not None:
-                                 bytecode_tlsh = m['bytecode_hashes']['tlsh']
-                             db_rows.append((sha256, class_name, method_name, bytecode_sha256, bytecode_tlsh))
-                dex_counter += 1
+        # finally add the unpacked/extracted files to the queue
+        if 'unpacked_relative_files' in bang_data:
+            for unpacked_file in bang_data['unpacked_relative_files']:
+                file_meta_directory = bang_data['unpacked_relative_files'][unpacked_file]
+                file_pickle = result_directory.parent / file_meta_directory / 'info.pkl'
+                file_deque.append(file_pickle)
+        if 'unpacked_absolute_files' in bang_data:
+            for unpacked_file in bang_data['unpacked_absolute_files']:
+                file_meta_directory = bang_data['unpacked_absolute_files'][unpacked_file]
+                file_pickle = result_directory.parent / file_meta_directory / 'info.pkl'
+                file_deque.append(file_pickle)
+        if 'extracted_files' in bang_data:
+            for unpacked_file in bang_data['extracted_files']:
+                file_meta_directory = bang_data['extracted_files'][unpacked_file]
+                file_pickle = result_directory.parent / file_meta_directory / 'info.pkl'
+                file_deque.append(file_pickle)
+
+    for file_pickle in dex_files:
+        db_rows = []
+        with open(file_pickle, 'rb') as dex_pickle:
+            bang_data = pickle.load(dex_pickle)
+
+        sha256 = bang_data['metadata']['hashes']['sha256']
+
+        # open the result pickle
+        for r in bang_data['metadata']['classes']:
+            class_name = r['classname']
+            for m in r['methods']:
+                method_name = m['name']
+                if 'bytecode_hashes' in m:
+                    bytecode_sha256 = m['bytecode_hashes']['sha256']
+                    bytecode_tlsh = ''
+                    if m['bytecode_hashes']['tlsh'] is not None:
+                        bytecode_tlsh = m['bytecode_hashes']['tlsh']
+                    db_rows.append((sha256, class_name, method_name, bytecode_sha256, bytecode_tlsh))
+        dex_counter += 1
+
         # insert contents of all the files in the APK
         psycopg2.extras.execute_batch(dbcursor, "execute bytecode_insert(%s, %s, %s, %s, %s)", db_rows)
         method_counter += len(db_rows)
@@ -160,7 +177,6 @@ def main():
             print("Added %d methods" % len(db_rows))
             print("Total %d methods" % method_counter)
             print()
-
 
     if verbose:
         print()

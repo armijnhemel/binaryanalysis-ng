@@ -3,6 +3,8 @@ RUN apt-get update && apt-get install make
 
 COPY . /usr/src/bang/src
 WORKDIR /usr/src/bang/src
+ENV PATH="${PATH}:/kaitai-struct-compiler/bin"
+
 RUN make
 
 FROM fedora:33
@@ -20,7 +22,7 @@ RUN dnf install -y binutils \
                    libxml2 \
                    lz4 \
                    lzop \
-                   mailcap \
+                   lzo-devel \
                    ncompress \
                    openssl \
                    p7zip \

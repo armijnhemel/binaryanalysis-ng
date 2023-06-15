@@ -2,7 +2,7 @@
 
 # Binary Analysis Next Generation (BANG!)
 #
-# Copyright 2021 - Armijn Hemel
+# Copyright 2021-2022 - Armijn Hemel
 # Licensed under the terms of the GNU Affero General Public License version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
@@ -11,15 +11,14 @@ This script processes data crawled from the F-Droid repositories
 and puts the relevant data in a PostgreSQL database.
 '''
 
-import sys
-import os
-import argparse
-import pathlib
-import zipfile
 import datetime
-import tempfile
-import shutil
 import hashlib
+import os
+import pathlib
+import shutil
+import sys
+import tempfile
+import zipfile
 
 # import XML processing that guards against several XML attacks
 import defusedxml.minidom
@@ -27,6 +26,8 @@ import defusedxml.minidom
 # import some modules for dependencies, requires psycopg2 2.7+
 import psycopg2
 import psycopg2.extras
+
+import click
 
 # import YAML module for the configuration
 from yaml import load
@@ -40,30 +41,12 @@ except ImportError:
 import tlsh
 import telfhash
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", action="store", dest="cfg",
-                        help="path to F-Droid configuration file", metavar="FILE")
-    args = parser.parse_args()
-
-    # sanity checks for the configuration file
-    if args.cfg is None:
-        parser.error("No configuration file provided, exiting")
-
-    cfg = pathlib.Path(args.cfg)
-
-    # the configuration file should exist ...
-    if not cfg.exists():
-        parser.error("File %s does not exist, exiting." % args.cfg)
-
-    # ... and should be a real file
-    if not cfg.is_file():
-        parser.error("%s is not a regular file, exiting." % args.cfg)
-
+@click.command(short_help='load F-Droid APK information into database')
+@click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
+def main(config_file):
     # read the configuration file. This is in YAML format
     try:
-        configfile = open(args.cfg, 'r')
-        config = load(configfile, Loader=Loader)
+        config = load(config_file, Loader=Loader)
     except (YAMLError, PermissionError):
         print("Cannot open configuration file, exiting", file=sys.stderr)
         sys.exit(1)

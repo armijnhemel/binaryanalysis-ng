@@ -89,8 +89,8 @@ There are three tables specific to F-Droid, with the following schema:
 
 The table apk_contents has two additional indexes:
 
-    CREATE INDEX apk_contents_sha256 ON apk_contents USING HASH (sha256);
-    CREATE INDEX apk_contents_name ON apk_contents USING HASH (name);
+    CREATE INDEX apk_contents_sha256 ON apk_contents(sha256);
+    CREATE INDEX apk_contents_name ON apk_contents(name);
 
 Then there is a table specific to ELF files, with the following schema:
 
@@ -98,7 +98,7 @@ Then there is a table specific to ELF files, with the following schema:
 
 with an additional index:
 
-   CREATE INDEX elf_hashes_sha256 ON elf_hashes USING HASH (sha256);
+   CREATE INDEX elf_hashes_sha256 ON elf_hashes(sha256);
 
 The ELF specific table is shared with other import scripts.
 

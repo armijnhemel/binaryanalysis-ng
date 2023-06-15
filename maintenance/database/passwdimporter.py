@@ -2,7 +2,7 @@
 
 # Binary Analysis Next Generation (BANG!)
 #
-# Copyright 2021 - Armijn Hemel
+# Copyright 2021-2022 - Armijn Hemel
 # Licensed under the terms of the GNU Affero General Public License version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
@@ -17,14 +17,15 @@ The test file is phpbb-withmd5.txt which can be downloaded from:
 https://wiki.skullsecurity.org/Passwords
 '''
 
-import sys
 import os
-import argparse
-import pathlib
+import string
+import sys
 
 # import some modules for dependencies, requires psycopg2 2.7+
 import psycopg2
 import psycopg2.extras
+
+import click
 
 # import YAML module for the configuration
 from yaml import load
@@ -35,46 +36,14 @@ except ImportError:
     from yaml import Loader
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", action="store", dest="cfg",
-                        help="path to configuration file", metavar="FILE")
-    parser.add_argument("-f", "--file", action="store", dest="passwdfile",
-                        help="path to file with passwords", metavar="FILE")
-    args = parser.parse_args()
-
-    # sanity checks for the file with passwords
-    if args.passwdfile is None:
-        parser.error("No file with passwords provided, exiting")
-
-    password_file = pathlib.Path(args.passwdfile)
-
-    # the file with passwords should exist ...
-    if not password_file.exists():
-        parser.error("File %s does not exist, exiting." % password_file)
-
-    # ... and should be a real file
-    if not password_file.is_file():
-        parser.error("%s is not a regular file, exiting." % password_file)
-
-    # sanity checks for the configuration file
-    if args.cfg is None:
-        parser.error("No configuration file provided, exiting")
-
-    cfg = pathlib.Path(args.cfg)
-
-    # the configuration file should exist ...
-    if not cfg.exists():
-        parser.error("File %s does not exist, exiting." % cfg)
-
-    # ... and should be a real file
-    if not cfg.is_file():
-        parser.error("%s is not a regular file, exiting." % cfg)
+@click.command(short_help='load passwords and hashes into database')
+@click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
+@click.option('--file', '-f', 'password_file', required=True, help='file with passwords and hashes', type=click.Path(exists=True))
+def main(config_file, password_file):
 
     # read the configuration file. This is in YAML format
     try:
-        configfile = cfg.open()
-        config = load(configfile, Loader=Loader)
+        config = load(config_file, Loader=Loader)
     except (YAMLError, PermissionError):
         print("Cannot open configuration file, exiting", file=sys.stderr)
         sys.exit(1)
@@ -136,8 +105,22 @@ def main():
                                     host=postgresql_host)
     dbcursor = dbconnection.cursor()
 
+    passwds = []
+
     for line in passwdfile:
-        (hashed, plaintext) = line.strip().split(maxsplit=1)
+        try:
+            splits = line.strip().split(maxsplit=1)
+            if len(splits) == 2:
+                (hashed, plaintext) = splits
+                # extra sanity check for the hash
+                if hashed.isprintable():
+                    if '\x00' in plaintext:
+                        continue
+                    passwds.append((hashed, plaintext))
+        except:
+            continue
+
+    for (hashed, plaintext) in passwds:
         dbcursor.execute("INSERT INTO password (hashed, plaintext) VALUES (%s, %s) ON CONFLICT DO NOTHING", (hashed, plaintext))
 
     # cleanup
