@@ -218,13 +218,20 @@ class MetaDirectory:
     def unpacked_rel_root(self):
         return self.md_path / self.REL_UNPACK_DIR
 
-    def unpacked_path(self, path_name):
+    @property
+    def unpacked_block_root(self):
+        return self.md_path / self.BLOCK_UNPACK_DIR
+
+    def unpacked_path(self, path_name, is_block=False):
         '''Gives a path in the MetaDirectory for an unpacked file with name path_name.
         '''
-        if path_name.is_absolute():
-            unpacked_path = self.md_path / self.ABS_UNPACK_DIR / path_name.relative_to('/')
+        if is_block:
+            unpacked_path = self.md_path / self.BLOCK_UNPACK_DIR / path_name
         else:
-            unpacked_path = self.md_path / self.REL_UNPACK_DIR / path_name
+            if path_name.is_absolute():
+                unpacked_path = self.md_path / self.ABS_UNPACK_DIR / path_name.relative_to('/')
+            else:
+                unpacked_path = self.md_path / self.REL_UNPACK_DIR / path_name
         return unpacked_path
 
     def md_for_unpacked_path(self, unpacked_path):
@@ -274,11 +281,11 @@ class MetaDirectory:
         log.debug(f'[{self.md_path}]unpack_regular_file: update info to {self.info}')
 
     @contextmanager
-    def unpack_regular_file(self, path):
+    def unpack_regular_file(self, path, is_block=False):
         '''Context manager for unpacking a file with path path into the MetaDirectory,
         yields a file object, that you can write to, directly or via sendfile().
         '''
-        unpacked_path = self.unpacked_path(path)
+        unpacked_path = self.unpacked_path(path, is_block)
         unpacked_md, unpacked_file = self.make_new_md_for_file(unpacked_path)
         try:
             yield unpacked_md, unpacked_file
