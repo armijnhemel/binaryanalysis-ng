@@ -260,11 +260,11 @@ class MetaDirectory:
         return md, f
 
     @contextmanager
-    def unpack_regular_file_no_open(self, path):
+    def unpack_regular_file_no_open(self, path, is_block=False):
         '''Context manager for unpacking a file with path path into the MetaDirectory,
         yields a file name, that can be used to write data to.
         '''
-        unpacked_path = self.unpacked_path(path)
+        unpacked_path = self.unpacked_path(path, is_block)
         unpacked_md, unpacked_file = self.make_new_md_for_file(unpacked_path)
         unpacked_file.close()
 
@@ -274,10 +274,13 @@ class MetaDirectory:
         yield unpacked_md, unpacked_file.name
 
         # update info
-        if path.is_absolute():
-            self.info.setdefault('unpacked_absolute_files', {})[unpacked_path] = unpacked_md.md_path
+        if is_block:
+            self.info.setdefault('unpacked_block_files', {})[unpacked_path] = unpacked_md.md_path
         else:
-            self.info.setdefault('unpacked_relative_files', {})[unpacked_path] = unpacked_md.md_path
+            if path.is_absolute():
+                self.info.setdefault('unpacked_absolute_files', {})[unpacked_path] = unpacked_md.md_path
+            else:
+                self.info.setdefault('unpacked_relative_files', {})[unpacked_path] = unpacked_md.md_path
         log.debug(f'[{self.md_path}]unpack_regular_file: update info to {self.info}')
 
     @contextmanager
@@ -297,10 +300,13 @@ class MetaDirectory:
             unpacked_md.size = unpacked_path.stat().st_size
 
         # update info
-        if path.is_absolute():
-            self.info.setdefault('unpacked_absolute_files', {})[unpacked_path] = unpacked_md.md_path
+        if is_block:
+            self.info.setdefault('unpacked_block_files', {})[unpacked_path] = unpacked_md.md_path
         else:
-            self.info.setdefault('unpacked_relative_files', {})[unpacked_path] = unpacked_md.md_path
+            if path.is_absolute():
+                self.info.setdefault('unpacked_absolute_files', {})[unpacked_path] = unpacked_md.md_path
+            else:
+                self.info.setdefault('unpacked_relative_files', {})[unpacked_path] = unpacked_md.md_path
         log.debug(f'[{self.md_path}]unpack_regular_file: update info to {self.info}')
 
     def unpack_directory(self, path):
@@ -351,7 +357,7 @@ class MetaDirectory:
 
     @property
     def unpacked_files(self):
-        return self.unpacked_relative_files | self.unpacked_absolute_files
+        return self.unpacked_relative_files | self.unpacked_absolute_files | self.unpacked_block_files
 
     @property
     def unpacked_relative_files(self):
@@ -363,6 +369,12 @@ class MetaDirectory:
     def unpacked_absolute_files(self):
         files =  self.info.get('unpacked_absolute_files',{})
         log.debug(f'[{self.md_path}]unpacked_absolute_files: got {files}')
+        return files
+
+    @property
+    def unpacked_block_files(self):
+        files =  self.info.get('unpacked_block_files',{})
+        log.debug(f'[{self.md_path}]unpacked_block_files: got {files}')
         return files
 
     @contextmanager
