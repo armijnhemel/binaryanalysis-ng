@@ -299,7 +299,16 @@ class Iso9660UnpackParser(UnpackParser):
         self.unpacked_size = iso_size
 
     def unpack(self, meta_directory):
-        # check the contents of the ISO image
+        # first write the system area. There could be useful data
+        # in here such as boot loaders (syslinux and friends) that contain
+        # useful information, but which are not really part of the contents
+        # of an ISO image, so this should be written to a separate directory
+        file_path = pathlib.Path('system_area')
+        with meta_directory.unpack_regular_file(file_path, is_block=True) as (unpacked_md, outfile):
+            outfile.write(self.data.system_area)
+            yield meta_directory
+
+        # then process the actual data
         for descriptor in self.data.data_area:
             if descriptor.type == iso9660.Iso9660.VolumeType.primary:
 
