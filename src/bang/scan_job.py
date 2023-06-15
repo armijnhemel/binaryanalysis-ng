@@ -357,10 +357,11 @@ def check_by_signature(scan_environment, checking_meta_directory):
             extracted_md.unpack_parser = unpack_parser
             yield extracted_md
             parts.append((offset, unpack_parser.parsed_size))
-        # yield ExtractingParser
-        if parts != []:
-            checking_meta_directory.unpack_parser = ExtractingParser.with_parts(checking_meta_directory, parts, scan_environment.configuration)
-            yield checking_meta_directory
+
+    # yield ExtractingParser
+    if parts != []:
+        checking_meta_directory.unpack_parser = ExtractingParser.with_parts(checking_meta_directory, parts, scan_environment.configuration)
+        yield checking_meta_directory
 
 def check_featureless(scan_environment, checking_meta_directory):
     for unpack_parser_cls in scan_environment.parsers.unpackparsers_for_featureless_files:
