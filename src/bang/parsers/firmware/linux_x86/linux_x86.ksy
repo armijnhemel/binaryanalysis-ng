@@ -7,22 +7,9 @@ meta:
   endian: le
 doc-ref: https://www.kernel.org/doc/Documentation/x86/boot.txt
 seq:
-  - id: reserved
-    size: 0x1f1
-  - id: setup_sects
-    type: u1
-  - id: root_flags
-    type: u2
-  - id: syssize
-    type: u4
-  - id: ram_size
-    type: u2
-  - id: vid_mode
-    type: u2
-  - id: root_dev
-    type: u2
-  - id: boot_flag
-    contents: [0x55, 0xaa]
+  - id: common_header
+    type: common_header
+
   - id: jump
     type: jump
   - id: magic
@@ -88,12 +75,30 @@ seq:
     type: u4
 instances:
   setup_code_size:
-    value: 'setup_sects == 0 ? 4*512 : setup_sects * 512'
+    value: 'common_header.setup_sects == 0 ? 4*512 : common_header.setup_sects * 512'
   real_mode_code_size:
     value: setup_code_size + 512
   protected_mode_code_size:
-    value: syssize * 2
+    value: common_header.syssize * 2
 types:
+  common_header:
+    seq:
+      - id: reserved
+        size: 0x1f1
+      - id: setup_sects
+        type: u1
+      - id: root_flags
+        type: u2
+      - id: syssize
+        type: u4
+      - id: ram_size
+        type: u2
+      - id: vid_mode
+        type: u2
+      - id: root_dev
+        type: u2
+      - id: boot_flag
+        contents: [0x55, 0xaa]
   jump:
     seq:
       - id: jump_instruction
@@ -108,8 +113,7 @@ types:
     seq:
       - id: minor
         type: u1
-        valid:
-          min: 2
+        valid: 2
       - id: major
         type: u1
         valid:
