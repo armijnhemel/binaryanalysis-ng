@@ -155,14 +155,17 @@ scanning of very large collections of files.
 * Pre-parsing checks: UnpackParsers can implement quick heuristic checks before
   doing large parses.
 
-## Reducing I/O with buffers and memoryviews
+### Reducing I/O with buffers and memoryviews
 
 For some unpackers it has been attempted to reduce memory usage using
 techniques described in this blog post:
 
 <https://eli.thegreenplace.net/2011/11/28/less-copies-in-python-with-the-buffer-protocol-and-memoryviews>
 
-## Prevent copying data to user space by using `os.sendfile()`
+As this method only works well if data is copied around a lot (which isn't
+happening anymore in BANG) it is not used a lot.
+
+### Prevent copying data to user space by using `os.sendfile()`
 
 One technique that is used is to copy data from and to files (for example:
 temporary files) without copying the data to user space first, but letting
