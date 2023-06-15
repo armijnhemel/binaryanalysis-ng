@@ -61,9 +61,9 @@ seq:
     enum: hardware_subarchs
   - id: hardware_subarch_data
     size: 8
-  - id: payload_offset
+  - id: ofs_payload
     type: u4
-  - id: payload_length
+  - id: len_payload
     type: u4
   - id: setup_data
     type: u8
@@ -77,9 +77,14 @@ instances:
   setup_code_size:
     value: 'common_header.setup_sects == 0 ? 4*512 : common_header.setup_sects * 512'
   real_mode_code_size:
+    # also start of the protected mode code
     value: setup_code_size + 512
   protected_mode_code_size:
     value: common_header.syssize * 2
+  payload:
+    pos: real_mode_code_size + ofs_payload
+    size: len_payload
+    if: ofs_payload != 0
 types:
   common_header:
     seq:
