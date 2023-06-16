@@ -407,7 +407,6 @@ class ElfUnpackParser(UnpackParser):
 
         # process the various section headers
         is_dynamic_elf = False
-        section_to_hash = {}
         sections = {}
         section_ctr = 0
         elf_types = set()
@@ -789,7 +788,7 @@ class ElfUnpackParser(UnpackParser):
             metadata['strings'] = data_strings
 
         if symbols != []:
-             metadata['symbols'] = symbols
+            metadata['symbols'] = symbols
 
         metadata['sections'] = sections
         metadata['elf_type'] = sorted(elf_types)
