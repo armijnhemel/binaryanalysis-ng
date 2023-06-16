@@ -260,24 +260,6 @@ class ExtractingParser(UnpackParser):
         pass
 
 class HashParser(UnpackParser):
-    '''Compute various hashes for files. By default a few hashes have
-    been hardcoded. To compute different hashes change this file.
-    '''
-
-    hash_algorithms = ['sha256', 'md5', 'sha1']
-
-    # read data in blocks of 10 MiB
-    read_size = 10485760
-
-    # labels that TLSH should ignore
-    tlsh_labels_ignore = set([
-            'compressed', 'graphics', 'audio', 'archive',
-            'filesystem', 'srec', 'ihex', 'padding',
-            'database'])
-
-    # TLSH maximum size
-    tlsh_maximum = 31457280
-
     def __init__(self, from_meta_directory, offset, configuration):
         super().__init__(from_meta_directory, offset, configuration)
         self.from_md = from_meta_directory
@@ -303,6 +285,9 @@ class HashParser(UnpackParser):
         return metadata
 
 def compute_hashes(open_file, labels):
+    '''Compute various hashes for files. By default a few hashes have
+    been hardcoded. To compute different hashes change this file.
+    '''
     hash_algorithms = ['sha256', 'md5', 'sha1']
 
     # read data in blocks of 10 MiB
