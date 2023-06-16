@@ -330,7 +330,7 @@ def scan_signatures(scan_environment, meta_directory):
                 log.debug(f'scan_signatures[{meta_directory.md_path}]: failed parse at {meta_directory.file_path}:{offset} with {unpack_parser_cls} [{time.time_ns()}]')
                 log.debug(f'scan_signatures[{meta_directory.md_path}]: {unpack_parser_cls} parser exception: {e}')
 
-    # yield the trailing part
+    # yield the trailing part that could not be parsed
     if 0 < file_scan_state.scanned_until < meta_directory.size:
         log.debug(f'scan_signatures[{meta_directory.md_path}]: [{file_scan_state.scanned_until}:{meta_directory.size}] yields SynthesizingParser, length {meta_directory.size - file_scan_state.scanned_until}')
         yield file_scan_state.scanned_until, SynthesizingParser.with_size(meta_directory, offset, meta_directory.size - file_scan_state.scanned_until, scan_environment.configuration)
@@ -465,8 +465,7 @@ def pipe_exec(checking_iterator):
                     job = ScanJob(unpacked_md.md_path)
                     scan_environment.scan_queue.put(job)
 
-                    # wake up all waiting threads
-                    # as there is new data in the queue
+                    # wake up all waiting threads as there is new data in the queue
                     scan_environment.barrier.reset()
                     log.debug(f'pipe_exec({checking_iterator})[{meta_directory.md_path}]: queued job [{time.time_ns()}]')
                 log.debug(f'pipe_exec({checking_iterator})[{meta_directory.md_path}]: unpacked {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
