@@ -285,49 +285,8 @@ class HashParser(UnpackParser):
     pretty_name = 'hashparser'
 
     def parse(self):
-        # create the hashes
-        hashes = {}
-        for h in self.hash_algorithms:
-            hashes[h] = hashlib.new(h)
-
-        # also compute TLSH hashes, but only for interesting
-        # files and files that are big enough but not too big
-        scan_tlsh = False
-        if 256 <= self.from_md.size <= self.tlsh_maximum:
-            scan_tlsh = True
-
         labels = self.from_md.info.get('labels', [])
-        if self.tlsh_labels_ignore.intersection(labels) != set():
-            scan_tlsh = False
-
-        if scan_tlsh:
-            tlsh_hash = tlsh.Tlsh()
-
-        # then read the data
-        bytes_processed = 0
-        scanbytes = bytearray(self.read_size)
-        bytes_read = self.infile.readinto(scanbytes)
-        while bytes_read != 0:
-            bytes_processed += bytes_read
-            data = memoryview(scanbytes[:bytes_read])
-            for h in hashes:
-                hashes[h].update(data)
-            if scan_tlsh:
-                tlsh_hash.update(data.tobytes())
-            bytes_read = self.infile.readinto(scanbytes)
-
-        if scan_tlsh:
-            tlsh_hash.final()
-
-        self.hash_results = dict([(algorithm, computed_hash.hexdigest())
-            for algorithm, computed_hash in hashes.items()])
-
-        if scan_tlsh:
-            try:
-                self.hash_results['tlsh'] = tlsh_hash.hexdigest()
-            except ValueError:
-                # not enough entropy in input file
-                pass
+        self.hash_results = compute_hashes(self.infile, labels)
 
         self.update_metadata(self.from_md)
         self.from_md.write_ahead()
@@ -343,6 +302,65 @@ class HashParser(UnpackParser):
         metadata['hashes'] = self.hash_results
         return metadata
 
+def compute_hashes(open_file, labels):
+    hash_algorithms = ['sha256', 'md5', 'sha1']
+
+    # read data in blocks of 10 MiB
+    read_size = 10485760
+
+    # labels that TLSH should ignore
+    tlsh_labels_ignore = set([
+            'compressed', 'graphics', 'audio', 'archive',
+            'filesystem', 'srec', 'ihex', 'padding',
+            'database'])
+
+    # TLSH maximum size
+    tlsh_maximum = 31457280
+
+    hashes = {}
+    for h in hash_algorithms:
+        hashes[h] = hashlib.new(h)
+
+    # also compute TLSH hashes, but only for interesting
+    # files and files that are big enough but not too big
+    scan_tlsh = False
+    if 256 <= open_file.size <= tlsh_maximum:
+        scan_tlsh = True
+
+    if tlsh_labels_ignore.intersection(labels) != set():
+        scan_tlsh = False
+
+    if scan_tlsh:
+        tlsh_hash = tlsh.Tlsh()
+
+    # then read the data
+    bytes_processed = 0
+    scanbytes = bytearray(read_size)
+    bytes_read = open_file.readinto(scanbytes)
+
+    while bytes_read != 0:
+        bytes_processed += bytes_read
+        data = memoryview(scanbytes[:bytes_read])
+        for h in hashes:
+            hashes[h].update(data)
+        if scan_tlsh:
+            tlsh_hash.update(data.tobytes())
+        bytes_read = open_file.readinto(scanbytes)
+
+    if scan_tlsh:
+        tlsh_hash.final()
+
+    hash_results = dict([(algorithm, computed_hash.hexdigest())
+        for algorithm, computed_hash in hashes.items()])
+
+    if scan_tlsh:
+        try:
+            hash_results['tlsh'] = tlsh_hash.hexdigest()
+        except ValueError:
+            # not enough entropy in input file
+            pass
+
+    return hash_results
 
 def check_condition(condition, message):
     '''semantic check function to see if condition is True.
