@@ -127,6 +127,9 @@ def find_extension_parsers(scan_environment):
 
 def check_with_suggested_parsers(scan_environment, checking_meta_directory):
     for unpack_parser_cls in ( scan_environment.parsers.get(p) for p in checking_meta_directory.info.get('suggested_parsers',[]) ):
+        if unpack_parser_cls is None:
+            continue
+
         try:
             unpack_parser = unpack_parser_cls(checking_meta_directory, 0, scan_environment.configuration)
             log.debug(f'check_with_suggested_parsers[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
@@ -185,31 +188,31 @@ def check_by_extension(scan_environment, checking_meta_directory):
 
                     # stop after first successful extension parse
                     return
-                else:
-                    log.debug(f'check_by_extension[{checking_meta_directory.md_path}]: parser parsed [0:{unpack_parser.parsed_size}], leaving [{unpack_parser.parsed_size}:{checking_meta_directory.size}] ({checking_meta_directory.size - unpack_parser.parsed_size} bytes)')
-                    # yield the checking_meta_directory with a ExtractingUnpackParser, in
-                    # case we want to record metadata about it.
-                    checking_meta_directory.unpack_parser = ExtractingParser.with_parts(
-                        checking_meta_directory,
-                        [ (0,unpack_parser.parsed_size),
-                        (unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size) ],
-                        scan_environment.configuration
-                        )
-                    yield checking_meta_directory
 
-                    # yield the matched part of the file
-                    extracted_md = extract_file(checking_meta_directory, checking_meta_directory.open_file, 0, unpack_parser.parsed_size)
-                    extracted_md.unpack_parser = unpack_parser
-                    yield extracted_md
+                log.debug(f'check_by_extension[{checking_meta_directory.md_path}]: parser parsed [0:{unpack_parser.parsed_size}], leaving [{unpack_parser.parsed_size}:{checking_meta_directory.size}] ({checking_meta_directory.size - unpack_parser.parsed_size} bytes)')
+                # yield the checking_meta_directory with a ExtractingUnpackParser, in
+                # case we want to record metadata about it.
+                checking_meta_directory.unpack_parser = ExtractingParser.with_parts(
+                    checking_meta_directory,
+                    [ (0,unpack_parser.parsed_size),
+                    (unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size) ],
+                    scan_environment.configuration
+                    )
+                yield checking_meta_directory
 
-                    # yield a synthesized file
-                    extracted_md = extract_file(checking_meta_directory, checking_meta_directory.open_file, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size)
-                    extracted_md.unpack_parser = ExtractedParser.with_size(checking_meta_directory, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size, scan_environment.configuration)
-                    yield extracted_md
+                # yield the matched part of the file
+                extracted_md = extract_file(checking_meta_directory, checking_meta_directory.open_file, 0, unpack_parser.parsed_size)
+                extracted_md.unpack_parser = unpack_parser
+                yield extracted_md
 
-                    # stop after first successful extension parse
-                    # TODO: make this configurable?
-                    return
+                # yield a synthesized file
+                extracted_md = extract_file(checking_meta_directory, checking_meta_directory.open_file, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size)
+                extracted_md.unpack_parser = ExtractedParser.with_size(checking_meta_directory, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size, scan_environment.configuration)
+                yield extracted_md
+
+                # stop after first successful extension parse
+                # TODO: make this configurable?
+                return
 
             except UnpackParserException as e:
                 log.debug(f'check_by_extension[{checking_meta_directory.md_path}]: failed parse for {checking_meta_directory.file_path} with {unpack_parser_cls} [{time.time_ns()}]')
@@ -327,7 +330,7 @@ def scan_signatures(scan_environment, meta_directory):
                 log.debug(f'scan_signatures[{meta_directory.md_path}]: failed parse at {meta_directory.file_path}:{offset} with {unpack_parser_cls} [{time.time_ns()}]')
                 log.debug(f'scan_signatures[{meta_directory.md_path}]: {unpack_parser_cls} parser exception: {e}')
 
-    # yield the trailing part
+    # yield the trailing part that could not be parsed
     if 0 < file_scan_state.scanned_until < meta_directory.size:
         log.debug(f'scan_signatures[{meta_directory.md_path}]: [{file_scan_state.scanned_until}:{meta_directory.size}] yields SynthesizingParser, length {meta_directory.size - file_scan_state.scanned_until}')
         yield file_scan_state.scanned_until, SynthesizingParser.with_size(meta_directory, offset, meta_directory.size - file_scan_state.scanned_until, scan_environment.configuration)
@@ -354,10 +357,11 @@ def check_by_signature(scan_environment, checking_meta_directory):
             extracted_md.unpack_parser = unpack_parser
             yield extracted_md
             parts.append((offset, unpack_parser.parsed_size))
-        # yield ExtractingParser
-        if parts != []:
-            checking_meta_directory.unpack_parser = ExtractingParser.with_parts(checking_meta_directory, parts, scan_environment.configuration)
-            yield checking_meta_directory
+
+    # yield ExtractingParser
+    if parts != []:
+        checking_meta_directory.unpack_parser = ExtractingParser.with_parts(checking_meta_directory, parts, scan_environment.configuration)
+        yield checking_meta_directory
 
 def check_featureless(scan_environment, checking_meta_directory):
     for unpack_parser_cls in scan_environment.parsers.unpackparsers_for_featureless_files:
@@ -461,8 +465,7 @@ def pipe_exec(checking_iterator):
                     job = ScanJob(unpacked_md.md_path)
                     scan_environment.scan_queue.put(job)
 
-                    # wake up all waiting threads
-                    # as there is new data in the queue
+                    # wake up all waiting threads as there is new data in the queue
                     scan_environment.barrier.reset()
                     log.debug(f'pipe_exec({checking_iterator})[{meta_directory.md_path}]: queued job [{time.time_ns()}]')
                 log.debug(f'pipe_exec({checking_iterator})[{meta_directory.md_path}]: unpacked {md.file_path} into {md.md_path} with {md.unpack_parser.__class__} [{time.time_ns()}]')
