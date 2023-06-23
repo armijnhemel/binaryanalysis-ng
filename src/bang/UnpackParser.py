@@ -263,12 +263,20 @@ class HashParser(UnpackParser):
     def __init__(self, from_meta_directory, offset, configuration):
         super().__init__(from_meta_directory, offset, configuration)
         self.from_md = from_meta_directory
+        self.offset = offset
 
     pretty_name = 'hashparser'
 
     def parse(self):
         labels = self.from_md.info.get('labels', [])
-        self.hash_results = compute_hashes(self.infile, labels)
+
+        # TODO: is this seek correct?
+        self.infile.seek(self.offset)
+        self.hash_results = compute_hashes(self.infile)
+
+        # reset the file pointer to compute TLSH
+        self.infile.seek(self.offset)
+        self.hash_results.update(compute_tlsh(self.infile, labels))
 
         self.update_metadata(self.from_md)
         self.from_md.write_ahead()
@@ -284,11 +292,10 @@ class HashParser(UnpackParser):
         metadata['hashes'] = self.hash_results
         return metadata
 
-def compute_hashes(open_file, labels):
-    '''Compute various hashes for files. By default a few hashes have
+def compute_tlsh(open_file, labels):
+    '''Compute TLSH hash for files. By default a few hashes have
     been hardcoded. To compute different hashes change this file.
     '''
-    hash_algorithms = ['sha256', 'md5', 'sha1']
 
     # read data in blocks of 10 MiB
     read_size = 10485760
@@ -302,21 +309,53 @@ def compute_hashes(open_file, labels):
     # TLSH maximum size
     tlsh_maximum = 31457280
 
-    hashes = {}
-    for h in hash_algorithms:
-        hashes[h] = hashlib.new(h)
+    hash_results = {}
 
-    # also compute TLSH hashes, but only for interesting
-    # files and files that are big enough but not too big
     scan_tlsh = False
     if 256 <= open_file.size <= tlsh_maximum:
         scan_tlsh = True
 
-    if tlsh_labels_ignore.intersection(labels) != set():
+    if scan_tlsh and tlsh_labels_ignore.intersection(labels) != set():
         scan_tlsh = False
 
-    if scan_tlsh:
-        tlsh_hash = tlsh.Tlsh()
+    if not scan_tlsh:
+        return hash_results
+
+    tlsh_hash = tlsh.Tlsh()
+
+    # then read the data
+    bytes_processed = 0
+    scanbytes = bytearray(read_size)
+    bytes_read = open_file.readinto(scanbytes)
+
+    while bytes_read != 0:
+        bytes_processed += bytes_read
+        data = memoryview(scanbytes[:bytes_read])
+        tlsh_hash.update(data.tobytes())
+        bytes_read = open_file.readinto(scanbytes)
+
+    tlsh_hash.final()
+
+    try:
+        hash_results['tlsh'] = tlsh_hash.hexdigest()
+    except ValueError:
+        # not enough entropy in input file
+        pass
+
+    return hash_results
+
+def compute_hashes(open_file):
+    '''Compute various hashes for files. By default a few hashes have
+    been hardcoded. To compute different hashes change this file.
+    '''
+    hash_algorithms = ['sha256', 'md5', 'sha1']
+
+    # read data in blocks of 10 MiB
+    read_size = 10485760
+
+    hashes = {}
+    for h in hash_algorithms:
+        hashes[h] = hashlib.new(h)
 
     # then read the data
     bytes_processed = 0
@@ -328,22 +367,10 @@ def compute_hashes(open_file, labels):
         data = memoryview(scanbytes[:bytes_read])
         for h in hashes:
             hashes[h].update(data)
-        if scan_tlsh:
-            tlsh_hash.update(data.tobytes())
         bytes_read = open_file.readinto(scanbytes)
-
-    if scan_tlsh:
-        tlsh_hash.final()
 
     hash_results = dict([(algorithm, computed_hash.hexdigest())
         for algorithm, computed_hash in hashes.items()])
-
-    if scan_tlsh:
-        try:
-            hash_results['tlsh'] = tlsh_hash.hexdigest()
-        except ValueError:
-            # not enough entropy in input file
-            pass
 
     return hash_results
 
