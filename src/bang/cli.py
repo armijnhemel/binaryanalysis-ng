@@ -74,10 +74,11 @@ def app():
 @click.option('-v', '--verbose', is_flag=True, help='Enable debug logging')
 @click.option('-u', '--unpack-directory', type=click.Path(path_type=pathlib.Path), default=pathlib.Path('/tmp'), help='Directory to unpack to')
 @click.option('-t', '--temporary-directory', type=click.Path(path_type=pathlib.Path, exists=True), default=pathlib.Path('/tmp'), help='Temporary directory')
+@click.option('-i', '--ignore-list', type=click.File('r'))
 @click.option('-j', '--jobs', default=1, type=click.IntRange(min=1), help='Number of jobs running simultaneously')
 @click.option('--job-wait-time', default=1, type=int, help='Time to wait for a new job')
 @click.argument('path', type=click.Path(exists=True))
-def scan(config_file, verbose, unpack_directory, temporary_directory, jobs, job_wait_time, path):
+def scan(config_file, verbose, unpack_directory, temporary_directory, ignore_list, jobs, job_wait_time, path):
     '''Scans PATH and unpacks its files to UNPACK_DIRECTORY.
     '''
 
@@ -97,11 +98,23 @@ def scan(config_file, verbose, unpack_directory, temporary_directory, jobs, job_
             if config['parsers'] is not None:
                 ignore_parsers = config['parsers'].get('ignore', [])
 
+    ignore = set()
+
+    if ignore_list is not None:
+        # read the ignore list file. This is in YAML format
+        try:
+            ignore_dicts = load(ignore_list, Loader=Loader)
+            ignore.update(k['sha256'] for k in ignore_dicts)
+        except (YAMLError, PermissionError, UnicodeDecodeError):
+            print("Cannot open ignore list file, exiting", file=sys.stderr)
+            sys.exit(1)
+
     # set up the environment
     scan_environment = create_scan_environment_from_config(config)
     scan_environment.job_wait_time = job_wait_time
     scan_environment.configuration.temporary_directory = temporary_directory.absolute()
     scan_environment.unpack_directory = unpack_directory.absolute()
+    scan_environment.ignore = ignore
 
     if verbose:
         log.setLevel(logging.DEBUG)

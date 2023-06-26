@@ -23,7 +23,7 @@
 import multiprocessing
 import pathlib
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import ahocorasick
@@ -134,3 +134,4 @@ class ScanEnvironment:
     signature_chunk_size: int = 1024
     parsers: ParserCollection = ParserCollection()
     configuration: BangConfig = BangConfig()
+    ignore: set = field(default_factory=set)
