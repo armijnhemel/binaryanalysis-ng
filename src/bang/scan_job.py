@@ -614,14 +614,18 @@ def process_jobs(pipeline, scan_environment):
             log.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: start job [{time.time_ns()}]')
 
             # first compute some checksums here, so files that should be
-            # ignored actually can be ignored.
+            # ignored actually can be ignored. Note: these are the checksums
+            # for the *entire* file, not for parts that have been unpacked and
+            # carved which are (to be) computed somewhere else.
             with scanjob.meta_directory.open() as md:
                 hashes = compute_hashes(md.open_file)
                 metadata = {'hashes': hashes}
                 scanjob.meta_directory.info.setdefault('metadata', metadata)
 
-            if hashes['sha256'] in scan_environment.ignore:
-                continue
+                if hashes['sha256'] in scan_environment.ignore:
+                    labels = ['ignored']
+                    scanjob.meta_directory.info.setdefault('labels', labels)
+                    continue
 
             # start the pipeline for the job
             pipeline(scanjob.scan_environment, scanjob.meta_directory)
