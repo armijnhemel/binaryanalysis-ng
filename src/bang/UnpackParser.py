@@ -304,7 +304,7 @@ def compute_tlsh(open_file, labels):
     tlsh_labels_ignore = set([
             'compressed', 'graphics', 'audio', 'archive',
             'filesystem', 'srec', 'ihex', 'padding',
-            'database'])
+            'database', 'ignored'])
 
     # TLSH maximum size
     tlsh_maximum = 31457280
