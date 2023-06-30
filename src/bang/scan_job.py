@@ -29,7 +29,7 @@ import traceback
 import time
 from dataclasses import dataclass
 from .meta_directory import *
-from .UnpackParser import SynthesizingParser, ExtractedParser, ExtractingParser, PaddingParser, HashParser
+from .UnpackParser import SynthesizingParser, ExtractedParser, ExtractingParser, PaddingParser, HashParser, compute_hashes
 from .UnpackParserException import UnpackParserException
 from .log import log
 
@@ -93,9 +93,9 @@ def check_for_padding(scan_environment, checking_meta_directory):
         log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: {unpack_parser.__class__} parser exception: {e}')
 
 #####
-# Computes and write hashes to the meta_directory
+# Computes and write a TLSH hash to the meta_directory
 #
-def compute_hashes(scan_environment, checking_meta_directory):
+def compute_tlsh_hash(scan_environment, checking_meta_directory):
     try:
         unpack_parser = HashParser(checking_meta_directory, 0, scan_environment.configuration)
         log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
@@ -549,7 +549,7 @@ def make_scan_pipeline():
 
     pipe_padding = pipe_seq(pipe_exec(check_for_padding), stop_if_scanned)
 
-    pipe_hashes = pipe_exec(compute_hashes)
+    pipe_hashes = pipe_exec(compute_tlsh_hash)
 
     pipe_checks_if_not_synthesized = pipe_cond(
             cond_not_synthesized,
@@ -612,6 +612,16 @@ def process_jobs(pipeline, scan_environment):
 
             scanjob.scan_environment = scan_environment
             log.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: start job [{time.time_ns()}]')
+
+            # first compute some checksums here, so files that should be
+            # ignored actually can be ignored.
+            with scanjob.meta_directory.open() as md:
+                hashes = compute_hashes(md.open_file)
+                metadata = {'hashes': hashes}
+                scanjob.meta_directory.info.setdefault('metadata', metadata)
+
+            if hashes['sha256'] in scan_environment.ignore:
+                continue
 
             # start the pipeline for the job
             pipeline(scanjob.scan_environment, scanjob.meta_directory)

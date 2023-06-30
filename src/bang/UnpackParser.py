@@ -270,16 +270,13 @@ class HashParser(UnpackParser):
     def parse(self):
         labels = self.from_md.info.get('labels', [])
 
-        # TODO: is this seek correct?
-        self.infile.seek(self.offset)
-        self.hash_results = compute_hashes(self.infile)
-
         # reset the file pointer to compute TLSH
         self.infile.seek(self.offset)
-        self.hash_results.update(compute_tlsh(self.infile, labels))
+        self.hash_results = compute_tlsh(self.infile, labels)
 
-        self.update_metadata(self.from_md)
-        self.from_md.write_ahead()
+        if self.hash_results is not None:
+            self.update_metadata(self.from_md)
+            self.from_md.write_ahead()
 
     def calculate_unpacked_size(self):
         self.unpacked_size = 0
@@ -288,8 +285,8 @@ class HashParser(UnpackParser):
 
     @property
     def metadata(self):
-        metadata = {}
-        metadata['hashes'] = self.hash_results
+        metadata = self.from_md.info.get('metadata', {})
+        metadata['hashes']['tlsh'] = self.hash_results
         return metadata
 
 def compute_tlsh(open_file, labels):
@@ -309,8 +306,6 @@ def compute_tlsh(open_file, labels):
     # TLSH maximum size
     tlsh_maximum = 31457280
 
-    hash_results = {}
-
     scan_tlsh = False
     if 256 <= open_file.size <= tlsh_maximum:
         scan_tlsh = True
@@ -319,7 +314,7 @@ def compute_tlsh(open_file, labels):
         scan_tlsh = False
 
     if not scan_tlsh:
-        return hash_results
+        return
 
     tlsh_hash = tlsh.Tlsh()
 
@@ -337,12 +332,10 @@ def compute_tlsh(open_file, labels):
     tlsh_hash.final()
 
     try:
-        hash_results['tlsh'] = tlsh_hash.hexdigest()
+        return tlsh_hash.hexdigest()
     except ValueError:
         # not enough entropy in input file
-        pass
-
-    return hash_results
+        return
 
 def compute_hashes(open_file):
     '''Compute various hashes for files. By default a few hashes have
