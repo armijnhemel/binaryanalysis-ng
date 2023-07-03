@@ -512,9 +512,6 @@ def pack(metadir, with_data, output):
               file=sys.stderr)
         sys.exit(1)
 
-    # then try to open the tarfile in write mode
-    pack_file = tarfile.open(output, mode='w:gz')
-
     # first grab all of the directories that need to be processed.
     # This is done by traversing the unpacking tree for a few reasons:
     #
@@ -549,24 +546,24 @@ def pack(metadir, with_data, output):
                 metadirs.append(child_md)
                 unpack_directories.append(v)
 
-    for u in unpack_directories:
-        if with_data:
-            pack_file.add(metadir.parent / u, arcname=u, filter=clear_ids)
-        else:
-            pack_file.add(metadir.parent / u / 'info.pkl', arcname=u / 'info.pkl', filter=clear_ids)
-            pack_file.add(metadir.parent / u / 'pathname', arcname=u / 'pathname', filter=clear_ids)
+    # then try to open the tarfile in write mode
+    with tarfile.open(output, mode='w:gz') as pack_file:
+        for u in unpack_directories:
+            if with_data:
+                pack_file.add(metadir.parent / u, arcname=u, filter=clear_ids)
+            else:
+                pack_file.add(metadir.parent / u / 'info.pkl', arcname=u / 'info.pkl', filter=clear_ids)
+                pack_file.add(metadir.parent / u / 'pathname', arcname=u / 'pathname', filter=clear_ids)
 
-    if with_data and metadir.name == 'root':
-        try:
-            root_file_name = metadir / 'pathname'
-            with open(root_file_name, 'r') as r:
-                root_file = pathlib.Path(r.read())
-            if root_file.exists():
-                pack_file.add(root_file, arcname=root_file.name, filter=clear_ids)
-        except:
-            pass
-
-    pack_file.close()
+        if with_data and metadir.name == 'root':
+            try:
+                root_file_name = metadir / 'pathname'
+                with open(root_file_name, 'r') as r:
+                    root_file = pathlib.Path(r.read())
+                if root_file.exists():
+                    pack_file.add(root_file, arcname=root_file.name, filter=clear_ids)
+            except:
+                pass
 
 def clear_ids(tarinfo):
     '''Rewrite the UID and GIDs to something neutral.
