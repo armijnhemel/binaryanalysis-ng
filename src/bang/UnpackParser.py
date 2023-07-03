@@ -268,11 +268,9 @@ class HashParser(UnpackParser):
     pretty_name = 'hashparser'
 
     def parse(self):
-        labels = self.from_md.info.get('labels', [])
-
         # reset the file pointer to compute TLSH
         self.infile.seek(self.offset)
-        self.hash_results = compute_tlsh(self.infile, labels)
+        self.hash_results = compute_tlsh(self.infile)
 
         if self.hash_results is not None:
             self.update_metadata(self.from_md)
@@ -289,7 +287,7 @@ class HashParser(UnpackParser):
         metadata['hashes']['tlsh'] = self.hash_results
         return metadata
 
-def compute_tlsh(open_file, labels):
+def compute_tlsh(open_file):
     '''Compute TLSH hash for files. By default a few hashes have
     been hardcoded. To compute different hashes change this file.
     '''
@@ -297,24 +295,8 @@ def compute_tlsh(open_file, labels):
     # read data in blocks of 10 MiB
     read_size = 10485760
 
-    # labels that TLSH should ignore
-    tlsh_labels_ignore = set([
-            'compressed', 'graphics', 'audio', 'archive',
-            'filesystem', 'srec', 'ihex', 'padding',
-            'database', 'ignored'])
-
     # TLSH maximum size
     tlsh_maximum = 31457280
-
-    scan_tlsh = False
-    if 256 <= open_file.size <= tlsh_maximum:
-        scan_tlsh = True
-
-    if scan_tlsh and tlsh_labels_ignore.intersection(labels) != set():
-        scan_tlsh = False
-
-    if not scan_tlsh:
-        return
 
     tlsh_hash = tlsh.Tlsh()
 

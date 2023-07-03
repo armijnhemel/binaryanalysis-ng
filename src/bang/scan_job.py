@@ -97,14 +97,23 @@ def check_for_padding(scan_environment, checking_meta_directory):
 #
 def compute_tlsh_hash(scan_environment, checking_meta_directory):
     try:
-        unpack_parser = HashParser(checking_meta_directory, 0, scan_environment.configuration)
-        log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
+        scan_tlsh = False
+        if scan_environment.tlsh_minimum <= checking_meta_directory.size <= scan_environment.tlsh_maximum:
+            scan_tlsh = True
 
-        checking_meta_directory.unpack_parser = unpack_parser
-        unpack_parser.parse_from_offset()
-        log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
-        log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: parsed_size = {unpack_parser.parsed_size}/{checking_meta_directory.size}')
-        yield checking_meta_directory
+        labels = checking_meta_directory.info.get('labels', [])
+        if scan_tlsh and scan_environment.tlsh_ignore.intersection(labels) != set():
+            scan_tlsh = False
+
+        if scan_tlsh:
+            unpack_parser = HashParser(checking_meta_directory, 0, scan_environment.configuration)
+            log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
+
+            checking_meta_directory.unpack_parser = unpack_parser
+            unpack_parser.parse_from_offset()
+            log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
+            log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: parsed_size = {unpack_parser.parsed_size}/{checking_meta_directory.size}')
+            yield checking_meta_directory
 
     except UnpackParserException as e:
         # there will be a "parser resulted in zero length file"

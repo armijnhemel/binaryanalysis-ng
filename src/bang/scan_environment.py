@@ -136,3 +136,5 @@ class ScanEnvironment:
     configuration: BangConfig = BangConfig()
     ignore: set = field(default_factory=set)
     tlsh_ignore: set = field(default_factory=set)
+    tlsh_minimum: int = 256
+    tlsh_maximum: int = 31457280
