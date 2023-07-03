@@ -19,7 +19,6 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import multiprocessing
 import os
 import pathlib
 import pickle
