@@ -791,7 +791,6 @@ class ElfUnpackParser(UnpackParser):
             metadata['symbols'] = symbols
 
         metadata['sections'] = sections
-        metadata['elf_type'] = sorted(elf_types)
 
         if linux_kernel_module_info != {}:
             metadata['Linux kernel module'] = linux_kernel_module_info
@@ -807,10 +806,12 @@ class ElfUnpackParser(UnpackParser):
                 pass
 
         if is_dynamic_elf:
-            labels.append('dynamic')
+            elf_types.add('dynamic')
         else:
             if metadata['type'] == 'core':
-                labels.append('core')
+                elf_types.add('core')
             else:
-                labels.append('static')
+                elf_types.add('static')
+
+        metadata['elf_type'] = sorted(elf_types)
         return(labels, metadata)
