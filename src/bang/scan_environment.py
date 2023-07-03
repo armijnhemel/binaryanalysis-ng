@@ -135,3 +135,4 @@ class ScanEnvironment:
     parsers: ParserCollection = ParserCollection()
     configuration: BangConfig = BangConfig()
     ignore: set = field(default_factory=set)
+    tlsh_ignore: set = field(default_factory=set)

@@ -109,12 +109,18 @@ def scan(config_file, verbose, unpack_directory, temporary_directory, ignore_lis
             print("Cannot open ignore list file, exiting", file=sys.stderr)
             sys.exit(1)
 
+    # TODO: make configurable
+    #tlsh_ignore = set()
+    tlsh_ignore = = set(['compressed', 'graphics', 'audio', 'archive',
+            'filesystem', 'srec', 'ihex', 'padding', 'database', 'ignored'])
+
     # set up the environment
     scan_environment = create_scan_environment_from_config(config)
     scan_environment.job_wait_time = job_wait_time
     scan_environment.configuration.temporary_directory = temporary_directory.absolute()
     scan_environment.unpack_directory = unpack_directory.absolute()
     scan_environment.ignore = ignore
+    scan_environment.tlsh_ignore = tlsh_ignore
 
     if verbose:
         log.setLevel(logging.DEBUG)
