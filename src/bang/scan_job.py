@@ -321,10 +321,12 @@ def scan_signatures(scan_environment, meta_directory):
                     log.debug(f'scan_signatures[{meta_directory.md_path}]: skipping [{file_scan_state.scanned_until}:{unpack_parser.parsed_size}], covers entire file, yielding {unpack_parser_cls} and return')
                     yield 0, unpack_parser
                     return
+
                 if offset > file_scan_state.scanned_until:
                     # if it does, yield a synthesizing parser for the padding before the file
                     log.debug(f'scan_signatures[{meta_directory.md_path}]: [{file_scan_state.scanned_until}:{offset}] yields SynthesizingParser, length {offset - file_scan_state.scanned_until}')
                     yield file_scan_state.scanned_until, SynthesizingParser.with_size(meta_directory, offset, offset - file_scan_state.scanned_until, scan_environment.configuration)
+
                 # yield the part that the unpackparser parsed
                 log.debug(f'scan_signatures[{meta_directory.md_path}]: [{offset}:{offset+unpack_parser.parsed_size}] yields {unpack_parser_cls}, length {unpack_parser.parsed_size}')
                 yield offset, unpack_parser
@@ -358,6 +360,10 @@ def check_by_signature(scan_environment, checking_meta_directory):
         else:
             extracted_md = extract_file(checking_meta_directory, checking_meta_directory.open_file, offset, unpack_parser.parsed_size)
             extracted_md.unpack_parser = unpack_parser
+            with extracted_md.open() as md:
+                hashes = compute_hashes(md.open_file)
+                metadata = {'hashes': hashes}
+                md.info.setdefault('metadata', metadata)
             yield extracted_md
             parts.append((offset, unpack_parser.parsed_size))
 
