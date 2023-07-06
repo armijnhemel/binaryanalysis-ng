@@ -300,6 +300,7 @@ larger file, unless stated otherwise.
 200. Dockerfile files (whole file)
 201. TRANS.TBL files
 202. BTF and BTF.ext sections (BPF related)
+203. NibArchive
 
 ## Getting started
 
