@@ -3,8 +3,6 @@ meta:
   title: NibArchive
   file-extension: nib
   license: CC-1.0
-  #imports:
-    #- /common/vlq_base128_le
   endian: le
   encoding: UTF-8
 doc-ref: https://github.com/matsmattsson/nibsqueeze/blob/master/NibArchive.md
@@ -22,11 +20,11 @@ instances:
     type: key
     repeat: expr
     repeat-expr: header.num_keys
-  #values:
-    #pos: header.ofs_values
-    #type: value
-    #repeat: expr
-    #repeat-expr: header.num_values
+  values:
+    pos: header.ofs_values
+    type: value
+    repeat: expr
+    repeat-expr: header.num_values
   class_names:
     pos: header.ofs_class_names
     type: class_name
@@ -68,12 +66,19 @@ types:
         type: str
   obj:
     seq:
-      - id: class_name_index
+      - id: class_name_index_val
         type: compressed_integer
-      - id: values_index
+      - id: values_index_val
         type: compressed_integer
-      - id: value_count
+      - id: value_count_val
         type: compressed_integer
+    instances:
+      class_name_index:
+        value: class_name_index_val.value
+      values_index:
+        value: values_index_val.value
+      value_count:
+        value: value_count_val.value
   class_name:
     seq:
       - id: len_name
@@ -87,6 +92,46 @@ types:
       - id: name
         size: len_name.value
         type: strz
+  value:
+    -webide-representation: "{type}"
+    seq:
+      - id: key_index
+        type: compressed_integer
+      - id: type
+        type: u1
+        enum: value_type
+      - id: data
+        type:
+          switch-on: type
+          cases:
+            value_type::int8: u1
+            value_type::int16: u2
+            value_type::int32: u4
+            value_type::int64: u8
+            value_type::float: f4
+            value_type::double: f8
+            value_type::data: value_data
+            value_type::object_reference: u4
+    types:
+      value_data:
+        seq:
+          - id: len_data
+            type: compressed_integer
+          - id: data
+            size: len_data.value
+    enums:
+      value_type:
+          0: int8
+          1: int16
+          2: int32
+          3: int64
+          4: true
+          5: false
+          6: float
+          7: double
+          8: data
+          9: nil
+          10: object_reference
 
   compressed_integer:
     seq:
