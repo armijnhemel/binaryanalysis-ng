@@ -23,7 +23,7 @@
 import multiprocessing
 import pathlib
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import ahocorasick
@@ -62,7 +62,7 @@ class ParserCollection:
     def add(self, unpackparser):
         self._unpackparsers[unpackparser.pretty_name] = unpackparser
         for ext in unpackparser.extensions:
-            self._unpackparsers_for_extensions.setdefault(ext,[]).append(unpackparser)
+            self._unpackparsers_for_extensions.setdefault(ext.lower(),[]).append(unpackparser)
         for signature in unpackparser.signatures:
             self._unpackparsers_for_signatures.setdefault(signature,[]).append(unpackparser)
         if unpackparser.scan_if_featureless:
@@ -134,3 +134,7 @@ class ScanEnvironment:
     signature_chunk_size: int = 1024
     parsers: ParserCollection = ParserCollection()
     configuration: BangConfig = BangConfig()
+    ignore: set = field(default_factory=set)
+    tlsh_ignore: set = field(default_factory=set)
+    tlsh_minimum: int = 256
+    tlsh_maximum: int = 31457280
