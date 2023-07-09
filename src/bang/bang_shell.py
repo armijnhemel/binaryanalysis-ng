@@ -131,6 +131,8 @@ class BangShell(App):
             pretty_node_name = f'{str(node_name)}  \U000024b8'
         elif 'font' in labels:
             pretty_node_name = f'{str(node_name)}  \U000024bb'
+        elif 'graphics' in labels:
+            pretty_node_name = f'{str(node_name)}  \U000024bc'
         else:
             pretty_node_name = str(node_name)
 
