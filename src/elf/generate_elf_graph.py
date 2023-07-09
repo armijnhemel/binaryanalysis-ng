@@ -424,7 +424,7 @@ def main(config_file, result_directory, output):
 
 
                 # only consider dynamically linked ELF files
-                if 'elf' in bang_data['labels'] and 'dynamic' in bang_data['labels']:
+                if 'elf' in bang_data['labels'] and 'dynamic' in bang_data['metadata']['elf_type']:
                     print(binary_name, path_name)
                     #print(bang_data['labels'])
 
