@@ -84,15 +84,11 @@ def extract_identifiers(process_queue, temporary_directory, source_directory, js
 
         identifiers_per_language = {}
 
-        identifiers_per_language['c'] = {}
-        identifiers_per_language['c']['strings'] = set()
-        identifiers_per_language['c']['functions'] = set()
-        identifiers_per_language['c']['variables'] = set()
-
-        identifiers_per_language['java'] = {}
-        identifiers_per_language['java']['strings'] = set()
-        identifiers_per_language['java']['functions'] = set()
-        identifiers_per_language['java']['variables'] = set()
+        for l in ['c', 'java']:
+            identifiers_per_language[l] = {}
+            identifiers_per_language[l]['strings'] = set()
+            identifiers_per_language[l]['functions'] = set()
+            identifiers_per_language[l]['variables'] = set()
 
         extracted = 0
 

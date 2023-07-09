@@ -21,11 +21,12 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import click
 import pathlib
 import sys
 
 from typing import Any
+
+import click
 
 from .meta_directory import MetaDirectory, MetaDirectoryException
 from . import parser_utils
@@ -130,6 +131,8 @@ class BangShell(App):
             pretty_node_name = f'{str(node_name)}  \U000024b8'
         elif 'font' in labels:
             pretty_node_name = f'{str(node_name)}  \U000024bb'
+        elif 'graphics' in labels:
+            pretty_node_name = f'{str(node_name)}  \U000024bc'
         else:
             pretty_node_name = str(node_name)
 
@@ -152,9 +155,9 @@ class BangShell(App):
                 if p in path_to_node:
                     continue
                 if p.parent.name == '':
-                     path_node = this_node.add(p.name, expand=True)
+                    path_node = this_node.add(p.name, expand=True)
                 else:
-                     path_node = path_to_node[p.parent].add(p.name, expand=True)
+                    path_node = path_to_node[p.parent].add(p.name, expand=True)
                 path_to_node[p] = path_node
 
         # recurse into sub trees
@@ -215,7 +218,7 @@ class BangShell(App):
                     reporter = r()
                     title, report_results = reporter.create_report(md)
                     for rep in report_results:
-                        yield(rep)
+                        yield rep
 
 @click.command(short_help='Interactive BANG shell')
 @click.option('--result-directory', '-r', required=True, help='BANG result directory', type=click.Path(path_type=pathlib.Path))

@@ -279,29 +279,37 @@ class ElfUnpackParser(UnpackParser):
                 if header.name.startswith('.gresource'):
                     interesting = True
 
-                if interesting:
-                    file_path = pathlib.Path(header.name)
-                    with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
-                        outfile.write(header.body)
+                if not interesting:
+                    continue
 
+                file_path = pathlib.Path(header.name)
+                with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                    outfile.write(header.body)
+
+                    parent_name = pathlib.Path(self.infile.name)
+                    # for some files some extra information should be
+                    # passed to the downstream unpackers
+                    if header.name == '.gnu_debugdata':
+                        # MiniDebugInfo files:
+                        # https://sourceware.org/gdb/onlinedocs/gdb/MiniDebugInfo.html
                         parent_name = pathlib.Path(self.infile.name)
-                        # for some files some extra information should be
-                        # passed to the downstream unpackers
-                        if header.name == '.gnu_debugdata':
-                            # MiniDebugInfo files:
-                            # https://sourceware.org/gdb/onlinedocs/gdb/MiniDebugInfo.html
-                            parent_name = pathlib.Path(self.infile.name)
-                            with unpacked_md.open(open_file=False):
-                                unpacked_md.info['propagated'] = {'parent': parent_name}
-                                unpacked_md.info['propagated']['name'] = f'{parent_name.name}.debug'
-                                unpacked_md.info['propagated']['type'] = 'MiniDebugInfo'
-                        elif header.name == '.qtmimedatabase':
-                            # Qt MIME database
-                            with unpacked_md.open(open_file=False):
-                                unpacked_md.info['propagated'] = {'parent': parent_name}
-                                unpacked_md.info['propagated']['name'] = 'freedesktop.org.xml'
-                                unpacked_md.info['propagated']['type'] = 'Qt MIME database'
-                        yield unpacked_md
+                        with unpacked_md.open(open_file=False):
+                            unpacked_md.info['propagated'] = {'parent': parent_name}
+                            unpacked_md.info['propagated']['name'] = f'{parent_name.name}.debug'
+                            unpacked_md.info['propagated']['type'] = 'MiniDebugInfo'
+                    elif header.name == '.qtmimedatabase':
+                        # Qt MIME database
+                        with unpacked_md.open(open_file=False):
+                            unpacked_md.info['propagated'] = {'parent': parent_name}
+                            unpacked_md.info['propagated']['name'] = 'freedesktop.org.xml'
+                            unpacked_md.info['propagated']['type'] = 'Qt MIME database'
+                    elif header.name == '.BTF':
+                        with unpacked_md.open(open_file=False):
+                            unpacked_md.info['suggested_parsers'] = ['btf']
+                    elif header.name == '.BTF.ext':
+                        with unpacked_md.open(open_file=False):
+                            unpacked_md.info['suggested_parsers'] = ['btf_ext']
+                    yield unpacked_md
 
     def write_info(self, to_meta_directory):
         self.labels, self.metadata = self.extract_metadata_and_labels(to_meta_directory)
@@ -399,7 +407,6 @@ class ElfUnpackParser(UnpackParser):
 
         # process the various section headers
         is_dynamic_elf = False
-        section_to_hash = {}
         sections = {}
         section_ctr = 0
         elf_types = set()
@@ -781,10 +788,9 @@ class ElfUnpackParser(UnpackParser):
             metadata['strings'] = data_strings
 
         if symbols != []:
-             metadata['symbols'] = symbols
+            metadata['symbols'] = symbols
 
         metadata['sections'] = sections
-        metadata['elf_type'] = sorted(elf_types)
 
         if linux_kernel_module_info != {}:
             metadata['Linux kernel module'] = linux_kernel_module_info
@@ -800,10 +806,12 @@ class ElfUnpackParser(UnpackParser):
                 pass
 
         if is_dynamic_elf:
-            labels.append('dynamic')
+            elf_types.add('dynamic')
         else:
             if metadata['type'] == 'core':
-                labels.append('core')
+                elf_types.add('core')
             else:
-                labels.append('static')
+                elf_types.add('static')
+
+        metadata['elf_type'] = sorted(elf_types)
         return(labels, metadata)
