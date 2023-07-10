@@ -145,7 +145,7 @@ class GzipUnpackParser(UnpackParser):
 
             yield unpacked_md
 
-    labels = ['gzip', 'archive']
+    labels = ['gzip', 'compressed']
 
     @property
     def metadata(self):
