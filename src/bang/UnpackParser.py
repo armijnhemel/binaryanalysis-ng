@@ -284,6 +284,8 @@ class HashParser(UnpackParser):
     @property
     def metadata(self):
         metadata = self.from_md.info.get('metadata', {})
+        if 'hashes' not in metadata:
+            metadata['hashes'] = {}
         metadata['hashes']['tlsh'] = self.hash_results
         return metadata
 
