@@ -29,7 +29,7 @@ import traceback
 import time
 from dataclasses import dataclass
 from .meta_directory import *
-from .UnpackParser import SynthesizingParser, ExtractedParser, ExtractingParser, PaddingParser, HashParser
+from .UnpackParser import SynthesizingParser, ExtractedParser, ExtractingParser, PaddingParser, HashParser, compute_hashes
 from .UnpackParserException import UnpackParserException
 from .log import log
 
@@ -93,18 +93,21 @@ def check_for_padding(scan_environment, checking_meta_directory):
         log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: {unpack_parser.__class__} parser exception: {e}')
 
 #####
-# Computes and write hashes to the meta_directory
+# Computes and write a TLSH hash to the meta_directory
 #
-def compute_hashes(scan_environment, checking_meta_directory):
+def compute_tlsh_hash(scan_environment, checking_meta_directory):
     try:
-        unpack_parser = HashParser(checking_meta_directory, 0, scan_environment.configuration)
-        log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
+        if scan_environment.tlsh_minimum <= checking_meta_directory.size <= scan_environment.tlsh_maximum:
+            labels = checking_meta_directory.info.get('labels', [])
+            if scan_environment.tlsh_ignore.intersection(labels) == set():
+                unpack_parser = HashParser(checking_meta_directory, 0, scan_environment.configuration)
+                log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
 
-        checking_meta_directory.unpack_parser = unpack_parser
-        unpack_parser.parse_from_offset()
-        log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
-        log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: parsed_size = {unpack_parser.parsed_size}/{checking_meta_directory.size}')
-        yield checking_meta_directory
+                checking_meta_directory.unpack_parser = unpack_parser
+                unpack_parser.parse_from_offset()
+                log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
+                log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: parsed_size = {unpack_parser.parsed_size}/{checking_meta_directory.size}')
+                yield checking_meta_directory
 
     except UnpackParserException as e:
         # there will be a "parser resulted in zero length file"
@@ -318,10 +321,12 @@ def scan_signatures(scan_environment, meta_directory):
                     log.debug(f'scan_signatures[{meta_directory.md_path}]: skipping [{file_scan_state.scanned_until}:{unpack_parser.parsed_size}], covers entire file, yielding {unpack_parser_cls} and return')
                     yield 0, unpack_parser
                     return
+
                 if offset > file_scan_state.scanned_until:
                     # if it does, yield a synthesizing parser for the padding before the file
                     log.debug(f'scan_signatures[{meta_directory.md_path}]: [{file_scan_state.scanned_until}:{offset}] yields SynthesizingParser, length {offset - file_scan_state.scanned_until}')
                     yield file_scan_state.scanned_until, SynthesizingParser.with_size(meta_directory, offset, offset - file_scan_state.scanned_until, scan_environment.configuration)
+
                 # yield the part that the unpackparser parsed
                 log.debug(f'scan_signatures[{meta_directory.md_path}]: [{offset}:{offset+unpack_parser.parsed_size}] yields {unpack_parser_cls}, length {unpack_parser.parsed_size}')
                 yield offset, unpack_parser
@@ -355,6 +360,10 @@ def check_by_signature(scan_environment, checking_meta_directory):
         else:
             extracted_md = extract_file(checking_meta_directory, checking_meta_directory.open_file, offset, unpack_parser.parsed_size)
             extracted_md.unpack_parser = unpack_parser
+            with extracted_md.open() as md:
+                hashes = compute_hashes(md.open_file)
+                metadata = {'hashes': hashes}
+                md.info.setdefault('metadata', metadata)
             yield extracted_md
             parts.append((offset, unpack_parser.parsed_size))
 
@@ -549,7 +558,7 @@ def make_scan_pipeline():
 
     pipe_padding = pipe_seq(pipe_exec(check_for_padding), stop_if_scanned)
 
-    pipe_hashes = pipe_exec(compute_hashes)
+    pipe_hashes = pipe_exec(compute_tlsh_hash)
 
     pipe_checks_if_not_synthesized = pipe_cond(
             cond_not_synthesized,
@@ -612,6 +621,20 @@ def process_jobs(pipeline, scan_environment):
 
             scanjob.scan_environment = scan_environment
             log.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: start job [{time.time_ns()}]')
+
+            # first compute some checksums here, so files that should be
+            # ignored actually can be ignored. Note: these are the checksums
+            # for the *entire* file, not for parts that have been unpacked and
+            # carved which are (to be) computed somewhere else.
+            with scanjob.meta_directory.open() as md:
+                hashes = compute_hashes(md.open_file)
+                metadata = {'hashes': hashes}
+                scanjob.meta_directory.info.setdefault('metadata', metadata)
+
+                if hashes['sha256'] in scan_environment.ignore:
+                    labels = ['ignored']
+                    scanjob.meta_directory.info.setdefault('labels', labels)
+                    continue
 
             # start the pipeline for the job
             pipeline(scanjob.scan_environment, scanjob.meta_directory)
