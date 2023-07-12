@@ -111,8 +111,9 @@ def scan(config_file, verbose, unpack_directory, temporary_directory, ignore_lis
 
     # TODO: make configurable
     #tlsh_ignore = set()
-    tlsh_ignore = set(['compressed', 'graphics', 'audio', 'archive',
-            'filesystem', 'srec', 'ihex', 'padding', 'database', 'ignored'])
+    tlsh_ignore = set(['compressed', 'encrypted', 'graphics', 'audio', 'archive',
+            'filesystem', 'srec', 'ihex', 'padding', 'database', 'ignored', 'utmp',
+            'resource', 'rpm', 'stone', 'vim swap', 'pcap', 'pcapng', 'edid'])
 
     # set up the environment
     scan_environment = create_scan_environment_from_config(config)
