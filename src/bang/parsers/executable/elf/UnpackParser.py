@@ -764,6 +764,9 @@ class ElfUnpackParser(UnpackParser):
                         # https://android.googlesource.com/platform/ndk/+/master/parse_elfnote.py
                         elf_types.add('android')
                         metadata['android ndk'] = int.from_bytes(entry.descriptor, byteorder='little')
+                    elif entry.name == b'Android' and entry.type == 4:
+                        # .note.android.memtag
+                        elf_types.add('android')
                     elif entry.name == b'Xen':
                         # http://xenbits.xen.org/gitweb/?p=xen.git;a=blob;f=xen/include/public/elfnote.h;h=181cbc4ec71c4af298e40c3604daff7d3b48d52f;hb=HEAD
                         # .note.Xen in FreeBSD kernel
@@ -771,6 +774,11 @@ class ElfUnpackParser(UnpackParser):
                         elf_types.add('xen')
                     elif entry.name == b'NaCl':
                         elf_types.add('Google Native Client')
+                    elif entry.name == b'LLVM\x00\x00\x00\x00' and entry.type == 3:
+                        # .notes.hwasan.globals
+                        # https://source.android.com/docs/security/test/memory-safety/hwasan-reports
+                        # https://reviews.llvm.org/D65770
+                        pass
 
         if dynamic_symbols != []:
             metadata['dynamic_symbols'] = dynamic_symbols
