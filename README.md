@@ -301,6 +301,7 @@ larger file, unless stated otherwise.
 201. TRANS.TBL files
 202. BTF and BTF.ext sections (BPF related)
 203. NibArchive
+204. EDID
 
 ## Getting started
 
