@@ -33,6 +33,9 @@ general:
   # Setting to indicate whether an error should be fatal
   # default: true
   error_fatal: true
+
+  # Path for an ignore list, with information about files to ignore
+  #ignore_list: /tmp/ignore.yaml
 parsers:
   # a list of parsers that need to be ignored. Use the
   # 'pretty_name' attribute of the UnpackParser classes
