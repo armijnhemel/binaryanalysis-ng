@@ -301,6 +301,7 @@ larger file, unless stated otherwise.
 201. TRANS.TBL files
 202. BTF and BTF.ext sections (BPF related)
 203. NibArchive
+204. EDID
 
 ## Getting started
 
@@ -312,7 +313,7 @@ This section assumes that you are using Nix to install all dependencies.
 4. run `make` to build all the Kaitai Struct parsers. Please note: this might take
    a while!
 
-To unpack a file run:
+To unpack a file run (from the `src` directory):
 
     $ python3 -m bang.cli scan -u /path/to/unpack/directory /path/to/binary
 

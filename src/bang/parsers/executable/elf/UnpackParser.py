@@ -121,6 +121,13 @@ class ElfUnpackParser(UnpackParser):
             self.dynstr = None
             num_dynsym = 0
             self.version_symbols = {}
+            self.dependencies_to_versions = {}
+
+            # store for each symbol which version is needed.
+            # If there are no symbols, then this will stay empty
+            self.symbol_to_version = {}
+            self.version_to_name = {0: '', 1: ''}
+
             for header in self.data.header.section_headers:
                 if header.type == elf.Elf.ShType.strtab:
                     if header.name == '.dynstr':
@@ -189,10 +196,11 @@ class ElfUnpackParser(UnpackParser):
                 # see https://johannst.github.io/notes/development/symbolver.html
                 # for a good explanation of these symbols
                 elif header.type == elf.Elf.ShType.gnu_versym:
-                    if header.name == '..gnu.version':
+                    if header.name == '.gnu.version':
                         check_condition(self.dynstr is not None, "no dynamic string section found")
                         check_condition(num_dynsym == len(header.body.symbol_versions),
                                         "mismatch between number of symbols and symbol versions")
+                        self.symbol_to_version = {k: v for k, v in enumerate(header.body.symbol_versions)}
                 elif header.type == elf.Elf.ShType.gnu_verneed:
                     if header.name == '.gnu.version_r':
                         check_condition(self.dynstr is not None, "no dynamic string section found")
@@ -206,6 +214,8 @@ class ElfUnpackParser(UnpackParser):
                             except UnicodeDecodeError as e:
                                 raise UnpackParserException(e.args)
 
+                            self.dependencies_to_versions[name] = []
+
                             # verify the auxiliary entries
                             for a in cur_entry.auxiliary_entries:
                                 self.dynstr.seek(a.ofs_name)
@@ -214,6 +224,8 @@ class ElfUnpackParser(UnpackParser):
                                     check_condition(name != '', "empty name")
                                 except UnicodeDecodeError as e:
                                     raise UnpackParserException(e.args)
+                                self.version_to_name[a.object_file_version] = a_name
+                                self.dependencies_to_versions[name].append(a_name)
 
                             # then jump to the next entry
                             if cur_entry.next is not None:
@@ -224,15 +236,25 @@ class ElfUnpackParser(UnpackParser):
                     if header.name == '.gnu.version_d':
                         check_condition(self.dynstr is not None, "no dynamic string section found")
                         cur_entry = header.body.entry
+                        self.version_to_name[0] = ''
+                        ctr = 1
                         while True:
-                            # verify the auxiliary entries
+                            # verify the auxiliary entries. The only interesting one is
+                            # actually the first name, the rest are "parents" (according
+                            # to readelf)
+                            aux_name = ''
                             for a in cur_entry.auxiliary_entries:
                                 self.dynstr.seek(a.ofs_name)
                                 try:
                                     a_name = self.dynstr.read().split(b'\x00')[0].decode()
+                                    if aux_name == '':
+                                        aux_name = a_name
                                     check_condition(name != '', "empty name")
                                 except UnicodeDecodeError as e:
                                     raise UnpackParserException(e.args)
+
+                            self.version_to_name[ctr] = aux_name
+                            ctr += 1
 
                             # then jump to the next entry
                             if cur_entry.next is not None:
@@ -484,7 +506,7 @@ class ElfUnpackParser(UnpackParser):
                 if header.name == '.dynamic':
                     for entry in header.body.entries:
                         if entry.tag_enum == elf.Elf.DynamicArrayTags.needed:
-                            needed.append(entry.value_str)
+                            needed.append({'name': entry.value_str, 'symbol_versions': self.dependencies_to_versions.get(entry.value_str, [])})
                         elif entry.tag_enum == elf.Elf.DynamicArrayTags.rpath:
                             metadata['rpath'] = entry.value_str
                         elif entry.tag_enum == elf.Elf.DynamicArrayTags.runpath:
@@ -510,7 +532,7 @@ class ElfUnpackParser(UnpackParser):
                                     security_metadata.add('partial relro')
             elif header.type == elf.Elf.ShType.symtab:
                 if header.name == '.symtab':
-                    for entry in header.body.entries:
+                    for idx, entry in enumerate(header.body.entries):
                         symbol = {}
                         if entry.name is None:
                             symbol['name'] = ''
@@ -524,7 +546,7 @@ class ElfUnpackParser(UnpackParser):
                         symbols.append(symbol)
             elif header.type == elf.Elf.ShType.dynsym:
                 if header.name == '.dynsym':
-                    for entry in header.body.entries:
+                    for idx, entry in enumerate(header.body.entries):
                         symbol = {}
                         if entry.name is None:
                             symbol['name'] = ''
@@ -535,6 +557,9 @@ class ElfUnpackParser(UnpackParser):
                         symbol['visibility'] = entry.visibility.name
                         symbol['section_index'] = entry.sh_idx
                         symbol['size'] = entry.size
+                        if self.symbol_to_version != {}:
+                            symbol['versioning'] = self.symbol_to_version[idx]
+                            symbol['versioning_resolved_name'] = self.version_to_name[self.symbol_to_version[idx]]
 
                         # store dynamic symbols in *both* symbols and
                         # dynamic_symbols as they have a different scope.
@@ -565,27 +590,37 @@ class ElfUnpackParser(UnpackParser):
                     # not been stripped.
                     #
                     # The "strings" flag *should* be set for this section
-                    try:
-                        comment = list(filter(lambda x: x != b'', header.body.split(b'\x00')))[0].decode()
-                        metadata['comment'] = comment
-                    except:
-                        pass
+                    # There could be multiple valid comments separated by \x00
+                    # for example in some Android binaries
+                    comment_components = list(filter(lambda x: x != b'', header.body.split(b'\x00')))
+                    comments = []
+                    for cc in comment_components:
+                        try:
+                            comment = cc.decode()
+                            comments.append(comment)
+                        except UnicodeDecodeError:
+                            pass
+                    if comments != []:
+                        metadata['comment'] = comments
                 elif header.name == '.gcc_except_table':
                     # debug information from GCC
                     pass
                 elif header.name == '.gnu_debuglink':
                     # https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html
-                    link_name = header.body.split(b'\x00', 1)[0].decode()
-                    link_crc = int.from_bytes(header.body[-4:], byteorder=metadata['endian'])
-                    metadata['gnu debuglink'] = link_name
-                    metadata['gnu debuglink crc'] = link_crc
+                    try:
+                        link_name = header.body.split(b'\x00', 1)[0].decode()
+                        link_crc = int.from_bytes(header.body[-4:], byteorder=metadata['endian'])
+                        metadata['gnu debuglink'] = link_name
+                        metadata['gnu debuglink crc'] = link_crc
+                    except UnicodeDecodeError:
+                        pass
                 elif header.name == '.GCC.command.line':
                     # GCC -frecord-gcc-switches option
                     gcc_command_line_strings = []
                     for s in header.body.split(b'\x00'):
                         try:
                             gcc_command_line_strings.append(s.decode())
-                        except:
+                        except UnicodeDecodeError:
                             pass
                     if gcc_command_line_strings != []:
                         metadata['.GCC.command.line'] = gcc_command_line_strings
@@ -610,7 +645,7 @@ class ElfUnpackParser(UnpackParser):
                                         data_strings.append(decoded_string)
                                 else:
                                     data_strings.append(decoded_string)
-                        except:
+                        except UnicodeDecodeError:
                             pass
                     # some Qt binaries use the Qt resource system,
                     # containing images, text, etc.
@@ -619,7 +654,10 @@ class ElfUnpackParser(UnpackParser):
                         pass
                 elif header.name == '.interp':
                     # store the location of the dynamic linker
-                    metadata['linker'] = header.body.split(b'\x00', 1)[0].decode()
+                    try:
+                        metadata['linker'] = header.body.split(b'\x00', 1)[0].decode()
+                    except UnicodeDecodeError:
+                        pass
 
                 # Some Go related things
                 elif header.name == '.gopclntab':
@@ -665,10 +703,16 @@ class ElfUnpackParser(UnpackParser):
                     pass
                 elif header.name == '.sdmagic':
                     # systemd, example linuxx64.elf.stub
-                    metadata['systemd loader'] = header.body.decode()
+                    try:
+                        metadata['systemd loader'] = header.body.decode()
+                    except UnicodeDecodeError:
+                        pass
                 elif header.name == 'sw_isr_table':
                     # Zephyr
                     elf_types.add('zephyr')
+                elif header.name == 'protodesc_cold':
+                    # Protobuf
+                    elf_types.add('protobuf')
 
             if header.type == elf.Elf.ShType.dynamic:
                 is_dynamic_elf = True
@@ -716,7 +760,10 @@ class ElfUnpackParser(UnpackParser):
                             metadata['build-id hash'] = 'md5'
                     elif entry.name == b'GNU' and entry.type == 4:
                         # normally in .note.gnu.gold-version
-                        metadata['gold-version'] = entry.descriptor.split(b'\x00', 1)[0].decode()
+                        try:
+                            metadata['gold-version'] = entry.descriptor.split(b'\x00', 1)[0].decode()
+                        except UnicodeDecodeError:
+                            pass
                     elif entry.name == b'GNU' and entry.type == 5:
                         # normally in .note.gnu.property
                         pass
@@ -740,7 +787,7 @@ class ElfUnpackParser(UnpackParser):
                             # see BUILD_SALT in init/Kconfig
                             try:
                                 linux_kernel_module_info['kernel build id salt'] = entry.descriptor.decode()
-                            except:
+                            except UnicodeDecodeError:
                                 pass
                         elif entry.type == 0x101:
                             # LINUX_ELFNOTE_LTO_INFO
@@ -764,6 +811,9 @@ class ElfUnpackParser(UnpackParser):
                         # https://android.googlesource.com/platform/ndk/+/master/parse_elfnote.py
                         elf_types.add('android')
                         metadata['android ndk'] = int.from_bytes(entry.descriptor, byteorder='little')
+                    elif entry.name == b'Android' and entry.type == 4:
+                        # .note.android.memtag
+                        elf_types.add('android')
                     elif entry.name == b'Xen':
                         # http://xenbits.xen.org/gitweb/?p=xen.git;a=blob;f=xen/include/public/elfnote.h;h=181cbc4ec71c4af298e40c3604daff7d3b48d52f;hb=HEAD
                         # .note.Xen in FreeBSD kernel
@@ -771,6 +821,11 @@ class ElfUnpackParser(UnpackParser):
                         elf_types.add('xen')
                     elif entry.name == b'NaCl':
                         elf_types.add('Google Native Client')
+                    elif entry.name == b'LLVM\x00\x00\x00\x00' and entry.type == 3:
+                        # .notes.hwasan.globals
+                        # https://source.android.com/docs/security/test/memory-safety/hwasan-reports
+                        # https://reviews.llvm.org/D65770
+                        pass
 
         if dynamic_symbols != []:
             metadata['dynamic_symbols'] = dynamic_symbols
