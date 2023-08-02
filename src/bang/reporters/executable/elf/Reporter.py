@@ -52,7 +52,7 @@ class ElfReporter(Reporter):
                 meta_table.add_row('Security features', f'{security_features}')
 
             if 'needed' in metadata:
-                needed = ", ".join(sorted(metadata['needed']))
+                needed = ", ".join(sorted(k['name'] for k in metadata['needed']))
                 meta_table.add_row('Needed libraries', f'{needed}')
 
             # then lots of optional information

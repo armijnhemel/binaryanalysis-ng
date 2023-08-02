@@ -121,6 +121,7 @@ class ElfUnpackParser(UnpackParser):
             self.dynstr = None
             num_dynsym = 0
             self.version_symbols = {}
+            self.dependencies_to_versions = {}
 
             # store for each symbol which version is needed.
             # If there are no symbols, then this will stay empty
@@ -213,6 +214,8 @@ class ElfUnpackParser(UnpackParser):
                             except UnicodeDecodeError as e:
                                 raise UnpackParserException(e.args)
 
+                            self.dependencies_to_versions[name] = []
+
                             # verify the auxiliary entries
                             for a in cur_entry.auxiliary_entries:
                                 self.dynstr.seek(a.ofs_name)
@@ -222,6 +225,7 @@ class ElfUnpackParser(UnpackParser):
                                 except UnicodeDecodeError as e:
                                     raise UnpackParserException(e.args)
                                 self.version_to_name[a.object_file_version] = a_name
+                                self.dependencies_to_versions[name].append(a_name)
 
                             # then jump to the next entry
                             if cur_entry.next is not None:
@@ -502,7 +506,7 @@ class ElfUnpackParser(UnpackParser):
                 if header.name == '.dynamic':
                     for entry in header.body.entries:
                         if entry.tag_enum == elf.Elf.DynamicArrayTags.needed:
-                            needed.append(entry.value_str)
+                            needed.append({'name': entry.value_str, 'symbol_versions': self.dependencies_to_versions.get(entry.value_str, [])})
                         elif entry.tag_enum == elf.Elf.DynamicArrayTags.rpath:
                             metadata['rpath'] = entry.value_str
                         elif entry.tag_enum == elf.Elf.DynamicArrayTags.runpath:
