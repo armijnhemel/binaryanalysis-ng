@@ -573,7 +573,7 @@ class ElfUnpackParser(UnpackParser):
                         try:
                             comment = cc.decode()
                             comments.append(comment)
-                        except:
+                        except UnicodeDecodeError:
                             pass
                     if comments != []:
                         metadata['comment'] = comments
@@ -582,17 +582,20 @@ class ElfUnpackParser(UnpackParser):
                     pass
                 elif header.name == '.gnu_debuglink':
                     # https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html
-                    link_name = header.body.split(b'\x00', 1)[0].decode()
-                    link_crc = int.from_bytes(header.body[-4:], byteorder=metadata['endian'])
-                    metadata['gnu debuglink'] = link_name
-                    metadata['gnu debuglink crc'] = link_crc
+                    try:
+                        link_name = header.body.split(b'\x00', 1)[0].decode()
+                        link_crc = int.from_bytes(header.body[-4:], byteorder=metadata['endian'])
+                        metadata['gnu debuglink'] = link_name
+                        metadata['gnu debuglink crc'] = link_crc
+                    except UnicodeDecodeError:
+                        pass
                 elif header.name == '.GCC.command.line':
                     # GCC -frecord-gcc-switches option
                     gcc_command_line_strings = []
                     for s in header.body.split(b'\x00'):
                         try:
                             gcc_command_line_strings.append(s.decode())
-                        except:
+                        except UnicodeDecodeError:
                             pass
                     if gcc_command_line_strings != []:
                         metadata['.GCC.command.line'] = gcc_command_line_strings
@@ -617,7 +620,7 @@ class ElfUnpackParser(UnpackParser):
                                         data_strings.append(decoded_string)
                                 else:
                                     data_strings.append(decoded_string)
-                        except:
+                        except UnicodeDecodeError:
                             pass
                     # some Qt binaries use the Qt resource system,
                     # containing images, text, etc.
@@ -628,7 +631,7 @@ class ElfUnpackParser(UnpackParser):
                     # store the location of the dynamic linker
                     try:
                         metadata['linker'] = header.body.split(b'\x00', 1)[0].decode()
-                    except:
+                    except UnicodeDecodeError:
                         pass
 
                 # Some Go related things
@@ -675,7 +678,10 @@ class ElfUnpackParser(UnpackParser):
                     pass
                 elif header.name == '.sdmagic':
                     # systemd, example linuxx64.elf.stub
-                    metadata['systemd loader'] = header.body.decode()
+                    try:
+                        metadata['systemd loader'] = header.body.decode()
+                    except UnicodeDecodeError:
+                        pass
                 elif header.name == 'sw_isr_table':
                     # Zephyr
                     elf_types.add('zephyr')
@@ -729,7 +735,10 @@ class ElfUnpackParser(UnpackParser):
                             metadata['build-id hash'] = 'md5'
                     elif entry.name == b'GNU' and entry.type == 4:
                         # normally in .note.gnu.gold-version
-                        metadata['gold-version'] = entry.descriptor.split(b'\x00', 1)[0].decode()
+                        try:
+                            metadata['gold-version'] = entry.descriptor.split(b'\x00', 1)[0].decode()
+                        except UnicodeDecodeError:
+                            pass
                     elif entry.name == b'GNU' and entry.type == 5:
                         # normally in .note.gnu.property
                         pass
@@ -753,7 +762,7 @@ class ElfUnpackParser(UnpackParser):
                             # see BUILD_SALT in init/Kconfig
                             try:
                                 linux_kernel_module_info['kernel build id salt'] = entry.descriptor.decode()
-                            except:
+                            except UnicodeDecodeError:
                                 pass
                         elif entry.type == 0x101:
                             # LINUX_ELFNOTE_LTO_INFO
