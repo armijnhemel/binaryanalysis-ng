@@ -170,6 +170,12 @@ enums:
     0x332726f6:
       id: esp32h2
       doc: "ESP32-H2"
+    0x540ddf62:
+      id: esp32c6
+      doc: "ESP32-C6"
+    0x3d308e94:
+      id: esp32p4
+      doc: "ESP32-P4"
     0xe48bff56:
       id: rp2040
       doc: "Raspberry Pi RP2040"
