@@ -125,7 +125,7 @@ class ElfUnpackParser(UnpackParser):
             # store for each symbol which version is needed.
             # If there are no symbols, then this will stay empty
             self.symbol_to_version = {}
-            self.version_to_name = {}
+            self.version_to_name = {0: '', 1: ''}
 
             for header in self.data.header.section_headers:
                 if header.type == elf.Elf.ShType.strtab:
@@ -232,7 +232,7 @@ class ElfUnpackParser(UnpackParser):
                     if header.name == '.gnu.version_d':
                         check_condition(self.dynstr is not None, "no dynamic string section found")
                         cur_entry = header.body.entry
-                        self.version_to_name[0] = 'local'
+                        self.version_to_name[0] = ''
                         ctr = 1
                         while True:
                             # verify the auxiliary entries. The only interesting one is
@@ -528,7 +528,7 @@ class ElfUnpackParser(UnpackParser):
                                     security_metadata.add('partial relro')
             elif header.type == elf.Elf.ShType.symtab:
                 if header.name == '.symtab':
-                    for entry in header.body.entries:
+                    for idx, entry in enumerate(header.body.entries):
                         symbol = {}
                         if entry.name is None:
                             symbol['name'] = ''
@@ -539,10 +539,12 @@ class ElfUnpackParser(UnpackParser):
                         symbol['visibility'] = entry.visibility.name
                         symbol['section_index'] = entry.sh_idx
                         symbol['size'] = entry.size
+                        symbol['versioning'] = self.symbol_to_version[idx]
+                        symbol['versioning_resolved_name'] = self.version_to_name[self.symbol_to_version[idx]]
                         symbols.append(symbol)
             elif header.type == elf.Elf.ShType.dynsym:
                 if header.name == '.dynsym':
-                    for entry in header.body.entries:
+                    for idx, entry in enumerate(header.body.entries):
                         symbol = {}
                         if entry.name is None:
                             symbol['name'] = ''
@@ -553,6 +555,8 @@ class ElfUnpackParser(UnpackParser):
                         symbol['visibility'] = entry.visibility.name
                         symbol['section_index'] = entry.sh_idx
                         symbol['size'] = entry.size
+                        symbol['versioning'] = self.symbol_to_version[idx]
+                        symbol['versioning_resolved_name'] = self.version_to_name[self.symbol_to_version[idx]]
 
                         # store dynamic symbols in *both* symbols and
                         # dynamic_symbols as they have a different scope.
