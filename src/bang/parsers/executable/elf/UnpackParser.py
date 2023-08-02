@@ -221,6 +221,7 @@ class ElfUnpackParser(UnpackParser):
                                     check_condition(name != '', "empty name")
                                 except UnicodeDecodeError as e:
                                     raise UnpackParserException(e.args)
+                                self.version_to_name[a.object_file_version] = a_name
 
                             # then jump to the next entry
                             if cur_entry.next is not None:
