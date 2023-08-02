@@ -73,7 +73,7 @@ class ElfReporter(Reporter):
             if 'gnu debuglink crc' in metadata:
                 meta_table.add_row('GNU debug link CRC', f'{metadata["gnu debuglink crc"]}')
             if 'comment' in metadata:
-                meta_table.add_row('Comment', f'{metadata["comment"]}')
+                meta_table.add_row('Comment', "\n".join(metadata["comment"]))
             if 'package note' in metadata:
                 if 'name' in metadata['package note']:
                     meta_table.add_row('Package name', f'{metadata["package note"]["name"]}')

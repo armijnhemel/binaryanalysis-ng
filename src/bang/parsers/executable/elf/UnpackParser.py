@@ -565,11 +565,18 @@ class ElfUnpackParser(UnpackParser):
                     # not been stripped.
                     #
                     # The "strings" flag *should* be set for this section
-                    try:
-                        comment = list(filter(lambda x: x != b'', header.body.split(b'\x00')))[0].decode()
-                        metadata['comment'] = comment
-                    except:
-                        pass
+                    # There could be multiple valid comments separated by \x00
+                    # for example in some Android binaries
+                    comment_components = list(filter(lambda x: x != b'', header.body.split(b'\x00')))
+                    comments = []
+                    for cc in comment_components:
+                        try:
+                            comment = cc.decode()
+                            comments.append(comment)
+                        except:
+                            pass
+                    if comments != []:
+                        metadata['comment'] = comments
                 elif header.name == '.gcc_except_table':
                     # debug information from GCC
                     pass
