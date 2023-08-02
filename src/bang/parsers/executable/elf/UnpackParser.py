@@ -189,7 +189,7 @@ class ElfUnpackParser(UnpackParser):
                 # see https://johannst.github.io/notes/development/symbolver.html
                 # for a good explanation of these symbols
                 elif header.type == elf.Elf.ShType.gnu_versym:
-                    if header.name == '..gnu.version':
+                    if header.name == '.gnu.version':
                         check_condition(self.dynstr is not None, "no dynamic string section found")
                         check_condition(num_dynsym == len(header.body.symbol_versions),
                                         "mismatch between number of symbols and symbol versions")
