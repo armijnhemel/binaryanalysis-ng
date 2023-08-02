@@ -543,9 +543,6 @@ class ElfUnpackParser(UnpackParser):
                         symbol['visibility'] = entry.visibility.name
                         symbol['section_index'] = entry.sh_idx
                         symbol['size'] = entry.size
-                        if self.symbol_to_version != {}:
-                            symbol['versioning'] = self.symbol_to_version[idx]
-                            symbol['versioning_resolved_name'] = self.version_to_name[self.symbol_to_version[idx]]
                         symbols.append(symbol)
             elif header.type == elf.Elf.ShType.dynsym:
                 if header.name == '.dynsym':
