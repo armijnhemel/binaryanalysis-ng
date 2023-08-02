@@ -121,6 +121,12 @@ class ElfUnpackParser(UnpackParser):
             self.dynstr = None
             num_dynsym = 0
             self.version_symbols = {}
+
+            # store for each symbol which version is needed.
+            # If there are no symbols, then this will stay empty
+            self.symbol_to_version = {}
+            self.version_to_name = {}
+
             for header in self.data.header.section_headers:
                 if header.type == elf.Elf.ShType.strtab:
                     if header.name == '.dynstr':
@@ -193,6 +199,7 @@ class ElfUnpackParser(UnpackParser):
                         check_condition(self.dynstr is not None, "no dynamic string section found")
                         check_condition(num_dynsym == len(header.body.symbol_versions),
                                         "mismatch between number of symbols and symbol versions")
+                        self.symbol_to_version = {k: v for k, v in enumerate(header.body.symbol_versions)}
                 elif header.type == elf.Elf.ShType.gnu_verneed:
                     if header.name == '.gnu.version_r':
                         check_condition(self.dynstr is not None, "no dynamic string section found")
@@ -224,15 +231,25 @@ class ElfUnpackParser(UnpackParser):
                     if header.name == '.gnu.version_d':
                         check_condition(self.dynstr is not None, "no dynamic string section found")
                         cur_entry = header.body.entry
+                        self.version_to_name[0] = 'local'
+                        ctr = 1
                         while True:
-                            # verify the auxiliary entries
+                            # verify the auxiliary entries. The only interesting one is
+                            # actually the first name, the rest are "parents" (according
+                            # to readelf)
+                            aux_name = ''
                             for a in cur_entry.auxiliary_entries:
                                 self.dynstr.seek(a.ofs_name)
                                 try:
                                     a_name = self.dynstr.read().split(b'\x00')[0].decode()
+                                    if aux_name == '':
+                                        aux_name = a_name
                                     check_condition(name != '', "empty name")
                                 except UnicodeDecodeError as e:
                                     raise UnpackParserException(e.args)
+
+                            self.version_to_name[ctr] = aux_name
+                            ctr += 1
 
                             # then jump to the next entry
                             if cur_entry.next is not None:
