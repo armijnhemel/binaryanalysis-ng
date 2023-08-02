@@ -626,7 +626,10 @@ class ElfUnpackParser(UnpackParser):
                         pass
                 elif header.name == '.interp':
                     # store the location of the dynamic linker
-                    metadata['linker'] = header.body.split(b'\x00', 1)[0].decode()
+                    try:
+                        metadata['linker'] = header.body.split(b'\x00', 1)[0].decode()
+                    except:
+                        pass
 
                 # Some Go related things
                 elif header.name == '.gopclntab':
