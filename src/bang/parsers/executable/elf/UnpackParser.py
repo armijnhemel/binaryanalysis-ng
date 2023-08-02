@@ -669,6 +669,9 @@ class ElfUnpackParser(UnpackParser):
                 elif header.name == 'sw_isr_table':
                     # Zephyr
                     elf_types.add('zephyr')
+                elif header.name == 'protodesc_cold':
+                    # Protobuf
+                    elf_types.add('protobuf')
 
             if header.type == elf.Elf.ShType.dynamic:
                 is_dynamic_elf = True
