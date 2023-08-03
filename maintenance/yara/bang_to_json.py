@@ -100,7 +100,7 @@ def process_bang(yara_queue, yara_directory, yara_binary_directory,
                 metadata['telfhash'] = bang_data['metadata']['telfhash']
 
             # process strings
-            if bang_data['metadata']['strings'] != []:
+            if 'strings' in bang_data['metadata']:
                 for s in bang_data['metadata']['strings']:
                     # ignore whitespace-only strings
                     if re.match(r'^\s+$', s) is None:
