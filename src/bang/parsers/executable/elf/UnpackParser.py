@@ -552,11 +552,14 @@ class ElfUnpackParser(UnpackParser):
                             symbol['name'] = ''
                         else:
                             symbol['name'] = entry.name
-                        symbol['type'] = entry.type.name
                         symbol['binding'] = entry.bind.name
-                        symbol['visibility'] = entry.visibility.name
                         symbol['section_index'] = entry.sh_idx
                         symbol['size'] = entry.size
+                        symbol['type'] = entry.type.name
+                        symbol['value'] = entry.value
+                        symbol['visibility'] = entry.visibility.name
+
+                        # add versioning information, if any
                         if self.symbol_to_version != {}:
                             symbol['versioning'] = self.symbol_to_version[idx]
                             symbol['versioning_resolved_name'] = self.version_to_name[self.symbol_to_version[idx]]
