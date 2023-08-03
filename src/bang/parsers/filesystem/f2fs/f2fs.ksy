@@ -12,6 +12,7 @@ doc: |
 doc-ref:
   - https://elinux.org/images/1/12/Elc2013_Hwang.pdf
   - https://docs.kernel.org/filesystems/f2fs.html
+  - https://git.kernel.org/pub/scm/linux/kernel/git/jaegeuk/f2fs-tools.git/
 seq:
   - id: superblock_segment
     type: superblock_segment
@@ -27,6 +28,7 @@ seq:
     size: superblock_segment.superblock.num_segments_ssa * segment_size
   - id: main_area
     size: superblock_segment.superblock.num_segments_main * segment_size
+    type: main_area
 instances:
   segment_size:
     value: 2097152
@@ -325,3 +327,44 @@ types:
         size: 64
       - id: mtime
         type: u8
+  main_area:
+    seq:
+      - id: blocks
+        size: 4096
+        repeat: eos
+  footer:
+    seq:
+      - id: node_id
+        type: u4
+      - id: inode_number
+        type: u4
+      - id: flag
+        type: u4
+      - id: checkpoint_version
+        type: u8
+      - id: next_block_address
+        type: u4
+  dir_entry:
+    seq:
+      - id: hash_code
+        type: u4
+      - id: inode_number
+        type: u4
+      - id: len_filename
+        type: u2
+      - id: file_type
+        type: u1
+        enum: file_types
+enums:
+  file_types:
+    0: unknown
+    1: regular_file
+    2: directory
+    3: character_device
+    4: block_device
+    5: fifo
+    6: socket
+    7: symlink
+    8: max
+    9: orphan
+    10: xattr
