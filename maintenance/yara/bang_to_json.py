@@ -114,8 +114,6 @@ def process_bang(yara_queue, yara_directory, yara_binary_directory,
                     if yara_env['ignore_weak_symbols']:
                         if s['binding'] == 'weak':
                             continue
-                    if len(s['name']) < yara_env['identifier_cutoff']:
-                        continue
                     if '@@' in s['name']:
                         identifier_name = s['name'].rsplit('@@', 1)[0]
                     elif '@' in s['name']:
@@ -126,6 +124,8 @@ def process_bang(yara_queue, yara_directory, yara_binary_directory,
 
             # dump JSON
             elf_info['metadata'] = metadata
+            elf_info['strings'] = sorted(strings)
+            elf_info['symbols'] = symbols
             elf_info['tags'] = yara_env['tags'] + ['elf']
             json_file = yara_binary_directory / ("%s-%s.json" % (metadata['name'], metadata['sha256']))
             with open(json_file, 'w') as json_dump:
