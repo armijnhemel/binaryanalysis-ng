@@ -90,7 +90,7 @@ def process_bang(yara_queue, yara_directory, yara_binary_directory,
         if 'tlsh' in bang_data['metadata']['hashes']:
             metadata['tlsh'] = bang_data['metadata']['hashes']['tlsh']
 
-        strings = set()
+        strings = []
 
         if exec_type == 'elf':
             elf_info = {}
@@ -104,7 +104,7 @@ def process_bang(yara_queue, yara_directory, yara_binary_directory,
                 for s in bang_data['metadata']['strings']:
                     # ignore whitespace-only strings
                     if re.match(r'^\s+$', s) is None:
-                        strings.add(s.translate(ESCAPE))
+                        strings.append(s.translate(ESCAPE))
 
             # process symbols, split in functions and variables
             if bang_data['metadata']['symbols'] != []:
@@ -124,7 +124,7 @@ def process_bang(yara_queue, yara_directory, yara_binary_directory,
 
             # dump JSON
             elf_info['metadata'] = metadata
-            elf_info['strings'] = sorted(strings)
+            elf_info['strings'] = strings
             elf_info['symbols'] = symbols
             elf_info['tags'] = yara_env['tags'] + ['elf']
             json_file = yara_binary_directory / ("%s-%s.json" % (metadata['name'], metadata['sha256']))
