@@ -33,12 +33,6 @@ except ImportError:
 
 from yara_config import YaraConfig, YaraConfigException
 
-# YARA escape sequences
-ESCAPE = str.maketrans({'"': '\\"',
-                        '\\': '\\\\',
-                        '\t': '\\t',
-                        '\n': '\\n'})
-
 
 def process_bang(yara_queue, yara_directory, yara_binary_directory,
                       process_lock, processed_files, yara_env):
@@ -100,7 +94,7 @@ def process_bang(yara_queue, yara_directory, yara_binary_directory,
                 for s in bang_data['metadata']['strings']:
                     # ignore whitespace-only strings
                     if re.match(r'^\s+$', s) is None:
-                        strings.append(s.translate(ESCAPE))
+                        strings.append(s)
 
             # process symbols, split in functions and variables
             if bang_data['metadata']['symbols'] != []:
