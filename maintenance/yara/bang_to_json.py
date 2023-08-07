@@ -13,7 +13,6 @@ and Android Dex files.
 '''
 
 import collections
-import datetime
 import json
 import multiprocessing
 import os
@@ -39,9 +38,6 @@ ESCAPE = str.maketrans({'"': '\\"',
                         '\\': '\\\\',
                         '\t': '\\t',
                         '\n': '\\n'})
-
-NAME_ESCAPE = str.maketrans({'.': '_',
-                             '-': '_'})
 
 
 def process_bang(yara_queue, yara_directory, yara_binary_directory,
@@ -93,7 +89,7 @@ def process_bang(yara_queue, yara_directory, yara_binary_directory,
         strings = []
 
         if exec_type == 'elf':
-            elf_info = {}
+            meta_info = {}
             symbols = []
 
             if 'telfhash' in bang_data['metadata']:
@@ -123,13 +119,11 @@ def process_bang(yara_queue, yara_directory, yara_binary_directory,
                     symbols.append(s)
 
             # dump JSON
-            elf_info['metadata'] = metadata
-            elf_info['strings'] = strings
-            elf_info['symbols'] = symbols
-            elf_info['tags'] = yara_env['tags'] + ['elf']
-            json_file = yara_binary_directory / ("%s-%s.json" % (metadata['name'], metadata['sha256']))
-            with open(json_file, 'w') as json_dump:
-                json.dump(elf_info, json_dump, indent=4)
+            meta_info['metadata'] = metadata
+            meta_info['strings'] = strings
+            meta_info['symbols'] = symbols
+            meta_info['labels'] = bang_data['labels']
+            meta_info['tags'] = yara_env['tags'] + ['elf']
         elif exec_type == 'dex':
             dex_classes = []
 
@@ -163,13 +157,14 @@ def process_bang(yara_queue, yara_directory, yara_binary_directory,
                     dex_classes.append(class_info)
 
             # dump JSON
-            dex_info = {}
-            dex_info['tags'] = yara_env['tags'] + ['dex']
-            dex_info['classes'] = dex_classes
-            dex_info['metadata'] = metadata
-            json_file = yara_binary_directory / ("%s-%s.json" % (metadata['name'], metadata['sha256']))
-            with open(json_file, 'w') as json_dump:
-                json.dump(dex_info, json_dump, indent=4)
+            meta_info = {}
+            meta_info['tags'] = yara_env['tags'] + ['dex']
+            meta_info['classes'] = dex_classes
+            meta_info['metadata'] = metadata
+
+        json_file = yara_binary_directory / ("%s-%s.json" % (metadata['name'], metadata['sha256']))
+        with open(json_file, 'w') as json_dump:
+            json.dump(meta_info, json_dump, indent=4)
 
         yara_queue.task_done()
 
