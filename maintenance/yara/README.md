@@ -84,6 +84,12 @@ there will be a lot of junk. Results will be much better with rules created
 from source code with other identifiers than class names or method names,
 such as the strings embedded in `.dex` files.
 
+The rules for strings from Android Dex files can contain some control
+characters that will not be present in similar rules for ELF files. This is
+because when extracting strings from Dex files it is guaranteed that the
+control characters are part of the string and it is not extracted from a larger
+blob containing possible garbage.
+
 ## Source code processor
 
 The source code processor is split into two scripts:
