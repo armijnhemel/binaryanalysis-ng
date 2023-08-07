@@ -154,6 +154,7 @@ def process_bang(yara_queue, yara_directory, yara_binary_directory,
             meta_info = {}
             meta_info['tags'] = yara_env['tags'] + ['dex']
             meta_info['classes'] = dex_classes
+            meta_info['labels'] = bang_data['labels']
             meta_info['metadata'] = metadata
 
         json_file = yara_binary_directory / ("%s-%s.json" % (metadata['name'], metadata['sha256']))
