@@ -210,30 +210,29 @@ be written as they will not be used by the YARA rule generator script.
 
 Then run the script to generate the JSON files with identifiers.
 
-The script has two mandatory arguments: a configuration file (in YAML format)
-and the directory with BANG scan results. An example configuration file
-`yara-config.yaml` is provided in this directory and should be adapted to
-your local settings.
+The script has two mandatory arguments: the directory with BANG scan results
+and an output directory to write the JSON files.
 
-If a package was unpacked in the directory `~/tmp/debian`, then an example
-invocation could look like this:
+If a package was unpacked in the directory `~/tmp/debian`, and the output
+directory would be `~/json` then an example invocation could look like this:
 
 ```console
-$ python3 bang_to_json.py -c yara-config.yaml -r ~/tmp/debian
+$ python3 bang_to_json.py -o ~/json -r ~/tmp/debian/root
 ```
 
-This will generate a JSON file for each ELF file.
-
-There are some settings in the configuration that determine which identifiers
-will be written to the YARA files. These are described in the sample
-configuration file.
+This will generate a JSON file for each ELF file that was unpacked from the
+package. The script will recurse into the file structure that was unpacked by
+BANG (so file systems, compressed archives, and so on).
 
 It is possible to filter low quality identifiers (described later). These
 should be passed to the script in Python pickle format:
 
 ```console
-$ python3 bang_to_json.py -c yara-config.yaml -r ~/tmp/debian -i low_quality_identifiers.pickle
+$ python3 bang_to_json.py -o ~/json -r ~/tmp/debian/root -i low_quality_identifiers.pickle
 ```
+
+Another optional parameter is the number of jobs to run in parallel. This can
+be useful if the number of result directories is large.
 
 As the next step run the `yara_from_bang.py` for each of the generated JSON
 files.
@@ -246,7 +245,7 @@ your local settings.
 For example:
 
 ```console
-$ python3 yara_from_bang.py -c yara-config.yaml -j ~/yara/binary/classes.dex-1c632fc98e0a19d657ac5cdab83a9433668fa97e1142ead29de1e34effede149.json
+$ python3 yara_from_bang.py -c yara-config.yaml -j ~/json/classes.dex-1c632fc98e0a19d657ac5cdab83a9433668fa97e1142ead29de1e34effede149.json
 ```
 
 # Low quality identifiers

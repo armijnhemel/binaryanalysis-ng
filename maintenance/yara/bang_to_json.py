@@ -23,23 +23,12 @@ import sys
 
 import click
 
-# import YAML module for the configuration
-from yaml import load
-from yaml import YAMLError
-try:
-    from yaml import CLoader as Loader
-except ImportError:
-    from yaml import Loader
 
-from yara_config import YaraConfig, YaraConfigException
-
-
-def process_bang(yara_queue, yara_directory, yara_binary_directory,
-                      process_lock, processed_files, tags):
-    '''Generate a YARA file for a single ELF or Dex binary'''
+def process_bang(scan_queue, output_directory, process_lock, processed_files, tags):
+    '''Generate a JSON output file for a single ELF or Dex binary'''
 
     while True:
-        bang_pickle = yara_queue.get()
+        bang_pickle = scan_queue.get()
 
         # open the pickle
         bang_data = pickle.load(open(bang_pickle, 'rb'))
@@ -52,7 +41,7 @@ def process_bang(yara_queue, yara_directory, yara_binary_directory,
 
         # there is a bug where sometimes no hashes are computed
         if 'hashes' not in bang_data['metadata']:
-            yara_queue.task_done()
+            scan_queue.task_done()
             continue
 
         path_name = bang_pickle.with_name('pathname')
@@ -67,7 +56,7 @@ def process_bang(yara_queue, yara_directory, yara_binary_directory,
         # try to catch duplicates
         if sha256 in processed_files:
             process_lock.release()
-            yara_queue.task_done()
+            scan_queue.task_done()
             continue
 
         processed_files[sha256] = ''
@@ -153,18 +142,19 @@ def process_bang(yara_queue, yara_directory, yara_binary_directory,
             meta_info['labels'] = bang_data['labels']
             meta_info['metadata'] = metadata
 
-        json_file = yara_binary_directory / ("%s-%s.json" % (metadata['name'], metadata['sha256']))
+        json_file = output_directory / ("%s-%s.json" % (metadata['name'], metadata['sha256']))
         with open(json_file, 'w') as json_dump:
             json.dump(meta_info, json_dump, indent=4)
 
-        yara_queue.task_done()
+        scan_queue.task_done()
 
 
-@click.command(short_help='process BANG result files and output YARA')
-@click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
+@click.command(short_help='process BANG result files and output JSON')
 @click.option('--result-directory', '-r', help='BANG result directories', type=click.Path(exists=True), required=True)
+@click.option('--output-directory', '-o', help='JSON output directory', type=click.Path(exists=True, path_type=pathlib.Path), required=True)
 @click.option('--identifiers', '-i', help='pickle with low quality identifiers', type=click.File('rb'))
-def main(config_file, result_directory, identifiers):
+@click.option('-j', '--jobs', default=1, type=click.IntRange(min=1), help='Number of jobs running simultaneously')
+def main(result_directory, output_directory, identifiers, jobs):
 
     # store the result directory as a pathlib Path instead of str
     result_directory = pathlib.Path(result_directory)
@@ -174,18 +164,11 @@ def main(config_file, result_directory, identifiers):
         print("Error: %s is not a directory, exiting." % result_directory, file=sys.stderr)
         sys.exit(1)
 
-    # parse the configuration
-    yara_config = YaraConfig(config_file)
-    yara_env = yara_config.parse()
-
-    yara_binary_directory = yara_env['yara_directory'] / 'binary'
-
-    yara_binary_directory.mkdir(exist_ok=True)
+    if not output_directory.is_dir():
+        print("Error: %s is not a directory, exiting." % output_directory, file=sys.stderr)
+        sys.exit(1)
 
     processmanager = multiprocessing.Manager()
-
-    # ignore object files (regular and GHC specific)
-    ignored_elf_suffixes = ['.o', '.p_o']
 
     # create a lock to control access to any shared data structures
     process_lock = multiprocessing.Lock()
@@ -194,8 +177,7 @@ def main(config_file, result_directory, identifiers):
     processed_files = processmanager.dict()
 
     # create a queue for scanning files
-    yara_queue = processmanager.JoinableQueue(maxsize=0)
-    processes = []
+    scan_queue = processmanager.JoinableQueue(maxsize=0)
 
     # read the root pickle
     try:
@@ -229,19 +211,9 @@ def main(config_file, result_directory, identifiers):
 
         if 'labels' in bang_data:
             if 'elf' in bang_data['labels']:
-                suffix = pathlib.Path(root_name).suffix
-
-                if suffix in ignored_elf_suffixes:
-                    continue
-
-                if 'static' in bang_data['labels']:
-                    if not 'linuxkernelmodule' in bang_data['labels']:
-                        # TODO: clean up for linux kernel modules
-                        continue
-
-                yara_queue.put(bang_pickle)
+                scan_queue.put(bang_pickle)
             elif 'dex' in bang_data['labels']:
-                yara_queue.put(bang_pickle)
+                scan_queue.put(bang_pickle)
 
         # add the unpacked/extracted files to the deque
         if 'unpacked_relative_files' in bang_data:
@@ -264,18 +236,15 @@ def main(config_file, result_directory, identifiers):
     tags = []
 
     # create processes for unpacking archives
-    for i in range(0, yara_env['threads']):
-        process = multiprocessing.Process(target=process_bang,
-                                          args=(yara_queue, yara_env['yara_directory'],
-                                                yara_binary_directory, process_lock,
-                                                processed_files, tags))
-        processes.append(process)
+    processes = [ multiprocessing.Process(target=process_bang, args=(scan_queue,
+                                                output_directory, process_lock,
+                                                processed_files, tags)) for i in range(jobs)]
 
     # start all the processes
     for process in processes:
         process.start()
 
-    yara_queue.join()
+    scan_queue.join()
 
     # Done processing, terminate processes
     for process in processes:
