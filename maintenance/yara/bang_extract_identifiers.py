@@ -242,7 +242,7 @@ def extract_identifiers(process_queue, temporary_directory, source_directory, js
         process_queue.task_done()
 
 
-@click.command(short_help='process BANG result files and output YARA')
+@click.command(short_help='process source code files and output JSON')
 @click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
 @click.option('--source-directory', '-s', required=True, help='source code archive directory', type=click.Path(exists=True))
 @click.option('--meta', '-m', required=True, help='file with meta information about a package', type=click.File('r'))
