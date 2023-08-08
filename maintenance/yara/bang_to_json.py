@@ -35,10 +35,9 @@ from yara_config import YaraConfig, YaraConfigException
 
 
 def process_bang(yara_queue, yara_directory, yara_binary_directory,
-                      process_lock, processed_files, yara_env):
+                      process_lock, processed_files, tags):
     '''Generate a YARA file for a single ELF or Dex binary'''
 
-    generate_identifier_files = yara_env['generate_identifier_files']
     while True:
         bang_pickle = yara_queue.get()
 
@@ -101,9 +100,6 @@ def process_bang(yara_queue, yara_directory, yara_binary_directory,
                 for s in bang_data['metadata']['symbols']:
                     if s['section_index'] == 0:
                         continue
-                    if yara_env['ignore_weak_symbols']:
-                        if s['binding'] == 'weak':
-                            continue
                     if '@@' in s['name']:
                         identifier_name = s['name'].rsplit('@@', 1)[0]
                     elif '@' in s['name']:
@@ -117,7 +113,7 @@ def process_bang(yara_queue, yara_directory, yara_binary_directory,
             meta_info['strings'] = strings
             meta_info['symbols'] = symbols
             meta_info['labels'] = bang_data['labels']
-            meta_info['tags'] = yara_env['tags'] + ['elf']
+            meta_info['tags'] = tags + ['elf']
         elif exec_type == 'dex':
             dex_classes = []
 
@@ -152,7 +148,7 @@ def process_bang(yara_queue, yara_directory, yara_binary_directory,
 
             # dump JSON
             meta_info = {}
-            meta_info['tags'] = yara_env['tags'] + ['dex']
+            meta_info['tags'] = tags + ['dex']
             meta_info['classes'] = dex_classes
             meta_info['labels'] = bang_data['labels']
             meta_info['metadata'] = metadata
@@ -232,9 +228,6 @@ def main(config_file, result_directory, identifiers):
              root_name = pathlib.Path(path_name_file.read()).name
 
         if 'labels' in bang_data:
-            if 'ocaml' in bang_data['labels']:
-                if yara_env['ignore_ocaml']:
-                    continue
             if 'elf' in bang_data['labels']:
                 suffix = pathlib.Path(root_name).suffix
 
@@ -270,18 +263,12 @@ def main(config_file, result_directory, identifiers):
     # tags = ['debian', 'debian11']
     tags = []
 
-    generate_identifier_files = False
-
-    # expand yara_env with binary scanning specific values
-    yara_env['tags'] = tags
-    yara_env['generate_identifier_files'] = generate_identifier_files
-
     # create processes for unpacking archives
     for i in range(0, yara_env['threads']):
         process = multiprocessing.Process(target=process_bang,
                                           args=(yara_queue, yara_env['yara_directory'],
                                                 yara_binary_directory, process_lock,
-                                                processed_files, yara_env))
+                                                processed_files, tags))
         processes.append(process)
 
     # start all the processes
