@@ -17,6 +17,7 @@ import datetime
 import json
 import os
 import pathlib
+import pickle
 import re
 import sys
 import uuid
@@ -109,7 +110,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
         if strings != set():
             if len(strings) >= heuristics['strings_minimum_present']:
                 num_strings = max(len(strings)//heuristics['strings_percentage'], heuristics['strings_matched'])
-                p.write('        %d of ($string*)' % num_strings)
+                p.write(f'       {num_strings} of ($string*)')
             else:
                 p.write('        any of ($string*)')
             if not (functions == set() and variables == set()):
@@ -119,7 +120,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
         if functions != set():
             if len(functions) >= heuristics['functions_minimum_present']:
                 num_funcs = max(len(functions)//heuristics['functions_percentage'], heuristics['functions_matched'])
-                p.write('        %d of ($function*)' % num_funcs)
+                p.write(f'       {num_funcs} of ($string*)')
             else:
                 p.write('        any of ($function*)')
             if variables != set():
@@ -129,14 +130,11 @@ def generate_yara(yara_directory, metadata, functions, variables, strings, tags,
         if variables != set():
             if len(variables) >= heuristics['variables_minimum_present']:
                 num_vars = max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched'])
-                p.write('        %d of ($variable*)\n' % num_vars)
+                p.write(f'       {num_vars} of ($string*)')
             else:
                 p.write('        any of ($variable*)\n')
         p.write('\n}')
     return yara_file.name
-
-
-
 
 @click.command(short_help='process BANG JSON result file and output YARA')
 @click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
@@ -191,6 +189,10 @@ def main(config_file, result_json, identifiers):
                     print("Static ELF binary not supported yet, exiting", file=sys.stderr)
                     sys.exit()
 
+    if bang_data['metadata']['sha256'] == 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855':
+        print("Cannot generate YARA file for empty file, exiting", file=sys.stderr)
+        sys.exit(1)
+
     # tags = ['debian', 'debian11']
     tags = []
 
@@ -209,9 +211,6 @@ def main(config_file, result_json, identifiers):
     if not exec_type:
         print("Unsupported executable type, exiting", file=sys.stderr)
         sys.exit(2)
-
-    # TODO: filter empty files
-    sha256 = bang_data['metadata']['sha256']
 
     # set metadata
     metadata = bang_data['metadata']
@@ -282,7 +281,7 @@ def main(config_file, result_json, identifiers):
             pass
 
         yara_tags = yara_env['tags'] + ['elf']
-        yara_name = generate_yara(yara_binary_directory, metadata, functions, variables, strings, yara_tags, heuristics, yara_env['fullword'], yara_env['operator'])
+        generate_yara(yara_binary_directory, metadata, functions, variables, strings, yara_tags, heuristics, yara_env['fullword'], yara_env['operator'])
     elif exec_type == 'dex':
         functions = set()
         variables = set()
@@ -332,7 +331,7 @@ def main(config_file, result_json, identifiers):
             pass
 
         yara_tags = yara_env['tags'] + ['dex']
-        yara_name = generate_yara(yara_binary_directory, metadata, functions, variables, strings, yara_tags, heuristics, yara_env['fullword'], yara_env['operator'])
+        generate_yara(yara_binary_directory, metadata, functions, variables, strings, yara_tags, heuristics, yara_env['fullword'], yara_env['operator'])
 
 if __name__ == "__main__":
     main()
