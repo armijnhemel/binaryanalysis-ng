@@ -84,7 +84,7 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
                     if re.match(r'^\s+$', s) is None:
                         strings.append(s)
 
-            # process symbols, split in functions and variables
+            # process symbols
             if bang_data['metadata']['symbols'] != []:
                 for s in bang_data['metadata']['symbols']:
                     if s['section_index'] == 0:
