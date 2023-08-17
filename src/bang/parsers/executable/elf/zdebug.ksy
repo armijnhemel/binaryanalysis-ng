@@ -9,8 +9,8 @@ doc-ref: <http://www.linker-aliens.org/blogs/ali/entry/elf_section_compression/>
 seq:
   - id: magic
     contents: 'ZLIB'
-  - id: len_data
+  - id: len_data   # length of uncompressed data
     type: u8
   - id: data
-    size: len_data
+    size-eos: true
     process: zlib
