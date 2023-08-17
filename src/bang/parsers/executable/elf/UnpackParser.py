@@ -33,6 +33,7 @@ from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError, UndecidedEndiannessError
 from . import elf
+from . import zdebug
 
 # a list of (partial) names of functions that have been
 # compiled with FORTIFY_SOURCE. This list is not necessarily
@@ -301,6 +302,10 @@ class ElfUnpackParser(UnpackParser):
                 if header.name.startswith('.gresource'):
                     interesting = True
 
+                # GNU zdebug
+                if header.name.startswith('.zdebug'):
+                    interesting = True
+
                 if not interesting:
                     continue
 
@@ -331,6 +336,9 @@ class ElfUnpackParser(UnpackParser):
                     elif header.name == '.BTF.ext':
                         with unpacked_md.open(open_file=False):
                             unpacked_md.info['suggested_parsers'] = ['btf_ext']
+                    elif header.name.startswith('.zdebug'):
+                        with unpacked_md.open(open_file=False):
+                            unpacked_md.info['suggested_parsers'] = ['zdebug']
                     yield unpacked_md
 
     def write_info(self, to_meta_directory):
@@ -873,3 +881,28 @@ class ElfUnpackParser(UnpackParser):
 
         metadata['elf_type'] = sorted(elf_types)
         return(labels, metadata)
+
+
+class ZdebugUnpackParser(UnpackParser):
+    extensions = []
+    signatures = [
+        (0, b'ZLIB')
+    ]
+    pretty_name = 'zdebug'
+
+    def parse(self):
+        try:
+            self.data = zdebug.Zdebug.from_io(self.infile)
+            check_condition(self.data.len_data == len(self.data.data),
+                            "declared length does not match length of uncompressed data")
+        except (Exception, ValidationFailedError, UndecidedEndiannessError) as e:
+            raise UnpackParserException(e.args)
+
+    def unpack(self, meta_directory):
+        file_path = pathlib.Path(pathlib.Path(self.infile.name).name[2:])
+        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+            outfile.write(self.data.data)
+            yield unpacked_md
+
+    labels = ['zdebug']
+    metadata = {}
