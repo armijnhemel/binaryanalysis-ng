@@ -17,6 +17,7 @@ import json
 import multiprocessing
 import pathlib
 import pickle
+import queue
 import re
 import sys
 
@@ -27,7 +28,10 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
     '''Generate a JSON output file for a single ELF or Dex binary'''
 
     while True:
-        bang_pickle = scan_queue.get()
+        try:
+            bang_pickle = scan_queue.get()
+        except queue.Empty:
+            break
 
         # open the pickle
         with open(bang_pickle, 'rb') as pickled_data:
