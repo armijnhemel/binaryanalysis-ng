@@ -15,7 +15,6 @@ and Android Dex files.
 import collections
 import json
 import multiprocessing
-import os
 import pathlib
 import pickle
 import re
@@ -31,7 +30,8 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
         bang_pickle = scan_queue.get()
 
         # open the pickle
-        bang_data = pickle.load(open(bang_pickle, 'rb'))
+        with open(bang_pickle, 'rb') as pickled_data:
+            bang_data = pickle.load(pickled_data)
 
         # store the type of executable
         if 'elf' in bang_data['labels']:
@@ -46,7 +46,7 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
 
         path_name = bang_pickle.with_name('pathname')
         with open(path_name, 'r') as path_name_file:
-             file_name = pathlib.Path(path_name_file.read()).name
+            file_name = pathlib.Path(path_name_file.read()).name
 
         # TODO: filter empty files
         sha256 = bang_data['metadata']['hashes']['sha256']
@@ -89,12 +89,6 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
                 for s in bang_data['metadata']['symbols']:
                     if s['section_index'] == 0:
                         continue
-                    if '@@' in s['name']:
-                        identifier_name = s['name'].rsplit('@@', 1)[0]
-                    elif '@' in s['name']:
-                        identifier_name = s['name'].rsplit('@', 1)[0]
-                    else:
-                        identifier_name = s['name']
                     symbols.append(s)
 
             # dump JSON
@@ -142,7 +136,7 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
             meta_info['labels'] = bang_data['labels']
             meta_info['metadata'] = metadata
 
-        json_file = output_directory / ("%s-%s.json" % (metadata['name'], metadata['sha256']))
+        json_file = output_directory / (f"{metadata['name']}-{metadata['sha256']}.json")
         with open(json_file, 'w') as json_dump:
             json.dump(meta_info, json_dump, indent=4)
 
@@ -152,20 +146,19 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
 @click.command(short_help='process BANG result files and output JSON')
 @click.option('--result-directory', '-r', help='BANG result directories', type=click.Path(exists=True), required=True)
 @click.option('--output-directory', '-o', help='JSON output directory', type=click.Path(exists=True, path_type=pathlib.Path), required=True)
-@click.option('--identifiers', '-i', help='pickle with low quality identifiers', type=click.File('rb'))
 @click.option('-j', '--jobs', default=1, type=click.IntRange(min=1), help='Number of jobs running simultaneously')
-def main(result_directory, output_directory, identifiers, jobs):
+def main(result_directory, output_directory, jobs):
 
     # store the result directory as a pathlib Path instead of str
     result_directory = pathlib.Path(result_directory)
 
     # result_directory should be a real directory
     if not result_directory.is_dir():
-        print("Error: %s is not a directory, exiting." % result_directory, file=sys.stderr)
+        print(f"Error: {result_directory} is not a directory, exiting.", file=sys.stderr)
         sys.exit(1)
 
     if not output_directory.is_dir():
-        print("Error: %s is not a directory, exiting." % output_directory, file=sys.stderr)
+        print(f"Error: {output_directory} is not a directory, exiting.", file=sys.stderr)
         sys.exit(1)
 
     processmanager = multiprocessing.Manager()
@@ -197,17 +190,13 @@ def main(result_directory, output_directory, identifiers, jobs):
     while True:
         try:
             bang_pickle = file_deque.popleft()
-        except:
+        except IndexError:
             break
 
         try:
             bang_data = pickle.load(open(bang_pickle, 'rb'))
         except:
             continue
-
-        path_name = bang_pickle.with_name('pathname')
-        with open(path_name, 'r') as path_name_file:
-             root_name = pathlib.Path(path_name_file.read()).name
 
         if 'labels' in bang_data:
             if 'elf' in bang_data['labels']:
