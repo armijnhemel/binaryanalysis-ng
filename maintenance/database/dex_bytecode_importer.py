@@ -33,11 +33,9 @@ except ImportError:
 
 @click.command(short_help='load Dex bytecode information into database')
 @click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
-@click.option('--result-directory', '-r', required=True, help='BANG result directory', type=click.Path(exists=True))
+@click.option('--result-directory', '-r', required=True, help='BANG result directory', type=click.Path(exists=True, path_type=pathlib.Path))
 def main(config_file, result_directory):
-    result_directory = pathlib.Path(result_directory)
-
-    # ... and should be a real directory
+    # should be a real directory
     if not result_directory.is_dir():
         print("%s is not a directory, exiting." % result_directory, file=sys.stderr)
         sys.exit(1)
