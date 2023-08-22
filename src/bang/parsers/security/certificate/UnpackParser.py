@@ -128,6 +128,12 @@ class CertificateUnpackParser(UnpackParser):
             self.infile.seek(-15, os.SEEK_CUR)
             self.pos = self.infile.tell()
 
+        # check if there is an extra newline at the end
+        if self.infile.size - end_of_certificate == 1:
+            self.infile.seek(end_of_certificate)
+            if self.infile.read(1) == b'\n':
+                end_of_certificate += 1
+
         check_condition(end_pos != -1, "no end of certificate found")
         check_condition(cert_unpacked, "no certificate found")
 
