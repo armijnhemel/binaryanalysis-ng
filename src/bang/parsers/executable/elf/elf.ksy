@@ -770,7 +770,7 @@ types:
             type: u4
         instances:
           hidden:
-            value: object_file_version & 0x10000 != 0
+            value: object_file_version & 0x8000 != 0
       verdef_section:
         doc-ref: https://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/symversion.html
         seq:
