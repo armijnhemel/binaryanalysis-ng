@@ -201,7 +201,7 @@ class ElfUnpackParser(UnpackParser):
                         check_condition(self.dynstr is not None, "no dynamic string section found")
                         check_condition(num_dynsym == len(header.body.symbol_versions),
                                         "mismatch between number of symbols and symbol versions")
-                        self.symbol_to_version = {k: v for k, v in enumerate(header.body.symbol_versions)}
+                        self.symbol_to_version = {k: v.version for k, v in enumerate(header.body.symbol_versions)}
                 elif header.type == elf.Elf.ShType.gnu_verneed:
                     if header.name == '.gnu.version_r':
                         check_condition(self.dynstr is not None, "no dynamic string section found")
