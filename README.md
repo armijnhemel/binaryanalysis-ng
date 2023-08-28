@@ -304,6 +304,7 @@ larger file, unless stated otherwise.
 204. EDID
 205. ld.so.conf files (subset, no include statements)
 206. old TP-Link firmware files
+207. certain VxWorks memfs file systems
 
 ## Getting started
 
