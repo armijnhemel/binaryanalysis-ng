@@ -46,18 +46,33 @@ class TplinkkUnpackParser(UnpackParser):
         self.unpacked_size = self.data.header.len_image
 
     def unpack(self, meta_directory):
-        # first the kernel
-        file_path = pathlib.Path('kernel')
+        if self.data.bootloader:
+            file_path = pathlib.Path('bootloader')
 
-        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
-            outfile.write(self.data.kernel)
-            yield unpacked_md
+            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                outfile.write(self.data.bootloader)
+                yield unpacked_md
 
-        file_path = pathlib.Path('rootfs')
+        if self.data.image2:
+            file_path = pathlib.Path('image2')
 
-        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
-            outfile.write(self.data.rootfs)
-            yield unpacked_md
+            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                outfile.write(self.data.image2)
+                yield unpacked_md
+
+        if self.data.kernel:
+            file_path = pathlib.Path('kernel')
+
+            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                outfile.write(self.data.kernel)
+                yield unpacked_md
+
+        if self.data.rootfs:
+            file_path = pathlib.Path('rootfs')
+
+            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                outfile.write(self.data.rootfs)
+                yield unpacked_md
 
     labels = ['tplink', 'firmware']
 

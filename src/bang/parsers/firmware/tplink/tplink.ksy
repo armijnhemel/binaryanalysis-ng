@@ -85,19 +85,29 @@ types:
 instances:
   len_header:
     value: 512
+  pos_image2:
+    value: 0x20200
+  has_bootloader:
+    value: header.len_bootloader != 0
   bootloader:
     pos: header.ofs_bootloader
     size: header.len_bootloader
     io: _root.data._io
-    if: header.len_bootloader != 0
+    if: has_bootloader
   kernel:
     pos: header.ofs_kernel - _root.len_header
     size: header.len_kernel
     io: _root.data._io
+    if: not has_bootloader
   rootfs:
     pos: header.ofs_rootfs - _root.len_header
     size: header.len_rootfs
     io: _root.data._io
+    if: not has_bootloader
+  image2:
+    pos: pos_image2
+    size: header.len_image - pos_image2
+    if: has_bootloader
 enums:
   device_info:
     0x08010001: tl_wa801nd_v1
