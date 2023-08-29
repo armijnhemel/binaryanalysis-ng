@@ -88,7 +88,7 @@ class UbootLegacyUnpackParser(UnpackParser):
         #
         # TODO: correctly process multi images
 
-        if self.is_asus_device or self.data.header.name == '':
+        if self.is_asus_device or self.data.header.name == '' or not self.data.header.name.isprintable():
             imagename = self.data.header.image_type.name
         else:
             imagename = self.data.header.name
