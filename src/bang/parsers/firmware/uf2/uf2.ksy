@@ -200,3 +200,15 @@ enums:
     0x9517422f:
       id: "rza1lu"
       doc: "Renesas RZ/A1LU (R7S7210xx)"
+    0x2dc309c5:
+      id: stm32f411xe
+      doc: "ST STM32F411xE"
+    0x06d1097b:
+      id: stm32f411xc
+      doc: "ST STM32F411xC"
+    0x72721d4e:
+      id: nrf52832xxaa
+      doc: "Nordic NRF52832xxAA"
+    0x6f752678:
+      id: nrf52832xxab
+      doc: "Nordic NRF52832xxAB"
