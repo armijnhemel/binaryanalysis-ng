@@ -19,10 +19,19 @@ types:
   header:
     seq:
       - id: signature
-        contents: 'cr6c'
+        type: u4
+        enum: signatures
+        valid:
+          any-of:
+            - signatures::cr6c
+            - signatures::r6cr
       - id: load_address
         type: u4
       - id: flash_memory_address
         type: u4
       - id: len_data
         type: u4
+enums:
+  signatures:
+    0x63723663: cr6c
+    0x72366372: r6cr
