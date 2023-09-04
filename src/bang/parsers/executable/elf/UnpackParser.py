@@ -342,11 +342,11 @@ class ElfUnpackParser(UnpackParser):
                     yield unpacked_md
 
     def write_info(self, to_meta_directory):
-        self.labels, self.metadata = self.extract_metadata_and_labels(to_meta_directory)
+        self.labels, self.metadata = self.extract_metadata_and_labels_sections(to_meta_directory)
         super().write_info(to_meta_directory)
 
-    def extract_metadata_and_labels(self, to_meta_directory):
-        '''Extract metadata from the ELF file and set labels'''
+    def extract_metadata_and_labels_sections(self, to_meta_directory):
+        '''Extract metadata from the ELF sections and set labels'''
         labels = ['elf']
         metadata = {}
         string_cutoff_length = 4
