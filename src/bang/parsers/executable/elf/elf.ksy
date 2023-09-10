@@ -385,6 +385,16 @@ types:
                 'bits::b32': u4
                 'bits::b64': u8
         instances:
+          data:
+            pos: offset
+            size: filesz
+            type:
+              switch-on: type
+              cases:
+                ph_type::interp: ph_interpreter
+                ph_type::dynamic: ph_dynamic
+            io: _root._io
+            if: offset != 0
           flags_obj:
             type:
               switch-on: _root.bits
@@ -392,6 +402,44 @@ types:
                 'bits::b32': phdr_type_flags(flags32)
                 'bits::b64': phdr_type_flags(flags64)
             -webide-parse-mode: eager
+        types:
+          ph_interpreter:
+            seq:
+              - id: name
+                type: strz
+                encoding: ASCII
+          ph_dynamic:
+            seq:
+              - id: entries
+                type: ph_dynamic_section_entry
+                repeat: until
+                repeat-until: _.tag_enum == dynamic_array_tags::null
+          ph_dynamic_section_entry:
+            seq:
+              - id: tag
+                type:
+                  switch-on: _root.bits
+                  cases:
+                    'bits::b32': u4
+                    'bits::b64': u8
+              - id: value_or_ptr
+                type:
+                  switch-on: _root.bits
+                  cases:
+                    'bits::b32': u4
+                    'bits::b64': u8
+            instances:
+              tag_enum:
+                value: tag
+                enum: dynamic_array_tags
+              flag_values:
+                type: dt_flag_values(value_or_ptr)
+                if: "tag_enum == dynamic_array_tags::flags"
+                -webide-parse-mode: eager
+              flag_1_values:
+                type: dt_flag_1_values(value_or_ptr)
+                if: "tag_enum == dynamic_array_tags::flags_1"
+                -webide-parse-mode: eager
         -webide-representation: "{type} - f:{flags_obj:flags} (o:{offset}, s:{filesz:dec})"
       section_header:
         -orig-id: Elf(32|64)_Shdr
