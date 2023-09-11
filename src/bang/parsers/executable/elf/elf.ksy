@@ -393,6 +393,7 @@ types:
               cases:
                 ph_type::interp: ph_interpreter
                 ph_type::dynamic: ph_dynamic
+                ph_type::note: note_section
             io: _root._io
             if: offset != 0
           flags_obj:
