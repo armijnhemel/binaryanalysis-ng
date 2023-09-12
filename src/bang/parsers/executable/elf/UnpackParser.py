@@ -273,6 +273,13 @@ class ElfUnpackParser(UnpackParser):
         except (Exception, ValidationFailedError, UndecidedEndiannessError) as e:
             raise UnpackParserException(e.args)
 
+        self.is_dynamic_elf = False
+        if self.data.header.section_headers == []:
+            self.has_section_headers = False
+        else:
+            self.has_section_headers = True
+
+
     def calculate_unpacked_size(self):
         pass
 
@@ -342,54 +349,82 @@ class ElfUnpackParser(UnpackParser):
                     yield unpacked_md
 
     def write_info(self, to_meta_directory):
-        self.labels, self.metadata = self.extract_metadata_and_labels_sections(to_meta_directory)
-        super().write_info(to_meta_directory)
+        self.labels = ['elf']
+        self.metadata = {}
 
-    def extract_metadata_and_labels_sections(self, to_meta_directory):
-        '''Extract metadata from the ELF sections and set labels'''
-        labels = ['elf']
-        metadata = {}
-        string_cutoff_length = 4
-
+        # generic bits first
         if self.data.bits == elf.Elf.Bits.b32:
-            metadata['bits'] = 32
+            self.metadata['bits'] = 32
         elif self.data.bits == elf.Elf.Bits.b64:
-            metadata['bits'] = 64
+            self.metadata['bits'] = 64
 
         # store the endianness
         if self.data.endian == elf.Elf.Endian.le:
-            metadata['endian'] = 'little'
+            self.metadata['endian'] = 'little'
         elif self.data.endian == elf.Elf.Endian.be:
-            metadata['endian'] = 'big'
+            self.metadata['endian'] = 'big'
 
         # store the ELF version
-        metadata['version'] = self.data.ei_version
+        self.metadata['version'] = self.data.ei_version
 
         # store the type of ELF file
         if self.data.header.e_type == elf.Elf.ObjType.no_file_type:
-            metadata['type'] = None
+            self.metadata['type'] = None
         elif self.data.header.e_type == elf.Elf.ObjType.relocatable:
-            metadata['type'] = 'relocatable'
+            self.metadata['type'] = 'relocatable'
         elif self.data.header.e_type == elf.Elf.ObjType.executable:
-            metadata['type'] = 'executable'
+            self.metadata['type'] = 'executable'
         elif self.data.header.e_type == elf.Elf.ObjType.shared:
-            metadata['type'] = 'shared'
+            self.metadata['type'] = 'shared'
         elif self.data.header.e_type == elf.Elf.ObjType.core:
-            metadata['type'] = 'core'
+            self.metadata['type'] = 'core'
         else:
-            metadata['type'] = 'processor specific'
+            self.metadata['type'] = 'processor specific'
 
         # store the machine type, both numerical and pretty printed
         if type(self.data.header.machine) == int:
-            metadata['machine_name'] = "unknown architecture"
-            metadata['machine'] = self.data.header.machine
+            self.metadata['machine_name'] = "unknown architecture"
+            self.metadata['machine'] = self.data.header.machine
         else:
-            metadata['machine_name'] = self.data.header.machine.name
-            metadata['machine'] = self.data.header.machine.value
+            self.metadata['machine_name'] = self.data.header.machine.name
+            self.metadata['machine'] = self.data.header.machine.value
 
         # store the ABI, both numerical and pretty printed
-        metadata['abi_name'] = self.data.abi.name
-        metadata['abi'] = self.data.abi.value
+        self.metadata['abi_name'] = self.data.abi.name
+        self.metadata['abi'] = self.data.abi.value
+
+        # then, depending on whether or not there are section headers
+        # extract more data
+        if self.has_section_headers:
+            self.metadata = self.metadata | self.extract_metadata_and_labels_sections(to_meta_directory, self.metadata['endian'])
+
+        elf_types = set(self.metadata.get('elf_type', []))
+        if self.is_dynamic_elf:
+            elf_types.add('dynamic')
+        else:
+            if self.metadata['type'] == 'core':
+                elf_types.add('core')
+            else:
+                elf_types.add('static')
+
+        self.metadata['elf_type'] = sorted(elf_types)
+
+        if self.metadata['type'] in ['executable', 'shared']:
+            try:
+                telfhash_result = telfhash.telfhash(str(to_meta_directory.file_path))
+                if telfhash_result != []:
+                    telfhash_res = telfhash_result[0]['telfhash'].upper()
+                    if telfhash_res != 'TNULL' and telfhash_res != '-':
+                        self.metadata['telfhash'] = telfhash_res
+            except UnicodeEncodeError:
+                pass
+
+        super().write_info(to_meta_directory)
+
+    def extract_metadata_and_labels_sections(self, to_meta_directory, endian):
+        '''Extract metadata from the ELF sections and set labels'''
+        metadata = {}
+        string_cutoff_length = 4
 
         security_metadata = set()
 
@@ -436,7 +471,6 @@ class ElfUnpackParser(UnpackParser):
         linux_kernel_module_info = {}
 
         # process the various section headers
-        is_dynamic_elf = False
         sections = {}
         section_ctr = 0
         elf_types = set()
@@ -620,7 +654,7 @@ class ElfUnpackParser(UnpackParser):
                     # https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html
                     try:
                         link_name = header.body.split(b'\x00', 1)[0].decode()
-                        link_crc = int.from_bytes(header.body[-4:], byteorder=metadata['endian'])
+                        link_crc = int.from_bytes(header.body[-4:], byteorder=endian)
                         metadata['gnu debuglink'] = link_name
                         metadata['gnu debuglink crc'] = link_crc
                     except UnicodeDecodeError:
@@ -726,7 +760,7 @@ class ElfUnpackParser(UnpackParser):
                     elf_types.add('protobuf')
 
             if header.type == elf.Elf.ShType.dynamic:
-                is_dynamic_elf = True
+                self.is_dynamic_elf = True
                 for entry in header.body.entries:
                     pass
             elif header.type == elf.Elf.ShType.strtab:
@@ -754,11 +788,11 @@ class ElfUnpackParser(UnpackParser):
                         # https://raw.githubusercontent.com/wiki/hjl-tools/linux-abi/linux-abi-draft.pdf
                         # normally in .note.ABI.tag
                         major_version = int.from_bytes(entry.descriptor[4:8],
-                                                       byteorder=metadata['endian'])
+                                                       byteorder=endian)
                         patchlevel = int.from_bytes(entry.descriptor[8:12],
-                                                    byteorder=metadata['endian'])
+                                                    byteorder=endian)
                         sublevel = int.from_bytes(entry.descriptor[12:],
-                                                  byteorder=metadata['endian'])
+                                                  byteorder=endian)
                         metadata['linux_version'] = (major_version, patchlevel, sublevel)
                     elif entry.name == b'GNU' and entry.type == 3:
                         # normally in .note.gnu.build-id
@@ -861,26 +895,8 @@ class ElfUnpackParser(UnpackParser):
         if linux_kernel_module_info != {}:
             metadata['Linux kernel module'] = linux_kernel_module_info
 
-        if metadata['type'] in ['executable', 'shared']:
-            try:
-                telfhash_result = telfhash.telfhash(str(to_meta_directory.file_path))
-                if telfhash_result != []:
-                    telfhash_res = telfhash_result[0]['telfhash'].upper()
-                    if telfhash_res != 'TNULL' and telfhash_res != '-':
-                        metadata['telfhash'] = telfhash_res
-            except UnicodeEncodeError:
-                pass
-
-        if is_dynamic_elf:
-            elf_types.add('dynamic')
-        else:
-            if metadata['type'] == 'core':
-                elf_types.add('core')
-            else:
-                elf_types.add('static')
-
         metadata['elf_type'] = sorted(elf_types)
-        return(labels, metadata)
+        return metadata
 
 
 class ZdebugUnpackParser(UnpackParser):
