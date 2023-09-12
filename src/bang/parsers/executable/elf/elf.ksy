@@ -441,6 +441,21 @@ types:
                 type: dt_flag_1_values(value_or_ptr)
                 if: "tag_enum == dynamic_array_tags::flags_1"
                 -webide-parse-mode: eager
+              is_value_str:
+                value: |
+                  value_or_ptr != 0 and (
+                    tag_enum == dynamic_array_tags::needed or
+                    tag_enum == dynamic_array_tags::soname or
+                    tag_enum == dynamic_array_tags::rpath or
+                    tag_enum == dynamic_array_tags::runpath or
+                    tag_enum == dynamic_array_tags::sunw_auxiliary or
+                    tag_enum == dynamic_array_tags::sunw_filter or
+                    tag_enum == dynamic_array_tags::auxiliary or
+                    tag_enum == dynamic_array_tags::filter or
+                    tag_enum == dynamic_array_tags::config or
+                    tag_enum == dynamic_array_tags::depaudit or
+                    tag_enum == dynamic_array_tags::audit
+                  )
         -webide-representation: "{type} - f:{flags_obj:flags} (o:{offset}, s:{filesz:dec})"
       section_header:
         -orig-id: Elf(32|64)_Shdr
