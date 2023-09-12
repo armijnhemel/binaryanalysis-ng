@@ -109,6 +109,8 @@ class ElfUnpackParser(UnpackParser):
             for header in self.data.header.program_headers:
                 # calculate the maximum offset
                 self.unpacked_size = max(self.unpacked_size, header.offset + header.filesz)
+                check_condition(self.unpacked_size <= self.infile.size,
+                                "program header cannot be outside of file")
 
                 # sanity check certain program headers,
                 # specifically the dynamic section
@@ -120,6 +122,8 @@ class ElfUnpackParser(UnpackParser):
             shoff = self.data.header.section_header_offset
             self.unpacked_size = max(self.unpacked_size, shoff + self.data.header.qty_section_header
                                      * self.data.header.section_header_entry_size)
+            check_condition(self.unpacked_size <= self.infile.size,
+                            "section header cannot be outside of file")
 
             # first store the dynstr table as it is used for
             # symbol versioning
