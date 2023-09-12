@@ -107,7 +107,11 @@ class ElfUnpackParser(UnpackParser):
             phoff = self.data.header.program_header_offset
             self.unpacked_size = phoff
             for header in self.data.header.program_headers:
+                # calculate the maximum offset
                 self.unpacked_size = max(self.unpacked_size, header.offset + header.filesz)
+
+                # sanity check certain program headers,
+                # specifically the dynamic section
 
             # TODO: Qualcomm DSP6 (Hexagon) files, as found on many
             # Android devices.
@@ -394,9 +398,11 @@ class ElfUnpackParser(UnpackParser):
         self.metadata['abi'] = self.data.abi.value
 
         # then, depending on whether or not there are section headers
-        # extract more data
+        # extract more data from the section headers or the program headers
         if self.has_section_headers:
             self.metadata = self.metadata | self.extract_metadata_and_labels_sections(to_meta_directory, self.metadata['endian'])
+        else:
+            pass
 
         elf_types = set(self.metadata.get('elf_type', []))
         if self.is_dynamic_elf:
