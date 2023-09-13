@@ -98,8 +98,14 @@ class ElfUnpackParser(UnpackParser):
     pretty_name = 'elf'
 
     def parse(self):
+        self.is_dynamic_elf = False
         try:
             self.data = elf.Elf.from_io(self.infile)
+
+            if self.data.header.section_headers == []:
+                self.have_section_headers = False
+            else:
+                self.have_section_headers = True
 
             # calculate size, also read all the data to catch EOF
             # This isn't always accurate, for example when debugging
@@ -114,6 +120,36 @@ class ElfUnpackParser(UnpackParser):
 
                 # sanity check certain program headers,
                 # specifically the dynamic section
+                if header.type == elf.Elf.PhType.dynamic:
+                    self.is_dynamic_elf = True
+
+                    strsz = 0
+                    strtab_ofs = 0
+                    base_address = 0
+
+                    # first find strsz and the offset for strtab
+                    for entry in header.data.entries:
+                        if entry.tag_enum == elf.Elf.DynamicArrayTags.strtab:
+                            strtab_ofs = entry.value_or_ptr
+                        elif entry.tag_enum == elf.Elf.DynamicArrayTags.strsz:
+                            strsz = entry.value_or_ptr
+
+                        # fixup for MIPS machines
+                        if entry.tag_enum == 0x70000006:
+                            if self.data.header.machine.name == 'mips':
+                                base_address = entry.value_or_ptr
+
+                    strtab_ofs = strtab_ofs - base_address
+
+                    check_condition(strtab_ofs > 0, "strtab cannot be negative or zero")
+                    check_condition(strtab_ofs + strsz <= self.infile.size,
+                                    "strtab cannot be outside of file")
+
+                    # then recheck all of the string offsets
+                    for entry in header.data.entries:
+                        if entry.is_value_str:
+                            check_condition(strtab_ofs + entry.value_or_ptr < self.infile.size,
+                                            "string cannot be outside of file")
 
             # TODO: Qualcomm DSP6 (Hexagon) files, as found on many
             # Android devices.
@@ -124,6 +160,13 @@ class ElfUnpackParser(UnpackParser):
                                      * self.data.header.section_header_entry_size)
             check_condition(self.unpacked_size <= self.infile.size,
                             "section header cannot be outside of file")
+
+            # sanity checks
+            if self.have_section_headers:
+                for header in self.data.header.section_headers:
+                    if header.type == elf.Elf.ShType.nobits:
+                        continue
+                    self.unpacked_size = max(self.unpacked_size, header.ofs_body + header.len_body)
 
             # first store the dynstr table as it is used for
             # symbol versioning
@@ -137,156 +180,155 @@ class ElfUnpackParser(UnpackParser):
             self.symbol_to_version = {}
             self.version_to_name = {0: '', 1: ''}
 
-            for header in self.data.header.section_headers:
-                if header.type == elf.Elf.ShType.strtab:
-                    if header.name == '.dynstr':
-                        self.dynstr = io.BytesIO(header.raw_body)
-                elif header.type == elf.Elf.ShType.dynsym:
-                    if header.name == '.dynsym':
-                        num_dynsym = len(header.body.entries)
+            if self.have_section_headers:
+                # first go through the headers once to find a few specific sections
+                # and store information that is needed for checks later on.
+                # This is done as implemented because the order in which the
+                # headers appear is not guaranteed or fixed.
+                for header in self.data.header.section_headers:
+                    if header.type == elf.Elf.ShType.strtab:
+                        if header.name == '.dynstr':
+                            self.dynstr = io.BytesIO(header.raw_body)
+                    elif header.type == elf.Elf.ShType.dynsym:
+                        if header.name == '.dynsym':
+                            num_dynsym = len(header.body.entries)
 
-            for header in self.data.header.section_headers:
-                if header.type == elf.Elf.ShType.nobits:
-                    continue
-                self.unpacked_size = max(self.unpacked_size, header.ofs_body + header.len_body)
+                for header in self.data.header.section_headers:
+                    if header.type == elf.Elf.ShType.nobits:
+                        continue
 
-                # ugly ugly hack to work around situations on Android where
-                # ELF files have been split into individual sections and all
-                # offsets are wrong.
-                if header.type == elf.Elf.ShType.note:
-                    for entry in header.body.entries:
-                        pass
-                elif header.type == elf.Elf.ShType.strtab:
-                    for entry in header.body.entries:
-                        pass
-
-                # force read the header name
-                name = header.name
-                if header.type == elf.Elf.ShType.symtab:
-                    if header.name == '.symtab':
+                    # ugly ugly hack to work around situations on Android where
+                    # ELF files have been split into individual sections and all
+                    # offsets are wrong.
+                    if header.type == elf.Elf.ShType.note:
                         for entry in header.body.entries:
-                            name = entry.name
-                if header.type == elf.Elf.ShType.dynamic:
-                    if header.name == '.dynamic':
+                            pass
+                    elif header.type == elf.Elf.ShType.strtab:
                         for entry in header.body.entries:
-                            if entry.tag_enum == elf.Elf.DynamicArrayTags.needed:
-                                name = entry.value_str
-                            elif entry.tag_enum == elf.Elf.DynamicArrayTags.rpath:
-                                name = entry.value_str
-                            elif entry.tag_enum == elf.Elf.DynamicArrayTags.runpath:
-                                name = entry.value_str
-                            elif entry.tag_enum == elf.Elf.DynamicArrayTags.soname:
-                                name = entry.value_str
+                            pass
 
-                # Symbols
-                elif header.type == elf.Elf.ShType.symtab:
-                    if header.name == '.symtab':
-                        for entry in header.body.entries:
-                            name = entry.name
-                            name = entry.type.name
-                            name = entry.bind.name
-                            name = entry.visibility.name
-                            name = entry.sh_idx
-                            name = entry.size
-                elif header.type == elf.Elf.ShType.dynsym:
-                    if header.name == '.dynsym':
-                        for entry in header.body.entries:
-                            name = entry.name
-                            name = entry.type.name
-                            name = entry.bind.name
-                            name = entry.visibility.name
-                            name = entry.sh_idx
-                            name = entry.size
-                elif header.type == elf.Elf.ShType.progbits:
-                    if header.name in RODATA_SECTIONS:
-                        body = header.body
+                    # force read the header name
+                    name = header.name
+                    if header.type == elf.Elf.ShType.symtab:
+                        if header.name == '.symtab':
+                            for entry in header.body.entries:
+                                name = entry.name
+                    if header.type == elf.Elf.ShType.dynamic:
+                        if header.name == '.dynamic':
+                            for entry in header.body.entries:
+                                if entry.tag_enum == elf.Elf.DynamicArrayTags.needed:
+                                    name = entry.value_str
+                                elif entry.tag_enum == elf.Elf.DynamicArrayTags.rpath:
+                                    name = entry.value_str
+                                elif entry.tag_enum == elf.Elf.DynamicArrayTags.runpath:
+                                    name = entry.value_str
+                                elif entry.tag_enum == elf.Elf.DynamicArrayTags.soname:
+                                    name = entry.value_str
 
-                # Symbol versioning
-                # see https://johannst.github.io/notes/development/symbolver.html
-                # for a good explanation of these symbols
-                elif header.type == elf.Elf.ShType.gnu_versym:
-                    if header.name == '.gnu.version':
-                        check_condition(self.dynstr is not None, "no dynamic string section found")
-                        check_condition(num_dynsym == len(header.body.symbol_versions),
-                                        "mismatch between number of symbols and symbol versions")
-                        self.symbol_to_version = {k: v.version for k, v in enumerate(header.body.symbol_versions)}
-                elif header.type == elf.Elf.ShType.gnu_verneed:
-                    if header.name == '.gnu.version_r':
-                        check_condition(self.dynstr is not None, "no dynamic string section found")
+                    # force check symbols
+                    elif header.type == elf.Elf.ShType.symtab:
+                        if header.name == '.symtab':
+                            for entry in header.body.entries:
+                                name = entry.name
+                                name = entry.type.name
+                                name = entry.bind.name
+                                name = entry.visibility.name
+                                name = entry.sh_idx
+                                name = entry.size
+                    elif header.type == elf.Elf.ShType.dynsym:
+                        if header.name == '.dynsym':
+                            for entry in header.body.entries:
+                                name = entry.name
+                                name = entry.type.name
+                                name = entry.bind.name
+                                name = entry.visibility.name
+                                name = entry.sh_idx
+                                name = entry.size
 
-                        cur_entry = header.body.entry
-                        while True:
-                            self.dynstr.seek(cur_entry.ofs_file_name_string)
-                            try:
-                                name = self.dynstr.read().split(b'\x00')[0].decode()
-                                check_condition(name != '', "empty name")
-                            except UnicodeDecodeError as e:
-                                raise UnpackParserException(e.args)
+                    # force check reading data
+                    elif header.type == elf.Elf.ShType.progbits:
+                        if header.name in RODATA_SECTIONS:
+                            body = header.body
 
-                            self.dependencies_to_versions[name] = []
+                    # Symbol versioning
+                    # see https://johannst.github.io/notes/development/symbolver.html
+                    # for a good explanation of these symbols
+                    elif header.type == elf.Elf.ShType.gnu_versym:
+                        if header.name == '.gnu.version':
+                            check_condition(self.dynstr is not None, "no dynamic string section found")
+                            check_condition(num_dynsym == len(header.body.symbol_versions),
+                                            "mismatch between number of symbols and symbol versions")
+                            self.symbol_to_version = {k: v.version for k, v in enumerate(header.body.symbol_versions)}
+                    elif header.type == elf.Elf.ShType.gnu_verneed:
+                        if header.name == '.gnu.version_r':
+                            check_condition(self.dynstr is not None, "no dynamic string section found")
 
-                            # verify the auxiliary entries
-                            for a in cur_entry.auxiliary_entries:
-                                self.dynstr.seek(a.ofs_name)
+                            cur_entry = header.body.entry
+                            while True:
+                                self.dynstr.seek(cur_entry.ofs_file_name_string)
                                 try:
-                                    a_name = self.dynstr.read().split(b'\x00')[0].decode()
-                                    check_condition(name != '', "empty name")
-                                except UnicodeDecodeError as e:
-                                    raise UnpackParserException(e.args)
-                                self.version_to_name[a.object_file_version] = a_name
-                                self.dependencies_to_versions[name].append(a_name)
-
-                            # then jump to the next entry
-                            if cur_entry.next is not None:
-                                cur_entry = cur_entry.next
-                            else:
-                                break
-                elif header.type == elf.Elf.ShType.gnu_verdef:
-                    if header.name == '.gnu.version_d':
-                        check_condition(self.dynstr is not None, "no dynamic string section found")
-                        cur_entry = header.body.entry
-                        self.version_to_name[0] = ''
-                        ctr = 1
-                        while True:
-                            # verify the auxiliary entries. The only interesting one is
-                            # actually the first name, the rest are "parents" (according
-                            # to readelf)
-                            aux_name = ''
-                            for a in cur_entry.auxiliary_entries:
-                                self.dynstr.seek(a.ofs_name)
-                                try:
-                                    a_name = self.dynstr.read().split(b'\x00')[0].decode()
-                                    if aux_name == '':
-                                        aux_name = a_name
+                                    name = self.dynstr.read().split(b'\x00')[0].decode()
                                     check_condition(name != '', "empty name")
                                 except UnicodeDecodeError as e:
                                     raise UnpackParserException(e.args)
 
-                            self.version_to_name[ctr] = aux_name
-                            ctr += 1
+                                self.dependencies_to_versions[name] = []
 
-                            # then jump to the next entry
-                            if cur_entry.next is not None:
-                                cur_entry = cur_entry.next
-                            else:
-                                break
+                                # verify the auxiliary entries
+                                for a in cur_entry.auxiliary_entries:
+                                    self.dynstr.seek(a.ofs_name)
+                                    try:
+                                        a_name = self.dynstr.read().split(b'\x00')[0].decode()
+                                        check_condition(name != '', "empty name")
+                                    except UnicodeDecodeError as e:
+                                        raise UnpackParserException(e.args)
+                                    self.version_to_name[a.object_file_version] = a_name
+                                    self.dependencies_to_versions[name].append(a_name)
 
-            # read the names, but don't proces them. This is just to force
-            # evaluation, which normally happens lazily for instances in
-            # kaitai struct.
-            names = self.data.header.section_names
+                                # then jump to the next entry
+                                if cur_entry.next is not None:
+                                    cur_entry = cur_entry.next
+                                else:
+                                    break
+                    elif header.type == elf.Elf.ShType.gnu_verdef:
+                        if header.name == '.gnu.version_d':
+                            check_condition(self.dynstr is not None, "no dynamic string section found")
+                            cur_entry = header.body.entry
+                            self.version_to_name[0] = ''
+                            ctr = 1
+                            while True:
+                                # verify the auxiliary entries. The only interesting one is
+                                # actually the first name, the rest are "parents" (according
+                                # to readelf)
+                                aux_name = ''
+                                for a in cur_entry.auxiliary_entries:
+                                    self.dynstr.seek(a.ofs_name)
+                                    try:
+                                        a_name = self.dynstr.read().split(b'\x00')[0].decode()
+                                        if aux_name == '':
+                                            aux_name = a_name
+                                        check_condition(name != '', "empty name")
+                                    except UnicodeDecodeError as e:
+                                        raise UnpackParserException(e.args)
 
-            # TODO linux kernel module signatures
-            # see scripts/sign-file.c in Linux kernel
+                                self.version_to_name[ctr] = aux_name
+                                ctr += 1
+
+                                # then jump to the next entry
+                                if cur_entry.next is not None:
+                                    cur_entry = cur_entry.next
+                                else:
+                                    break
+
+                # read the names, but don't proces them. This is just to force
+                # evaluation, which normally happens lazily for instances in
+                # kaitai struct.
+                names = self.data.header.section_names
+
+                # TODO linux kernel module signatures
+                # see scripts/sign-file.c in Linux kernel
         except (Exception, ValidationFailedError, UndecidedEndiannessError) as e:
             raise UnpackParserException(e.args)
-
-        self.is_dynamic_elf = False
-        if self.data.header.section_headers == []:
-            self.has_section_headers = False
-        else:
-            self.has_section_headers = True
-
 
     def calculate_unpacked_size(self):
         pass
@@ -403,7 +445,7 @@ class ElfUnpackParser(UnpackParser):
 
         # then, depending on whether or not there are section headers
         # extract more data from the section headers or the program headers
-        if self.has_section_headers:
+        if self.have_section_headers:
             self.metadata = self.metadata | self.extract_metadata_and_labels_sections(to_meta_directory, self.metadata['endian'])
         else:
             pass
