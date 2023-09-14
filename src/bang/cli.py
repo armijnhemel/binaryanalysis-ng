@@ -90,7 +90,7 @@ def scan_directory(ctx, config_file, verbose, unpack_directory, temporary_direct
             print("Cannot open configuration file, exiting", file=sys.stderr)
             sys.exit(1)
 
-    for scan_archive in path.glob('**/*'):
+    for scan_archive in sorted(path.glob('**/*')):
         # first create a directory similar as the file name
         scan_directory = unpack_directory / (scan_archive.name)
         try:

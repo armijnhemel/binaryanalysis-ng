@@ -325,6 +325,14 @@ This will output a directory with inside a number of files and directories.
 The output directory can serve as input to the analysis scripts (and some
 knowledgebase scripts).
 
+To process each file in a directory run (from the `src` directory):
+
+    $ python3 -m bang.cli scan-directory -u /path/to/unpack/directory /path/to/directory/with/binaries
+
+This will create a directory with search results for each file that is scanned,
+with the same name as the file that is scanned, using the same structure as if
+the file was scanned in regular mode, not directory mode.
+
 ## License
 
 GNU Affero General Public License, version 3 (AGPL-3.0)
