@@ -123,6 +123,8 @@ class ElfUnpackParser(UnpackParser):
                 if header.type == elf.Elf.PhType.dynamic:
                     self.is_dynamic_elf = True
 
+                    # store the size of the string table, the offset
+                    # and a base addreses (MIPS only) that should be subtracted
                     strsz = 0
                     strtab_ofs = 0
                     base_address = 0
@@ -134,7 +136,7 @@ class ElfUnpackParser(UnpackParser):
                         elif entry.tag_enum == elf.Elf.DynamicArrayTags.strsz:
                             strsz = entry.value_or_ptr
 
-                        # fixup for MIPS machines
+                        # fix base address for MIPS machines
                         if entry.tag_enum == 0x70000006:
                             if self.data.header.machine.name == 'mips':
                                 base_address = entry.value_or_ptr
@@ -145,7 +147,7 @@ class ElfUnpackParser(UnpackParser):
                     check_condition(strtab_ofs + strsz <= self.infile.size,
                                     "strtab cannot be outside of file")
 
-                    # then recheck all of the string offsets
+                    # then check all of the string offsets
                     for entry in header.data.entries:
                         if entry.is_value_str:
                             check_condition(strtab_ofs + entry.value_or_ptr < self.infile.size,
