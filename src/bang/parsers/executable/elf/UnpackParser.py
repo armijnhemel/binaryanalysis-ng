@@ -152,6 +152,17 @@ class ElfUnpackParser(UnpackParser):
                         if entry.is_value_str:
                             check_condition(strtab_ofs + entry.value_or_ptr < self.infile.size,
                                             "string cannot be outside of file")
+                        if entry.tag_enum == elf.Elf.DynamicArrayTags.symtab:
+                            cur_ptr = self.infile.tell()
+
+                            # seek to the start of the symbol table
+                            self.infile.seek(entry.value_or_ptr - base_address)
+
+                            # then parse the symbol table separately.
+                            # This depends on endianness and elf32/64
+
+                            # restore the file pointer, just in case
+                            self.infile.seek(cur_ptr)
 
             # TODO: Qualcomm DSP6 (Hexagon) files, as found on many
             # Android devices.
