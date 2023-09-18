@@ -300,6 +300,12 @@ larger file, unless stated otherwise.
 200. Dockerfile files (whole file)
 201. TRANS.TBL files
 202. BTF and BTF.ext sections (BPF related)
+203. NibArchive
+204. EDID
+205. ld.so.conf files (subset, no include statements)
+206. old TP-Link firmware files
+207. certain VxWorks memfs file systems
+208. Realtek bootloader (subset of files)
 
 ## Getting started
 
@@ -311,13 +317,21 @@ This section assumes that you are using Nix to install all dependencies.
 4. run `make` to build all the Kaitai Struct parsers. Please note: this might take
    a while!
 
-To unpack a file run:
+To unpack a file run (from the `src` directory):
 
     $ python3 -m bang.cli scan -u /path/to/unpack/directory /path/to/binary
 
 This will output a directory with inside a number of files and directories.
 The output directory can serve as input to the analysis scripts (and some
 knowledgebase scripts).
+
+To process each file in a directory run (from the `src` directory):
+
+    $ python3 -m bang.cli scan-directory -u /path/to/unpack/directory /path/to/directory/with/binaries
+
+This will create a directory with search results for each file that is scanned,
+with the same name as the file that is scanned, using the same structure as if
+the file was scanned in regular mode, not directory mode.
 
 ## License
 

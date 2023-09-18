@@ -30,23 +30,30 @@ gets it sometimes wrong).
 Conceptually BANG is divided into two parts:
 
 1. an unpacking program that recursively unpacks files
-2. a set of analysis programs that are run on the unpacked files
+2. a set of analysis programs that are run on result of the unpacking process
 
 with an additional set of tools to create data sources that are used by
 the analysis programs.
 
-The unpacking program consists of a scan queue from which threads pick tasks.
-A task contains a reference to a file. The file from the task is parsed by
-one or more parsers. Which parsers are run is based on known signatures
-("magic" headers which many file formats have) or known extensions if there
-isn't a known signature, but there is a known extension.
+The unpacking program consists of a scan queue from which threads pick tasks
+and a set of parsers for various file formats that can parse formats and
+extract contents.
 
-If any files are unpacked during the scanning process, a new task is created
-for each of the unpacked files and the tasks are inserted into the queue to
-be scanned. This continues until there are no files left to scan.
+A scanning task is a set of metadata, including a reference to a file. The file
+from the task is parsed by one or more parsers. Which parsers are run is based
+on various features, such as known signatures ("magic" headers which many file
+formats have) or known extensions in case there isn't a known signature, but
+there is a known extension (example: Android sparse data files).
 
-For each file that is scanned metadata is stored in a separate file. Metadata
-contains information such as names, hashes, unpacked files, and so on.
+If any files are extracted from a file during the scanning process, a new
+scanning task is created for each of the unpacked files and the tasks are
+inserted into the queue to be scanned. This continues until there are no files
+left to scan.
+
+For each file that is scanned in this process the metadata is stored in a
+separate directory in a Python pickle. Metadata contains information such as
+names, hashes, unpacked files, and so on, but can also include extracted data
+such as function names, graphics metadata, etcetera.
 
 ### Unpacking
 
@@ -72,18 +79,21 @@ For each file from the scanning queue the following is done:
    can be extracted from it in case it is a container format (file system,
    archive, compresed file, etcetera), or if it is a regular file with data
    appended to it, or prepended in front of it.
-3. compute various checksums (MD5, SHA1, SHA256, optionally TLSH and telfhash)
+3. compute various checksums (MD5, SHA1, SHA256, optionally TLSH for certain
+   files and telfhash for ELF files)
 
 This is done in a so called *pipe line* (see below), which concatenates the
 different kinds of parsers.
 
-Many file types have a certain header that indicates what file type they
-are. On Linux systems these file types are typically described in a
-file type database like `/usr/share/magic`. Examples would be gzip, or GIF.
+Many file types have a certain header that indicates the file type. On Linux
+systems these file types are typically described in a file type database like
+`/usr/share/magic`. Examples would be gzip, or GIF.
 
-But this is not true for every file type where other information has to
-be used, such as a known extension (quite popular on for example Android
-and other Google products).
+This is not true for every file. For these files other information has to be
+used, such as a known extension (quite popular on for example Android and other
+Google products). In other cases a parser just needs to be run to see if a
+file can be unpacked in a trial and error way. Sometimes the parser can be
+determined from the unpacking context.
 
 To determine which parser should be run the following steps are taken:
 
@@ -108,7 +118,8 @@ To determine which parser should be run the following steps are taken:
    known extension and no magic header.
 
 The files are scanned in the above order to prevent false positives as much
-as possible. Sometimes extra information will be used to make a better guess.
+as possible. Sometimes extra information will be passed downstream to make a
+better guess.
 
 The UnpackParser class is the base class for recognizing, analyzing and
 unpacking files. It has methods to parse, to write information to a meta
@@ -118,22 +129,23 @@ directory, and to unpack to a meta directory.
 
 The analysis for each file will record metadata, extracted files (if the file
 consists of multiple concatenated files), and unpacked files (in case the file
-contains files itself).  All this information is stored in a *meta directory*.
+contains files itself). All this information is stored in a *meta directory*.
 
 The top meta directory is called `root`, and every extracted or unpacked file
 will have its own meta directory with its own unique name. The meta directory
-will not contain its file, but it refers to by storing the pathname in the meta
+will not contain the file, but refers to it by storing the pathname in the meta
 directory's `pathname` file. The meta directory's `info.pkl` file contains a
 data structure that maps extracted and unpacked paths to other meta
 directories. It also contains general metadata and unpacked symlinks.
 
 Unpacked files that have absolute paths can be found under `abs`, while those
 with relative paths are under `rel`. Files that are carved from a larger file
-are stored in a directory `extracted`.
+are stored in a directory `extracted`. Files like boot blocks (example: ISO9660
+file systems) are stored in the directory `block`.
 
-This structure makes it harder to navigate, but unpacked files will not clutter
-the directory structure. To navigate the results there are tools, see the file
-`showing-results.md` for more information.
+This structure makes it harder to navigate unpacked results, but unpacked files
+will not clutter the directory structure. To navigate the results there are
+tools, see the file `showing-results.md` for more information.
 
 The file `unpacking-examples.md` explains the unpacking structure and the
 concept of meta directories in more detail.
@@ -155,14 +167,17 @@ scanning of very large collections of files.
 * Pre-parsing checks: UnpackParsers can implement quick heuristic checks before
   doing large parses.
 
-## Reducing I/O with buffers and memoryviews
+### Reducing I/O with buffers and memoryviews
 
 For some unpackers it has been attempted to reduce memory usage using
 techniques described in this blog post:
 
 <https://eli.thegreenplace.net/2011/11/28/less-copies-in-python-with-the-buffer-protocol-and-memoryviews>
 
-## Prevent copying data to user space by using `os.sendfile()`
+As this method only works well if data is copied around a lot (which isn't
+happening anymore in BANG) it is not used a lot.
+
+### Prevent copying data to user space by using `os.sendfile()`
 
 One technique that is used is to copy data from and to files (for example:
 temporary files) without copying the data to user space first, but letting

@@ -23,18 +23,18 @@
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
-from . import glibc_utmp
+from . import edid
 
-class UtmpUnpackParser(UnpackParser):
-    extensions = ['utmp', 'wtmp']
-    signatures = []
-    pretty_name = 'utmp'
+class EdidUnpackParser(UnpackParser):
+    extensions = []
+    signatures = [(0, b'\x00\xff\xff\xff\xff\xff\xff\x00')]
+    pretty_name = 'edid'
 
     def parse(self):
         try:
-            self.data = glibc_utmp.GlibcUtmp.from_io(self.infile)
+            self.data = edid.Edid.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
-    labels = ['utmp']
+    labels = ['edid']
     metadata = {}

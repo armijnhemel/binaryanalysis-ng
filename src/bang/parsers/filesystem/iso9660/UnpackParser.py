@@ -114,7 +114,7 @@ class Iso9660UnpackParser(UnpackParser):
 
                         extent_size = record.body.extent.value * descriptor.volume.logical_block_size.value
                         check_condition(extent_size <= self.infile.size,
-                                        "extent cannot be outside of file")
+                                        "file extent cannot be outside of file")
 
                         # store if an entry is a zisofs file
                         is_zisofs_file = False

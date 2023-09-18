@@ -33,13 +33,11 @@ except ImportError:
 
 @click.command(short_help='load Dex bytecode information into database')
 @click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
-@click.option('--result-directory', '-r', required=True, help='BANG result directory', type=click.Path(exists=True))
+@click.option('--result-directory', '-r', required=True, help='BANG result directory', type=click.Path(exists=True, path_type=pathlib.Path))
 def main(config_file, result_directory):
-    result_directory = pathlib.Path(result_directory)
-
-    # ... and should be a real directory
+    # should be a real directory
     if not result_directory.is_dir():
-        print("%s is not a directory, exiting." % result_directory, file=sys.stderr)
+        print(f"{result_directory} is not a directory, exiting.", file=sys.stderr)
         sys.exit(1)
 
     # read the configuration file. This is in YAML format
@@ -56,7 +54,7 @@ def main(config_file, result_directory):
 
     for i in ['postgresql_user', 'postgresql_password', 'postgresql_db']:
         if i not in config['database']:
-            print("Configuration file malformed: missing database information %s" % i,
+            print("Configuration file malformed: missing database information {i}",
                   file=sys.stderr)
             sys.exit(1)
         postgresql_user = config['database']['postgresql_user']
@@ -79,8 +77,7 @@ def main(config_file, result_directory):
                                   port=postgresql_port, host=postgresql_host)
         cursor.close()
     except psycopg2.Error as e:
-        print("Database server not running or malconfigured, exiting.",
-              file=sys.stderr)
+        print(e, file=sys.stderr)
         sys.exit(1)
 
     # open a connection to the database
@@ -156,15 +153,15 @@ def main(config_file, result_directory):
         sha256 = bang_data['metadata']['hashes']['sha256']
 
         # open the result pickle
-        for r in bang_data['metadata']['classes']:
-            class_name = r['classname']
-            for m in r['methods']:
-                method_name = m['name']
-                if 'bytecode_hashes' in m:
-                    bytecode_sha256 = m['bytecode_hashes']['sha256']
+        for result in bang_data['metadata']['classes']:
+            class_name = result['classname']
+            for method in result['methods']:
+                method_name = method['name']
+                if 'bytecode_hashes' in method:
+                    bytecode_sha256 = method['bytecode_hashes']['sha256']
                     bytecode_tlsh = ''
-                    if m['bytecode_hashes']['tlsh'] is not None:
-                        bytecode_tlsh = m['bytecode_hashes']['tlsh']
+                    if method['bytecode_hashes']['tlsh'] is not None:
+                        bytecode_tlsh = method['bytecode_hashes']['tlsh']
                     db_rows.append((sha256, class_name, method_name, bytecode_sha256, bytecode_tlsh))
         dex_counter += 1
 
@@ -173,9 +170,9 @@ def main(config_file, result_directory):
         method_counter += len(db_rows)
         dbconnection.commit()
         if verbose:
-            print("Processed %d dex files" % dex_counter)
-            print("Added %d methods" % len(db_rows))
-            print("Total %d methods" % method_counter)
+            print(f"Processed {dex_counter} dex files")
+            print(f"Added {len(db_rows)} methods")
+            print(f"Total {method_counter} methods")
             print()
 
     if verbose:
@@ -183,8 +180,8 @@ def main(config_file, result_directory):
         if dex_counter == 1:
             print("Processed: 1 dex file")
         else:
-            print("Processed %d dex files" % dex_counter)
-        print("Processed %d methods" % method_counter)
+            print(f"Processed {dex_counter} dex files")
+        print(f"Processed {method_counter} methods")
 
     # cleanup
     dbconnection.commit()

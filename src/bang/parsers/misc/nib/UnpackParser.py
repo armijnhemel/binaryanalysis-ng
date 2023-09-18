@@ -23,18 +23,36 @@
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
-from . import glibc_utmp
+from . import nibarchive
 
-class UtmpUnpackParser(UnpackParser):
-    extensions = ['utmp', 'wtmp']
-    signatures = []
-    pretty_name = 'utmp'
+
+class NibArchiveUnpackParser(UnpackParser):
+    extensions = []
+    signatures = [
+        (0, b'NIBArchive'),
+    ]
+    pretty_name = 'nibarchive'
 
     def parse(self):
+        self.unpacked_size = 0
         try:
-            self.data = glibc_utmp.GlibcUtmp.from_io(self.infile)
+            self.data = nibarchive.Nibarchive.from_io(self.infile)
+
+            # force read data as these are properties
+            # TODO: extra sanity checks
+            num_keys = len(self.data.keys)
+            self.unpacked_size = max(self.unpacked_size, self.data._debug['_m_keys']['end'])
+
+            num_values = len(self.data.values)
+            self.unpacked_size = max(self.unpacked_size, self.data._debug['_m_values']['end'])
+
+            num_class_names = len(self.data.class_names)
+            self.unpacked_size = max(self.unpacked_size, self.data._debug['_m_class_names']['end'])
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
-    labels = ['utmp']
+    def calculate_unpacked_size(self):
+        pass
+
+    labels = ['nibarchive', 'resource']
     metadata = {}

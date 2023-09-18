@@ -723,9 +723,19 @@ types:
       versym_section:
         seq:
           - id: symbol_versions
-            type: u2
+            type: symbol
             repeat: eos
             doc-ref: https://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/symversion.html
+        types:
+          symbol:
+            seq:
+              - id: symbol_version_raw
+                type: u2
+            instances:
+              hidden:
+                value: symbol_version_raw & 0x8000 != 0
+              version:
+                value: symbol_version_raw & 0x7fff
       verneed_section:
         doc-ref: https://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/symversion.html
         seq:
@@ -770,7 +780,7 @@ types:
             type: u4
         instances:
           hidden:
-            value: object_file_version & 0x10000 != 0
+            value: object_file_version & 0x8000 != 0
       verdef_section:
         doc-ref: https://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/symversion.html
         seq:
