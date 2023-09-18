@@ -58,6 +58,7 @@ types:
         type: u1
       - id: xloadflags
         type: u2
+        # xloadflags only makes sense for 2.12+
       - id: cmdline_size
         type: u4
         if: version.minor >= 6
