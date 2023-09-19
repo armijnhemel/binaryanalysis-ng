@@ -53,6 +53,10 @@ class LinuxX86UnpackParser(UnpackParser):
             file_path = pathlib.Path("payload")
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                 outfile.write(self.data.header.payload)
+
+                with unpacked_md.open(open_file=False):
+                    unpacked_md.info['propagated'] = {'parent_parser': self.pretty_name}
+
                 yield unpacked_md
 
     labels = ['linux_x86']
