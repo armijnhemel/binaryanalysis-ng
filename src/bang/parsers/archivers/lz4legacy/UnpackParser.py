@@ -49,6 +49,7 @@ class Lz4legacyUnpackParser(UnpackParser):
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 
+        # correctly set unpacked_size
         self.unpacked_size = 4
         for block in self.data.blocks:
             if not block.is_magic:
@@ -56,7 +57,7 @@ class Lz4legacyUnpackParser(UnpackParser):
 
         # check if the file starts at offset 0 and if the file length
         # equals the entire file. If not, carve the file first, as multiple
-        # streams can be concatenated and lz4c will concatenate result
+        # streams can be concatenated and lz4c will concatenate results
         self.havetmpfile = False
         if not (self.offset == 0 and self.infile.size == self.unpacked_size):
             self.temporary_file = tempfile.mkstemp(dir=self.configuration.temporary_directory)
