@@ -23,6 +23,8 @@
 import collections
 import os
 import pathlib
+import shutil
+import subprocess
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
@@ -38,6 +40,9 @@ class ErofsUnpacker(UnpackParser):
     pretty_name = 'erofs'
 
     def parse(self):
+        if shutil.which('fsck.erofs') is None:
+            raise UnpackParserException("fsck.erofs not installed")
+
         try:
             self.data = erofs.Erofs.from_io(self.infile)
 
