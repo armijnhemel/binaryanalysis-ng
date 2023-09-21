@@ -609,6 +609,53 @@ def clear_ids(tarinfo):
     tarinfo.gname = "root"
     return tarinfo
 
+@app.command(short_help='Create a directory structure as used in old BANG to easier navigate results using standard Linux shell tools')
+@click.argument('metadir', type=click.Path(path_type=pathlib.Path))
+@click.option('-o', '--output', type=click.Path(path_type=pathlib.Path), required=True, help='output directory')
+@click.option('-c', '--copy', 'do_copy', is_flag=True, help='Copy results instead of link')
+def create_directory_view(metadir, output, do_copy):
+    '''Create a directory structure as used in old BANG to easier
+       navigate results using standard Linux shell tools.
+    '''
+    md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
+
+    try:
+        m = f'{md.file_path}'
+    except MetaDirectoryException:
+        print(f'directory {metadir} not found, exiting', file=sys.stderr)
+        sys.exit(1)
+
+    # first create the output directory, if it doesn't exist yet
+    try:
+        output.mkdir(parents=True)
+    except FileExistsError:
+        pass
+
+    # first grab all of the directories that need to be processed
+    # by traversing the unpacking tree.
+    root_md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
+
+    metadirs = deque([root_md])
+
+    while True:
+        try:
+            md = metadirs.popleft()
+        except IndexError:
+            break
+
+        # recurse into all of the children
+        with md.open(open_file=False, info_write=False):
+            for k,v in sorted(md.info.get('extracted_files', {}).items()):
+                child_md = MetaDirectory.from_md_path(metadir.parent, v)
+                metadirs.append(child_md)
+
+            for k,v in sorted(md.info.get('unpacked_absolute_files', {}).items()):
+                child_md = MetaDirectory.from_md_path(metadir.parent, v)
+                metadirs.append(child_md)
+
+            for k,v in sorted(md.info.get('unpacked_relative_files', {}).items()):
+                child_md = MetaDirectory.from_md_path(metadir.parent, v)
+                metadirs.append(child_md)
 
 if __name__=="__main__":
     app()
