@@ -56,6 +56,12 @@ class ErofsUnpacker(UnpackParser):
                 try:
                     name, parent, file_type, inode = inodes.popleft()
 
+                    # sanity check for inode_layout. Ideally this should have
+                    # been done in the Kaitai Struct definition, but 'valid'
+                    # checks are not allowed in instances (yet).
+                    check_condition(inode.inode_layout in erofs.Erofs.Inode.Layouts,
+                                    "invalid inode layout")
+
                     # only process "inline" inodes for now
                     check_condition(inode.inode_layout in [erofs.Erofs.Inode.Layouts.inline, erofs.Erofs.Inode.Layouts.plain],
                                     "only inline plain inodes supported for now")
