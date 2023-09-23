@@ -306,6 +306,7 @@ larger file, unless stated otherwise.
 206. old TP-Link firmware files
 207. certain VxWorks memfs file systems
 208. Realtek bootloader (subset of files)
+209. Linux kernel x86 images
 
 ## Getting started
 
