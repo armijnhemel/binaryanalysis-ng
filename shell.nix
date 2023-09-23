@@ -53,6 +53,7 @@ pkgs.mkShell {
     cabextract
     e2fsprogs
     e2tools
+    erofs-utils
     innoextract
     kaitai-struct-compiler
     lrzip

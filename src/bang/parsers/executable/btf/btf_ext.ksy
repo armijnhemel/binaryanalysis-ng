@@ -10,8 +10,10 @@ seq:
     type: header
   - id: func_info_section
     size: header.rest_of_header.len_func_info_section
+    type: func_info
   - id: line_info_section
     size: header.rest_of_header.len_line_info_section
+    type: func_info
 types:
   header:
     seq:
@@ -43,3 +45,27 @@ types:
           - id: len_core_relo
             type: u4
             if: _parent.len_header >= 32
+  func_info:
+    seq:
+      - id: len_info_rec
+        type: u4
+      - id: btf_ext_info_secs
+        type: btf_ext_info_sec
+        repeat: eos
+  line_info:
+    seq:
+      - id: len_info_rec
+        type: u4
+      - id: btf_ext_info_secs
+        type: btf_ext_info_sec
+        repeat: eos
+  btf_ext_info_sec:
+    seq:
+      - id: ofs_section_name
+        type: u4
+      - id: num_info
+        type: u4
+        valid:
+          min: 1
+      - id: data
+        size: num_info * _parent.len_info_rec
