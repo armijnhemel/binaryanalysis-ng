@@ -162,8 +162,8 @@ larger file, unless stated otherwise.
 65. lzop
 66. PNG/APNG (needs PIL)
 67. ar/deb (needs binutils)
-68. squashfs (needs squashfs-tools), only regular squashfs, vendor
-    specific exotic variants need sasquatch
+68. squashfs (using squashfs-tools), vendor specific exotic variants
+    (using sasquatch)
 69. BMP (needs PIL)
 70. PDF (simple verification, no object streams, incremental updates
     at end of the file)
@@ -279,7 +279,7 @@ larger file, unless stated otherwise.
 179. FLS firmware files (IP cameras)
 180. TP-Link TX6610v4 firmware
 181. Granite Devices firmware v300
-182. erofs ('inline' data layout only)
+182. erofs
 183. bzip3
 184. PX4 autopilot firmware files
 185. SSH known hosts files (whole file)
@@ -306,6 +306,7 @@ larger file, unless stated otherwise.
 206. old TP-Link firmware files
 207. certain VxWorks memfs file systems
 208. Realtek bootloader (subset of files)
+209. Linux kernel x86 images
 
 ## Getting started
 
