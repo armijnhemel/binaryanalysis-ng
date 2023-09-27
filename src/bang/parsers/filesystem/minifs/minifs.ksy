@@ -21,7 +21,7 @@ seq:
   - id: filenames
     type: filenames
     size: header.len_filenames
-  - id: inode
+  - id: inodes
     type: inode
     repeat: expr
     repeat-expr: filenames.nums
