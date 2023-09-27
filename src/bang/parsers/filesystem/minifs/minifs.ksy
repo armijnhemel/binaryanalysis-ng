@@ -24,7 +24,7 @@ seq:
   - id: inodes
     type: inode
     repeat: expr
-    repeat-expr: filenames.nums
+    repeat-expr: header.num_files
 types:
   header:
     seq:
@@ -32,9 +32,9 @@ types:
         contents: "MINIFS\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
       - id: unknown_1
         type: u4
-      - id: unknown_2
+      - id: num_files
         type: u4
-      - id: unknown_3
+      - id: unknown_2
         type: u4
       - id: len_filenames
         type: u4
@@ -43,9 +43,6 @@ types:
       - id: filename
         type: strz
         repeat: eos
-    instances:
-      nums:
-        value: filename.size
   inode:
     seq:
       - id: ofs_directory
