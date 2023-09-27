@@ -7,6 +7,13 @@ meta:
 doc: |
   MINIFS is a file system found in certain TP-Link firmware files, such as
   RE450(V4)_210531.zip
+
+  It consists of a header, followed by a list of file names, followed by
+  meta information for each file, and then a number of LZMA compressed blobs.
+  The LZMA blobs can contain the concatenated contents of multiple files.
+  The meta information of a file contains an offset to the directory name,
+  a file name, the LZMA blob (numbering starts at 0), the offset of the file
+  in the uncompressed data and the size of the uncompressed file.
 seq:
   - id: header
     type: header
