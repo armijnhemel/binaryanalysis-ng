@@ -26,7 +26,7 @@ import pathlib
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
-from . import minifs
+from . import tplink_minifs
 
 
 class MinifsUnpackParser(UnpackParser):
@@ -34,11 +34,11 @@ class MinifsUnpackParser(UnpackParser):
     signatures = [
         (0, b'MINIFS\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
     ]
-    pretty_name = 'minifs'
+    pretty_name = 'tplink_minifs'
 
     def parse(self):
         try:
-            self.data = minifs.Minifs.from_io(self.infile)
+            self.data = tplink_minifs.TplinkMinifs.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args)
 

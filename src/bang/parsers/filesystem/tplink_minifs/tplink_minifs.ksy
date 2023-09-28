@@ -1,5 +1,5 @@
 meta:
-  id: minifs
+  id: tplink_minifs
   title: MINIFS
   license: CC0-1.0
   endian: be
