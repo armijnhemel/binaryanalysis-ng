@@ -6,7 +6,7 @@ meta:
   encoding: ASCII
 doc: |
   MINIFS is a file system found in certain TP-Link firmware files, such as
-  RE450(V4)_210531.zip
+  RE450(V4)_210531.zip, for TP-Link's own TPOS RTOS.
 
   It consists of a header, followed by a list of file names, followed by
   meta information for each file, meta information about the LZMA compressed
