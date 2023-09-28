@@ -82,7 +82,7 @@ types:
         type: u4
       - id: ofs_file
         type: u4
-      - id: uncompressed_size
+      - id: size
         type: u4
     instances:
       cur_max_lzma_blob:
