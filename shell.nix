@@ -32,6 +32,7 @@ let
     pefile
     pillow
     protobuf
+    pwntools
     pyahocorasick
     pyaxmlparser
     pytest

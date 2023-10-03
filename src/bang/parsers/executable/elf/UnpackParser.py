@@ -26,6 +26,9 @@ import io
 import json
 import pathlib
 
+import elftools
+import pwn
+import pwnlib
 import tlsh
 import telfhash
 
@@ -340,7 +343,16 @@ class ElfUnpackParser(UnpackParser):
 
                 # TODO linux kernel module signatures
                 # see scripts/sign-file.c in Linux kernel
-        except (Exception, ValidationFailedError, UndecidedEndiannessError) as e:
+
+            # parse the ELF file with pwntools, but only if the
+            # original offset of the file is 0 (i.e. not a carved file).
+            # This is because pwntools can only work with file names
+            # and not byte streams
+            self.elf = None
+            if self.infile.offset == 0:
+                self.elf = pwn.ELF(self.infile.name, checksec=False)
+
+        except (Exception, ValidationFailedError, UndecidedEndiannessError, elftools.common.exceptions.ELFError) as e:
             raise UnpackParserException(e.args)
 
     def calculate_unpacked_size(self):
@@ -699,6 +711,22 @@ class ElfUnpackParser(UnpackParser):
                                     if symbol['name'].endswith(fortify_name):
                                         self.security_metadata.add('fortify')
                                         break
+
+                        # try to link symbols to actual strings
+                        if self.elf is not None:
+                            if entry.size != 0:
+                                try:
+                                    symbol_pos = self.elf.unpack(self.elf.symbols[entry.name])
+                                    if symbol_pos > self.infile.size or symbol_pos < self.data.header.e_ehsize:
+                                        continue
+                                    symbol_string = self.elf.string(symbol_pos).decode()
+
+                                    if symbol_string == '':
+                                        pass
+
+                                    symbol['unpacked_value'] = symbol_string
+                                except (pwnlib.exception.PwnlibException, UnicodeDecodeError):
+                                    pass
 
             elif header.type == elf.Elf.ShType.progbits:
                 # process the various progbits sections here
