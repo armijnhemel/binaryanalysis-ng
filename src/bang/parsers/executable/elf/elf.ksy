@@ -395,7 +395,7 @@ types:
                 ph_type::dynamic: ph_dynamic
                 ph_type::note: note_section
             io: _root._io
-            if: offset != 0
+            if: offset != 0 and filesz != 0
           flags_obj:
             type:
               switch-on: _root.bits
