@@ -288,14 +288,14 @@ class ElfUnpackParser(UnpackParser):
                                 self.dependencies_to_versions[name] = []
 
                                 # verify the auxiliary entries
-                                for a in cur_entry.auxiliary_entries:
-                                    self.dynstr.seek(a.ofs_name)
+                                for aux_entry in cur_entry.auxiliary_entries:
+                                    self.dynstr.seek(aux_entry.ofs_name)
                                     try:
                                         a_name = self.dynstr.read().split(b'\x00')[0].decode()
                                         check_condition(name != '', "empty name")
                                     except UnicodeDecodeError as e:
                                         raise UnpackParserException(e.args)
-                                    self.version_to_name[a.object_file_version] = a_name
+                                    self.version_to_name[aux_entry.object_file_version] = a_name
                                     self.dependencies_to_versions[name].append(a_name)
 
                                 # then jump to the next entry
@@ -314,8 +314,8 @@ class ElfUnpackParser(UnpackParser):
                                 # actually the first name, the rest are "parents" (according
                                 # to readelf)
                                 aux_name = ''
-                                for a in cur_entry.auxiliary_entries:
-                                    self.dynstr.seek(a.ofs_name)
+                                for aux_entry in cur_entry.auxiliary_entries:
+                                    self.dynstr.seek(aux_entry.ofs_name)
                                     try:
                                         a_name = self.dynstr.read().split(b'\x00')[0].decode()
                                         if aux_name == '':
@@ -501,7 +501,7 @@ class ElfUnpackParser(UnpackParser):
                 telfhash_result = telfhash.telfhash(str(to_meta_directory.file_path))
                 if telfhash_result != []:
                     telfhash_res = telfhash_result[0]['telfhash'].upper()
-                    if telfhash_res != 'TNULL' and telfhash_res != '-':
+                    if telfhash_res not in ['TNULL', '-']:
                         self.metadata['telfhash'] = telfhash_res
             except UnicodeEncodeError:
                 pass
@@ -548,19 +548,21 @@ class ElfUnpackParser(UnpackParser):
             sections[header.name] = {}
             sections[header.name]['nr'] = section_ctr
             sections[header.name]['address'] = header.addr
-            if type(header.type) == int:
+
+            if isinstance(header.type, int):
                 sections[header.name]['type'] = header.type
             else:
                 sections[header.name]['type'] = header.type.name
+
             if header.type != elf.Elf.ShType.nobits:
                 sections[header.name]['size'] = header.len_body
                 sections[header.name]['offset'] = header.ofs_body
                 if header.body != b'':
                     sections[header.name]['hashes'] = {}
-                    for h in HASH_ALGORITHMS:
-                        section_hash = hashlib.new(h)
+                    for hash_algorithm in HASH_ALGORITHMS:
+                        section_hash = hashlib.new(hash_algorithm)
                         section_hash.update(header.raw_body)
-                        sections[header.name]['hashes'][h] = section_hash.hexdigest()
+                        sections[header.name]['hashes'][hash_algorithm] = section_hash.hexdigest()
 
                     try:
                         tlsh_hash = tlsh.hash(header.raw_body)
@@ -598,7 +600,7 @@ class ElfUnpackParser(UnpackParser):
                         elif meta.startswith('depends='):
                             self.module_name = meta.split('=', maxsplit=1)[1]
                             if self.module_name != '':
-                                if not 'depends' in linux_kernel_module_info:
+                                if 'depends' not in linux_kernel_module_info:
                                     linux_kernel_module_info['depends'] = []
                                 linux_kernel_module_info['depends'].append(self.module_name)
                 except Exception as e:
