@@ -19,29 +19,29 @@ doc: |
   in the uncompressed data and the size of the uncompressed file.
 seq:
   - id: header
-    type: header
     size: 32
+    type: header
   - id: filenames
-    type: filenames
     size: header.len_filenames
+    type: filenames
   - id: inodes
     type: 'inode(_index != 0 ? inodes[_index - 1].cur_max_lzma_blob : 0)'
     repeat: expr
     repeat-expr: header.num_files
   - id: lzma_metas
-    type: 'lzma_meta(_index != 0 ? lzma_metas[_index - 1].cur_max_lzma_blob_len : 0)'
+    type: 'lzma_meta(_index != 0 ? lzma_metas[_index - 1].ofs_end : 0)'
     repeat: expr
     repeat-expr: inodes.last.cur_max_lzma_blob + 1
     doc: Count starts at 0, so there is one more blob than the highest blob number
   - id: lzma_blobs_area
-    size: lzma_metas.last.cur_max_lzma_blob_len
+    size: lzma_metas.last.ofs_end
     type: dummy
 instances:
   lzma_blobs:
+    io: _root.lzma_blobs_area._io
     type: lzma_blob(_index)
     repeat: expr
     repeat-expr: _root.inodes.last.cur_max_lzma_blob + 1
-    io: _root.lzma_blobs_area._io
 types:
   dummy: {}
   lzma_blob:
@@ -88,25 +88,25 @@ types:
       cur_max_lzma_blob:
         value: 'lzma_blob > prev_max_lzma_blob ? lzma_blob : prev_max_lzma_blob'
       filename:
+        io: _root.filenames._io
         pos: ofs_name
         type: strz
-        io: _root.filenames._io
       directory_name:
+        io: _root.filenames._io
         pos: ofs_directory
         type: strz
-        io: _root.filenames._io
   lzma_meta:
     params:
-      - id: prev_max_lzma_blob_len
+      - id: prev_ofs_end
         type: u4
     seq:
       - id: ofs_blob
         type: u4
-        valid: prev_max_lzma_blob_len
+        valid: prev_ofs_end
       - id: len_blob
         type: u4
       - id: len_blob_uncompressed
         type: u4
     instances:
-      cur_max_lzma_blob_len:
-        value: 'ofs_blob + len_blob > prev_max_lzma_blob_len ? ofs_blob + len_blob : prev_max_lzma_blob_len'
+      ofs_end:
+        value: ofs_blob + len_blob
