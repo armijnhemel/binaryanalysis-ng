@@ -456,12 +456,34 @@ class ElfUnpackParser(UnpackParser):
         self.metadata['abi_name'] = self.data.abi.name
         self.metadata['abi'] = self.data.abi.value
 
+        # store security related information that spans program
+        # headers and potentially section headers as well. First the
+        # program headers should be searched to see if relro is enabled.
+        self.security_metadata = set()
+
+        # RELRO is a technique to mitigate some security vulnerabilities
+        # http://refspecs.linuxfoundation.org/LSB_4.1.0/LSB-Core-generic/LSB-Core-generic/progheader.html
+        self.seen_relro = False
+
+        for header in self.data.header.program_headers:
+            if header.type == elf.Elf.PhType.gnu_relro:
+                self.security_metadata.add('relro')
+                self.seen_relro = True
+            elif header.type == elf.Elf.PhType.gnu_stack:
+                # check to see if NX is set
+                if not header.flags_obj.execute:
+                    self.security_metadata.add('nx')
+            elif header.type == elf.Elf.PhType.pax_flags:
+                self.security_metadata.add('pax')
+
         # then, depending on whether or not there are section headers
         # extract more data from the section headers or the program headers
         if self.have_section_headers:
             self.metadata = self.metadata | self.extract_metadata_and_labels_sections(to_meta_directory, self.metadata['endian'])
         else:
             pass
+
+        self.metadata['security'] = sorted(self.security_metadata)
 
         elf_types = set(self.metadata.get('elf_type', []))
         if self.is_dynamic_elf:
@@ -491,26 +513,9 @@ class ElfUnpackParser(UnpackParser):
         metadata = {}
         string_cutoff_length = 4
 
-        security_metadata = set()
-
         # record the section names so they are easily accessible
         if self.data.header.section_names is not None:
             metadata['section_names'] = sorted(self.data.header.section_names.entries)
-
-        # RELRO is a technique to mitigate some security vulnerabilities
-        # http://refspecs.linuxfoundation.org/LSB_4.1.0/LSB-Core-generic/LSB-Core-generic/progheader.html
-        seen_relro = False
-
-        for header in self.data.header.program_headers:
-            if header.type == elf.Elf.PhType.gnu_relro:
-                security_metadata.add('relro')
-                seen_relro = True
-            elif header.type == elf.Elf.PhType.gnu_stack:
-                # check to see if NX is set
-                if not header.flags_obj.execute:
-                    security_metadata.add('nx')
-            elif header.type == elf.Elf.PhType.pax_flags:
-                security_metadata.add('pax')
 
         # store the data normally extracted using for example 'strings'
         data_strings = []
@@ -623,20 +628,20 @@ class ElfUnpackParser(UnpackParser):
                         elif entry.tag_enum == elf.Elf.DynamicArrayTags.flags_1:
                             # check for position independent code
                             if entry.flag_1_values.pie:
-                                security_metadata.add('pie')
+                                self.security_metadata.add('pie')
                             # check for bind_now
                             if entry.flag_1_values.now:
-                                if seen_relro:
-                                    security_metadata.add('full relro')
+                                if self.seen_relro:
+                                    self.security_metadata.add('full relro')
                                 else:
-                                    security_metadata.add('partial relro')
+                                    self.security_metadata.add('partial relro')
                         elif entry.tag_enum == elf.Elf.DynamicArrayTags.flags:
                             # check for bind_now here as well
                             if entry.flag_values.bind_now:
-                                if seen_relro:
-                                    security_metadata.add('full relro')
+                                if self.seen_relro:
+                                    self.security_metadata.add('full relro')
                                 else:
-                                    security_metadata.add('partial relro')
+                                    self.security_metadata.add('partial relro')
             elif header.type == elf.Elf.ShType.symtab:
                 if header.name == '.symtab':
                     for idx, entry in enumerate(header.body.entries):
@@ -685,12 +690,12 @@ class ElfUnpackParser(UnpackParser):
 
                         # security related information
                         if symbol['name'] == '__stack_chk_fail':
-                            security_metadata.add('stack smashing protector')
+                            self.security_metadata.add('stack smashing protector')
                         if '_chk' in symbol['name']:
-                            if 'fortify' not in security_metadata:
+                            if 'fortify' not in self.security_metadata:
                                 for fortify_name in FORTIFY_NAMES:
                                     if symbol['name'].endswith(fortify_name):
-                                        security_metadata.add('fortify')
+                                        self.security_metadata.add('fortify')
                                         break
 
             elif header.type == elf.Elf.ShType.progbits:
@@ -947,7 +952,6 @@ class ElfUnpackParser(UnpackParser):
             metadata['needed'] = needed
 
         metadata['notes'] = notes
-        metadata['security'] = sorted(security_metadata)
 
         if data_strings != []:
             metadata['strings'] = data_strings
