@@ -457,6 +457,9 @@ enums:
     43:
       id: renesas_spkg
       doc: Renesas SPKG image
+    44:
+      id: starfive_spl
+      doc: StarFive SPL Image
   magic_types:
     0x27051956:
       id: uimage
