@@ -110,8 +110,9 @@ def scan_directory(ctx, config_file, verbose, unpack_directory, temporary_direct
 @click.option('-i', '--ignore-list', type=click.File('r'))
 @click.option('-j', '--jobs', default=1, type=click.IntRange(min=1), help='Number of jobs running simultaneously')
 @click.option('--job-wait-time', default=1, type=int, help='Time to wait for a new job')
+@click.option('-f', '--force', is_flag=True, help='Ignore warnings about existing unpacking directory')
 @click.argument('path', type=click.Path(path_type=pathlib.Path, exists=True))
-def scan(config_file, verbose, unpack_directory, temporary_directory, ignore_list, jobs, job_wait_time, path):
+def scan(config_file, verbose, unpack_directory, temporary_directory, ignore_list, jobs, job_wait_time, force, path):
     '''Scans PATH and unpacks its files to UNPACK_DIRECTORY.
     '''
 
@@ -119,6 +120,10 @@ def scan(config_file, verbose, unpack_directory, temporary_directory, ignore_lis
     start_time = datetime.datetime.utcnow()
     ignore_parsers = []
     config = None
+
+    if unpack_directory.exists() and not force:
+        print("Unpacking directory already exists, exiting", file=sys.stderr)
+        sys.exit(1)
 
     if config_file is not None:
         # read the configuration file. This is in YAML format
