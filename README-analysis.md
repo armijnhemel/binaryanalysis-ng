@@ -1,5 +1,8 @@
 # Running the BANG analysis scripts
 
+NOTE: the analysis scripts will be rewritten soon and should be considered
+unstable.
+
 BANG is conceptually split into three parts:
 
 1. firmware unpacker
@@ -28,6 +31,8 @@ This script searches the BANG results for any APK (Android packages) and runs
 original scan data.
 
 ## cve\_finder
+
+DO NOT USE, WILL BE REPLACED
 
 The script, configuration and more information can be found in the directory
 `cve`.

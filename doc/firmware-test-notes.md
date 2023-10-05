@@ -47,6 +47,10 @@ ASUS RT-AC55UHP, uses `u-boot`, `lzma` compressed kernel, `ipk` files.
 
 Uses `dtb` FIT image, `squashfs`, `ipk` files.
 
+## FW_RT_AXE7800_300438834458.zip
+
+Uses `dtb` FIT image using offsets.
+
 ## FW_RX7500_1.0.04.141_prod.bin
 
 Uses `dtb` FIT image, `ubi`, `squashfs`
@@ -89,7 +93,7 @@ Edimax device, uses `u-boot`, `squashfs`, `lzma`
 
 ## https://github.com/mrdoob/three.js.git
 
-Contains test files for ktx
+Contains test files for `ktx` in `examples/textures/compressed`
 
 ## 20080929182630500_MX10_Firmware.zip
 
@@ -100,3 +104,25 @@ Contains `bflt` test files.
 From <https://www.foscam.nl/attachments/FI8908W_Firmware>
 
 Contains `bflt` test files (including `gzip` compressed).
+
+## DIR-600_fw_revC1_3-05B15__all_en_20120216.zip
+
+Uses `seama` and `dlink_romfs`.
+
+## 154ANIS.ZIP
+
+<https://www.uselesssoftware.com/download/154anis-zip>
+
+Lots of ANI files.
+
+## 0803_20140919-GPS-1CARD-PROCAM.bin
+
+Contains `romfs_ambarella` and `ambarella`
+
+## 96b_aerocore2-hello_world.zip
+
+Zephyr firmware.
+
+## TL-R460_v5.0_120704_RU_UA.zip
+
+TP-Link TL-R460, uses `vxworks_memfs`

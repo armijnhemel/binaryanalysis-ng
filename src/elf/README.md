@@ -1,3 +1,5 @@
+CURRENTLY BROKEN
+
 This directory has scripts to create linking graphs for ELF files as unpacked
 by BANG. For background information either skip to the end of this file or
 read:

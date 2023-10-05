@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# This script takes a result file from BANG, searches for the ELF files,
+# This script takes a result directory from BANG, searches for the ELF files,
 # records dependencies (taking symbolic links and RPATH into account) and
 # generates different types of output.
 #
@@ -37,7 +37,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 #
-# Copyright 2018-2022 - Armijn Hemel, Tjaldur Software Governance Solutions
+# Copyright - Armijn Hemel, Tjaldur Software Governance Solutions
 
 # TODO: RPATH and RUNPATH
 # TODO: colour edges for dot/graphviz
@@ -254,19 +254,12 @@ def createcypher(outputdir, binaries, linked_libraries,
 @click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
 @click.option('--directory', '-d', 'result_directory', required=True, help='BANG result directory', type=click.Path(exists=True))
 @click.option('--output', '-o', help='output format')
-@click.option('--root', '-r', 'root_directory', required=True, help='root inside of BANG unpack directory')
-def main(config_file, result_directory, output, root_directory):
+def main(config_file, result_directory, output):
 
     bang_result_directory = pathlib.Path(result_directory)
 
     if not bang_result_directory.is_dir():
         print("%s is not a directory" % bang_result_directory, file=sys.stderr)
-        sys.exit(1)
-
-    elf_directory = bang_result_directory / 'unpack' / root_directory
-
-    if not elf_directory.exists():
-        print("%s is not a directory" % root_directory , file=sys.stderr)
         sys.exit(1)
 
     #supported_formats = ['text', 'cypher', 'graphviz']
@@ -339,9 +332,14 @@ def main(config_file, result_directory, output, root_directory):
                   file=sys.stderr)
             sys.exit(1)
 
-    # read the BANG pickle
+    # open the top level pickle
+    bang_pickle = bang_result_directory / 'info.pkl'
+    if not bang_pickle.exists():
+        print("result pickle not found, exiting", file=sys.stderr)
+        sys.exit(1)
+
     try:
-        bang_results = pickle.load(open(bang_result_directory / 'bang.pickle', 'rb'))
+        bang_data = pickle.load(open(bang_pickle, 'rb'))
     except:
         print("Could not read BANG results pickle",
               file=sys.stderr)
@@ -387,34 +385,83 @@ def main(config_file, result_directory, output, root_directory):
 
     hashes = {}
 
-    # process each entry in the BANG result and store the parent per name.
-    for bang_result in bang_results['scantree']:
-        if not pathlib.Path(bang_result).is_relative_to(root_directory):
+    # create the file deque to store new nodes
+    file_deque = collections.deque()
+    file_deque.append(bang_pickle)
+
+    is_root = True
+
+    # walk the unpack tree recursively
+    while True:
+        try:
+            orig_file_pickle = file_deque.popleft()
+        except:
+            break
+
+        try:
+            bang_data = pickle.load(open(orig_file_pickle, 'rb'))
+        except:
             continue
 
-        binary_name = '/' / pathlib.Path(bang_result).relative_to(root_directory)
-        if 'elf' in bang_results['scantree'][bang_result]['labels']:
-            if 'static' in bang_results['scantree'][bang_result]['labels']:
-                # ignore statically linked files
-                continue
+        if not is_root:
+            if 'labels' in bang_data:
+                path_name = orig_file_pickle.with_name('pathname')
+                if not path_name.exists():
+                    print("pathname file not found, exiting", file=sys.stderr)
+                    sys.exit(1)
 
-            # retrieve the hash so we can open the result file
-            sha256 = bang_results['scantree'][bang_result]['hash']['sha256']
-            result_pickle = bang_result_directory / 'results' / ('%s.pickle' % sha256)
-            result = pickle.load(open(result_pickle, 'rb'))
+                try:
+                    with open(path_name, 'r') as path_name_file:
+                        binary_name = pathlib.Path(path_name_file.read())
+                        if not binary_name.is_absolute():
+                            binary_name = pathlib.Path('/').joinpath(*list(binary_name.parts[2:]))
+                        else:
+                            binary_name = binary_name.name
+                except Exception as e:
+                    print("Could not process pathname file", e,
+                          file=sys.stderr)
+                    continue
 
-            # store the name
-            if not binary_name.name in filename_to_full_path:
-                filename_to_full_path[binary_name.name] = []
-            filename_to_full_path[binary_name.name].append(binary_name)
 
-            # store the hash
-            hashes[binary_name] = sha256
+                # only consider dynamically linked ELF files
+                if 'elf' in bang_data['labels'] and 'dynamic' in bang_data['metadata']['elf_type']:
+                    print(binary_name, path_name)
+                    #print(bang_data['labels'])
 
-            # store the parent
-            if 'parent' in bang_results['scantree'][bang_result]:
-                parent = bang_results['scantree'][bang_result]['parent']
-                file_to_parent[bang_result] = parent
+        is_root = False
+
+        # store symbolic links and hard links
+        if 'unpacked_symlinks' in bang_data:
+            for s in bang_data['unpacked_symlinks']:
+                orig = pathlib.Path('/').joinpath(*list(s.parts[2:]))
+                target = bang_data['unpacked_symlinks'][s]
+                symlink_to_target[orig] = target
+        elif 'unpacked_hardlinks' in bang_data:
+            print(bang_data['unpacked_hardlinks'])
+
+        # add the unpacked/extracted files to the queue
+        if 'unpacked_relative_files' in bang_data:
+            for unpacked_file in bang_data['unpacked_relative_files']:
+                file_meta_directory = bang_data['unpacked_relative_files'][unpacked_file]
+                file_pickle = bang_result_directory.parent / file_meta_directory / 'info.pkl'
+                child_node_name = str(unpacked_file)
+                file_deque.append(file_pickle)
+
+        if 'unpacked_absolute_files' in bang_data:
+            for unpacked_file in bang_data['unpacked_absolute_files']:
+                file_meta_directory = bang_data['unpacked_absolute_files'][unpacked_file]
+                file_pickle = bang_result_directory.parent / file_meta_directory / 'info.pkl'
+                child_node_name = str(unpacked_file)
+                file_deque.append(file_pickle)
+
+        if 'extracted_files' in bang_data:
+            for unpacked_file in bang_data['extracted_files']:
+                file_meta_directory = bang_data['extracted_files'][unpacked_file]
+                file_pickle = bang_result_directory.parent / file_meta_directory / 'info.pkl'
+                child_node_name = str(unpacked_file)
+                file_deque.append(file_pickle)
+
+    for bang_result in bang_results['scantree']:
 
             # store machine specific information
             machine_info = {'endian': result['metadata']['endian'],
@@ -470,7 +517,7 @@ def main(config_file, result_directory, output, root_directory):
                     # symbols from for example ABS
                     if not s in elf_to_exported_symbols[binary_name]:
                         elf_to_exported_symbols[binary_name].append(s)
-        elif 'symbolic link' in bang_results['scantree'][bang_result]['labels']:
+    if 'symbolic link' in bang_results['scantree'][bang_result]['labels']:
             # It could be that a name of a dependency in an ELF file
             # is the name of a symbolic link, instead of the actual
             # ELF file. This is why we also need to (recursively)

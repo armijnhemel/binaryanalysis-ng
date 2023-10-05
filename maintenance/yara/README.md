@@ -1,11 +1,13 @@
 # YARA rule generation scripts
 
-This directory contains scripts to generate YARA rules. There are two scripts:
+This directory contains scripts to generate YARA rules. There are various scripts:
 
-1. script to generate YARA rules from source code
-2. script to generate YARA rules from BANG results (binary files)
+1. script to generate JSON from BANG results (binary files), plus a separate
+script to generate YARA files from the JSON results, possibly doing some extra
+filtering.
+2. script to generate YARA rules from source code
 
-The script to generate YARA rules from binaries currently only supports ELF
+The script to generate JSON files from binaries currently only supports ELF
 and Android Dex. More formats will be added soon.
 
 ## When to use which processor
@@ -20,7 +22,7 @@ created or processed.
 
 Generating rules from binaries seems to work really well for the vast
 majority of dynamically linked ELF binaries but not for for example
-Dalvik `.dex` files.
+statically linked ELF binaries or Dalvik `.dex` files.
 
 ### Dynamically linked ELF binaries
 
@@ -31,6 +33,36 @@ are of course exceptions, for example when there is a complete copy of
 third party software included in the package), so the separation between
 package and third party code tends to be clean. Information extracted from
 binaries in a package usually is from just that package.
+
+Extracting identifiers from the binary has advantages over extracting
+identifiers from the source code: in many packages not all source code files
+are used for building a specific program, so there might be too many
+identifiers in a fingerprint.
+
+For programs written in C++ there is also a difference between function names
+and variable names in source code and binary code: in binary code these are
+typically in so called "mangled form" and first need to be demangled when
+using fingerprints generated from source code. When using fingerprints
+extracted from binaries this step can be skipped.
+
+### Statically linked ELF binaries
+
+Statically linked ELF binaries not only include the data from the program
+itself, but also code from dependencies that are used, for example the C
+library. Because in ELF static linking there are no symbols that are imported
+or exported (as all have already been resolved during the linking process) the
+only identifiers that can be used are strings, and function names and variable
+names cannot be used (as they are not present).
+
+Because all of the dependencies are included in the same binary it means that
+not just the strings of the program, but also the strings from its dependencies
+are extracted by BANG. This makes strings extracted from a statically linked
+ELF binary perhaps not the best suited if the goal is to only fingerprint only
+a single program and not also all of the dependencies.
+
+The strings can still be useful for fingerprinting statically linked binaries
+that were built using the exact same configuration and combination of program
+and dependencies.
 
 ### Android Dex files
 
@@ -47,17 +79,25 @@ such as Android Studio:
 
 which advertises obfuscation of class names and method names as a feature.
 
-This makes rules generated from binary `.dex` files not very well suited.
-It is much better to create rules from source code and focus on other
-identifiers, such as the strings embedded in `.dex` files.
+This makes rules generated from binary `.dex` files not very well suited as
+there will be a lot of junk. Results will be much better with rules created
+from source code with other identifiers than class names or method names,
+such as the strings embedded in `.dex` files.
+
+The rules for strings from Android Dex files can contain some control
+characters that will not be present in similar rules for ELF files. This is
+because when extracting strings from Dex files it is guaranteed that the
+control characters are part of the string and it is not extracted from a larger
+blob containing possible garbage.
 
 ## Source code processor
 
 The source code processor is split into two scripts:
-`bang_extract_identifiers.py` extracts identifiers from source code files and
-writes these identifiers, with associated metadata, to output files as JSON.
-The script `yara_from_source.py` takes these JSON output files and generates
-YARA rule files.
+
+1. `bang_extract_identifiers.py` - extracts identifiers from source code files and
+   writes these identifiers, with associated metadata, to output files as JSON.
+2. `yara_from_source.py` - takes JSON output files from step 1 and generates
+   YARA rule files.
 
 ### `bang_extract_identifiers.py`
 
@@ -168,26 +208,44 @@ from Debian. It is recommended to use the following configuration options:
 These options will remove the scan output and prevents large log files to
 be written as they will not be used by the YARA rule generator script.
 
-Then run the script to generate the YARA files. The script has two mandatory
-arguments: a configuration file (in YAML format) and the directory with BANG
-scan results. An exanple configuration file `yara-config.yaml` is provided
-in this directory and should be adapted to your local settings.
+Then run the script to generate the JSON files with identifiers.
 
-An example invocation could look like this:
+The script has two mandatory arguments: the directory with BANG scan results
+and an output directory to write the JSON files.
+
+If a package was unpacked in the directory `~/tmp/debian`, and the output
+directory would be `~/json` then an example invocation could look like this:
 
 ```console
-$ python3 yara_from_bang.py -c yara-config.yaml -r ~/tmp/debian
+$ python3 bang_to_json.py -o ~/json -r ~/tmp/debian/root
 ```
 
-There are some settings in the configuration that determine which identifiers
-will be written to the YARA files. These are described in the sample
-configuration file.
+This will generate a JSON file for each ELF file that was unpacked from the
+package. The script will recurse into the file structure that was unpacked by
+BANG (so file systems, compressed archives, and so on).
 
 It is possible to filter low quality identifiers (described later). These
 should be passed to the script in Python pickle format:
 
 ```console
-$ python3 yara_from_bang.py -c yara-config.yaml -r ~/tmp/debian -i low_quality_identifiers.pickle
+$ python3 bang_to_json.py -o ~/json -r ~/tmp/debian/root -i low_quality_identifiers.pickle
+```
+
+Another optional parameter is the number of jobs to run in parallel. This can
+be useful if the number of result directories is large.
+
+As the next step run the `yara_from_bang.py` for each of the generated JSON
+files.
+
+The script has two mandatory arguments: a configuration file (in YAML format)
+and path to the JSON result file. An example configuration file
+`yara-config.yaml` is provided in this directory and should be adapted to
+your local settings.
+
+For example:
+
+```console
+$ python3 yara_from_bang.py -c yara-config.yaml -j ~/json/classes.dex-1c632fc98e0a19d657ac5cdab83a9433668fa97e1142ead29de1e34effede149.json
 ```
 
 # Low quality identifiers

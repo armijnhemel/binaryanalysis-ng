@@ -1,5 +1,9 @@
 # NSRL
 
+NOTE: these are old instructions. Recent versions of NSRL are distributed as
+SQLite tables, although older dumps are possibly still only available in the
+old format.
+
 The NSRL forensics data sets can be found at:
 
 https://www.nist.gov/software-quality-group/national-software-reference-library-nsrl

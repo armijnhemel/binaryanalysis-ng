@@ -16,8 +16,8 @@ which can then be used to generate parsers for various languages.
 The easiest way to install the Kaitai Struct compiler if you are not using Nix
 is to download a released zip file, as explained by the web site
 <http://kaitai.io/#download> (select your prefered installation format, such as
-`.deb` or `.zip`). If you do this make sure to download version 0.9 or later as
-some of the grammars depend on features introduced in version 0.9.
+`.deb` or `.zip`). If you do this make sure to download version 0.10 or later as
+some of the grammars depend on features introduced in version 0.10.
 
 Alternatively, you can build the compiler from scratch. This requires Scala and
 the Scala build tool (`sbt`). Note that you may need a recent version of `sbt`
@@ -167,9 +167,62 @@ part, call a subparser on the image data, or perhaps even both.
 ### Kaitai parser expects an end of stream
 
 Kaitai parsers that expect an end of stream, for example by using `size-eos`,
-or calling `size` on a kaitai stream object, cannot be used for carving data
-from a file. When carving, we have a stream that can contain data beyond the
-file that we want to extract, and therefore, our parser cannot depend on that.
+or calling `size` on a kaitai stream object, cannot be used while extracting
+data from a file. When extracting, we have a stream that can contain data
+beyond the file that we want to extract, and therefore, our parser cannot
+depend on that.
+
+### Difficulties using `_io.size`
+
+The BANG parsers use `OffsetInputFile`, a thin wrapper around a regular file
+that hides the offset, so it appears that the file is always opened at
+offset 0. This makes writing parsers easier, but the Kaitai Struct parsers
+do not use `OffsetInputFile`, but the underlying file. This means that certain
+things in Kaitai Struct files will not necessarily make sense, such as
+using `_io.size` in the main structure of the file (the so called "stream").
+The `_io.size` variable will point to the length of the *original* file, not
+the wrapped file.
+
+This has consequences example when carving files or when doing sanity checks
+(it is no issue for files where parsing starts at `0` or when `_io.size` is
+used in a substream). An example is the `git_index` format, for which the
+following is defined in the `.ksy` file:
+
+```
+seq:
+  - id: header
+    type: header
+  - id: entries
+    type: entry
+    repeat: expr
+    repeat-expr: header.num_entries
+  - id: extensions
+    type: extension
+    repeat: until
+    repeat-until: _io.pos >= _io.size - len_hash
+  - id: checksum
+    size: len_hash
+```
+
+The `repeat-until` for the `extensions` element is depending on `_io.size`
+to determine when to break out of the loop. If parsing of the file does not
+start at `0`, then the wrong data is read and parsing will fail.
+
+The solution is of course to not rely on `_io.size` in the "main" stream of
+a file but sometimes this isn't always possible.
+
+Because of this some files will not be correctly carved and unpacked if there
+is extra data prepended in front of the file. As most files that are parsed
+start at offset `0` this is inconvenient, but not a major problem.
+
+Currently the following parsers are potentially affected because `_io.size`
+is used in the "main" stream.
+
+1. `au`
+2. `cpio_old_binary`
+3. `git_index`
+4. `gpt_partition_table`
+5. `quicktime`
 
 ### Handling parse errors
 

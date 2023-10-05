@@ -11,10 +11,9 @@ This script processes data from Dex files processed by BANG
 and puts the relevant data in a PostgreSQL database.
 '''
 
+import collections
 import pathlib
 import pickle
-import os
-import stat
 import sys
 
 # import some modules for dependencies, requires psycopg2 2.7+
@@ -31,15 +30,14 @@ try:
 except ImportError:
     from yaml import Loader
 
+
 @click.command(short_help='load Dex bytecode information into database')
 @click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
-@click.option('--result-directory', '-r', required=True, help='directory with BANG result directories', type=click.Path(exists=True))
+@click.option('--result-directory', '-r', required=True, help='BANG result directory', type=click.Path(exists=True, path_type=pathlib.Path))
 def main(config_file, result_directory):
-    result_directory = pathlib.Path(result_directory)
-
-    # ... and should be a real directory
+    # should be a real directory
     if not result_directory.is_dir():
-        print("%s is not a directory, exiting." % result_directory, file=sys.stderr)
+        print(f"{result_directory} is not a directory, exiting.", file=sys.stderr)
         sys.exit(1)
 
     # read the configuration file. This is in YAML format
@@ -56,7 +54,7 @@ def main(config_file, result_directory):
 
     for i in ['postgresql_user', 'postgresql_password', 'postgresql_db']:
         if i not in config['database']:
-            print("Configuration file malformed: missing database information %s" % i,
+            print("Configuration file malformed: missing database information {i}",
                   file=sys.stderr)
             sys.exit(1)
         postgresql_user = config['database']['postgresql_user']
@@ -78,9 +76,8 @@ def main(config_file, result_directory):
                                   password=postgresql_password,
                                   port=postgresql_port, host=postgresql_host)
         cursor.close()
-    except psycopg2.Error:
-        print("Database server not running or malconfigured, exiting.",
-              file=sys.stderr)
+    except psycopg2.Error as e:
+        print(e, file=sys.stderr)
         sys.exit(1)
 
     # open a connection to the database
@@ -102,41 +99,80 @@ def main(config_file, result_directory):
 
     dex_counter = 0
     method_counter = 0
+
     # walk the results directory
-    for bang_directory in result_directory.iterdir():
-        bang_pickle = bang_directory / 'bang.pickle'
-        if not bang_pickle.exists():
+    bang_pickle = result_directory / 'info.pkl'
+    if not bang_pickle.exists():
+        print("Not a valid BANG meta directory")
+        sys.exit(1)
+
+    # store the paths of pickes of Dex files for processing
+    dex_files = []
+    file_deque = collections.deque()
+
+    file_deque.append(bang_pickle)
+
+    # walk the unpack tree recursively and grab all the APK files
+    while True:
+        try:
+            file_pickle = file_deque.popleft()
+        except:
+            break
+
+        try:
+            bang_data = pickle.load(open(file_pickle, 'rb'))
+        except:
             continue
 
-        # open the top level pickle
-        bang_data = pickle.load(open(bang_pickle, 'rb'))
-        db_rows = []
-        for bang_file in bang_data['scantree']:
-            if 'dex' in bang_data['scantree'][bang_file]['labels']:
-                sha256 = bang_data['scantree'][bang_file]['hash']['sha256']
+        if 'labels' in bang_data:
+            if 'dex' in bang_data['labels']:
+                dex_files.append(file_pickle)
 
-                # open the result pickle
-                results_data = pickle.load(open(bang_directory / 'results' / ("%s.pickle" % sha256), 'rb'))
-                for r in results_data['metadata']['classes']:
-                    class_name = r['classname']
-                    for m in r['methods']:
-                        method_name = m['name']
-                        if 'bytecode_hashes' in m:
-                            bytecode_sha256 = m['bytecode_hashes']['sha256']
-                            bytecode_tlsh = ''
-                            if m['bytecode_hashes']['tlsh'] is not None:
-                                bytecode_tlsh = m['bytecode_hashes']['tlsh']
-                            db_rows.append((sha256, class_name, method_name, bytecode_sha256, bytecode_tlsh))
-                dex_counter += 1
+        # finally add the unpacked/extracted files to the queue
+        if 'unpacked_relative_files' in bang_data:
+            for unpacked_file in bang_data['unpacked_relative_files']:
+                file_meta_directory = bang_data['unpacked_relative_files'][unpacked_file]
+                file_pickle = result_directory.parent / file_meta_directory / 'info.pkl'
+                file_deque.append(file_pickle)
+        if 'unpacked_absolute_files' in bang_data:
+            for unpacked_file in bang_data['unpacked_absolute_files']:
+                file_meta_directory = bang_data['unpacked_absolute_files'][unpacked_file]
+                file_pickle = result_directory.parent / file_meta_directory / 'info.pkl'
+                file_deque.append(file_pickle)
+        if 'extracted_files' in bang_data:
+            for unpacked_file in bang_data['extracted_files']:
+                file_meta_directory = bang_data['extracted_files'][unpacked_file]
+                file_pickle = result_directory.parent / file_meta_directory / 'info.pkl'
+                file_deque.append(file_pickle)
+
+    for file_pickle in dex_files:
+        db_rows = []
+        with open(file_pickle, 'rb') as dex_pickle:
+            bang_data = pickle.load(dex_pickle)
+
+        sha256 = bang_data['metadata']['hashes']['sha256']
+
+        # open the result pickle
+        for result in bang_data['metadata']['classes']:
+            class_name = result['classname']
+            for method in result['methods']:
+                method_name = method['name']
+                if 'bytecode_hashes' in method:
+                    bytecode_sha256 = method['bytecode_hashes']['sha256']
+                    bytecode_tlsh = ''
+                    if method['bytecode_hashes']['tlsh'] is not None:
+                        bytecode_tlsh = method['bytecode_hashes']['tlsh']
+                    db_rows.append((sha256, class_name, method_name, bytecode_sha256, bytecode_tlsh))
+        dex_counter += 1
 
         # insert contents of all the files in the APK
         psycopg2.extras.execute_batch(dbcursor, "execute bytecode_insert(%s, %s, %s, %s, %s)", db_rows)
         method_counter += len(db_rows)
         dbconnection.commit()
         if verbose:
-            print("Processed %d dex files" % dex_counter)
-            print("Added %d methods" % len(db_rows))
-            print("Total %d methods" % method_counter)
+            print(f"Processed {dex_counter} dex files")
+            print(f"Added {len(db_rows)} methods")
+            print(f"Total {method_counter} methods")
             print()
 
     if verbose:
@@ -144,8 +180,8 @@ def main(config_file, result_directory):
         if dex_counter == 1:
             print("Processed: 1 dex file")
         else:
-            print("Processed %d dex files" % dex_counter)
-        print("Processed %d methods" % method_counter)
+            print(f"Processed {dex_counter} dex files")
+        print(f"Processed {method_counter} methods")
 
     # cleanup
     dbconnection.commit()

@@ -15,6 +15,7 @@ files and outputs the result as JSON for further processing.
 https://www.tdcommons.org/dpubs_series/5155/
 '''
 
+import collections
 import json
 import os
 import pathlib
@@ -140,20 +141,27 @@ def main(config_file, result_directory, identifiers, force):
         if isinstance(configuration['proximity']['process_dex'], bool):
             process_dex = configuration['proximity']['process_dex']
 
-    # open the top level pickle
-    bang_pickle = result_directory / 'bang.pickle'
-    if not bang_pickle.exists():
-        print("BANG result pickle does not exist, exiting",
-              file=sys.stderr)
-        sys.exit(1)
+    # walk the result tree
+    files = []
+    file_deque = collections.deque()
 
-    # open the top level pickle
-    try:
-        bang_data = pickle.load(open(bang_pickle, 'rb'))
-    except:
-        print("Could not open BANG result pickle, exiting",
-              file=sys.stderr)
-        sys.exit(1)
+    file_deque.append(bang_pickle)
+
+    # walk the unpack tree recursively and grab all the APK files
+    while True:
+        try:
+            file_pickle = file_deque.popleft()
+        except:
+            break
+
+        try:
+            bang_data = pickle.load(open(file_pickle, 'rb'))
+        except:
+            continue
+
+        if 'labels' in bang_data:
+            if 'dex' in bang_data['labels']:
+                files.append(('dex', file_pickle))
 
     for bang_file in bang_data['scantree']:
         if process_elf and 'elf' in bang_data['scantree'][bang_file]['labels']:
