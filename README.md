@@ -162,8 +162,8 @@ larger file, unless stated otherwise.
 65. lzop
 66. PNG/APNG (needs PIL)
 67. ar/deb (needs binutils)
-68. squashfs (needs squashfs-tools), only regular squashfs, vendor
-    specific exotic variants need sasquatch
+68. squashfs (using squashfs-tools), vendor specific exotic variants
+    (using sasquatch)
 69. BMP (needs PIL)
 70. PDF (simple verification, no object streams, incremental updates
     at end of the file)
@@ -279,7 +279,7 @@ larger file, unless stated otherwise.
 179. FLS firmware files (IP cameras)
 180. TP-Link TX6610v4 firmware
 181. Granite Devices firmware v300
-182. erofs ('inline' data layout only)
+182. erofs
 183. bzip3
 184. PX4 autopilot firmware files
 185. SSH known hosts files (whole file)
@@ -302,6 +302,12 @@ larger file, unless stated otherwise.
 202. BTF and BTF.ext sections (BPF related)
 203. NibArchive
 204. EDID
+205. ld.so.conf files (subset, no include statements)
+206. old TP-Link firmware files
+207. certain VxWorks memfs file systems
+208. Realtek bootloader (subset of files)
+209. Linux kernel x86 images
+210. TP-Link minifs
 
 ## Getting started
 
@@ -320,6 +326,14 @@ To unpack a file run (from the `src` directory):
 This will output a directory with inside a number of files and directories.
 The output directory can serve as input to the analysis scripts (and some
 knowledgebase scripts).
+
+To process each file in a directory run (from the `src` directory):
+
+    $ python3 -m bang.cli scan-directory -u /path/to/unpack/directory /path/to/directory/with/binaries
+
+This will create a directory with search results for each file that is scanned,
+with the same name as the file that is scanned, using the same structure as if
+the file was scanned in regular mode, not directory mode.
 
 ## License
 

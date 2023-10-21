@@ -5,7 +5,7 @@ meta:
     - linux
   license: CC0-1.0
   endian: le
-doc-ref: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/arm64/booting.rst?h=v5.11
+doc-ref: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/arch/arm64/booting.rst?h=v6.5
 seq:
   - id: code0
     type: u4

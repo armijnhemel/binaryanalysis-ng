@@ -96,6 +96,7 @@ yara:
         3rdparty,
         3rd-party-lib,
         3rdpart,
+        3pty,
         contrib,
         external,
         thirdparty,
