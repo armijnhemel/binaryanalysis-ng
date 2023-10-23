@@ -32,6 +32,7 @@ from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import lz4_legacy
+from . import lz4_legacy_kernel
 
 
 class Lz4legacyUnpackParser(UnpackParser):
@@ -41,14 +42,31 @@ class Lz4legacyUnpackParser(UnpackParser):
     ]
     pretty_name = 'lz4_legacy'
 
+    def __init__(self, from_meta_directory, offset, configuration):
+        super().__init__(from_meta_directory, offset, configuration)
+        self.from_md = from_meta_directory
+
     def parse(self):
         if shutil.which('lz4c') is None:
             raise UnpackParserException("lz4c not installed")
         try:
             self.data = lz4_legacy.Lz4Legacy.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            propagated = self.from_md.info.get('propagated', {})
 
+            if 'parent_parser' in propagated:
+                if propagated['parent_parser'] == 'linux_x86':
+                    try:
+                        self.infile.seek(0)
+                        self.data = lz4_legacy_kernel.Lz4LegacyKernel.from_io(self.infile)
+                    except (Exception, ValidationFailedError) as e:
+                        raise UnpackParserException(e.args)
+                else:
+                    raise UnpackParserException(e.args)
+            else:
+                raise UnpackParserException(e.args)
+
+        # correctly set unpacked_size
         self.unpacked_size = 4
         for block in self.data.blocks:
             if not block.is_magic:
@@ -56,7 +74,7 @@ class Lz4legacyUnpackParser(UnpackParser):
 
         # check if the file starts at offset 0 and if the file length
         # equals the entire file. If not, carve the file first, as multiple
-        # streams can be concatenated and lz4c will concatenate result
+        # streams can be concatenated and lz4c will concatenate results
         self.havetmpfile = False
         if not (self.offset == 0 and self.infile.size == self.unpacked_size):
             self.temporary_file = tempfile.mkstemp(dir=self.configuration.temporary_directory)

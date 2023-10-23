@@ -385,6 +385,17 @@ types:
                 'bits::b32': u4
                 'bits::b64': u8
         instances:
+          data:
+            pos: offset
+            size: filesz
+            type:
+              switch-on: type
+              cases:
+                ph_type::interp: ph_interpreter
+                ph_type::dynamic: ph_dynamic
+                ph_type::note: note_section
+            io: _root._io
+            if: offset != 0 and filesz != 0
           flags_obj:
             type:
               switch-on: _root.bits
@@ -392,6 +403,59 @@ types:
                 'bits::b32': phdr_type_flags(flags32)
                 'bits::b64': phdr_type_flags(flags64)
             -webide-parse-mode: eager
+        types:
+          ph_interpreter:
+            seq:
+              - id: name
+                type: strz
+                encoding: ASCII
+          ph_dynamic:
+            seq:
+              - id: entries
+                type: ph_dynamic_section_entry
+                repeat: until
+                repeat-until: _.tag_enum == dynamic_array_tags::null
+          ph_dynamic_section_entry:
+            seq:
+              - id: tag
+                type:
+                  switch-on: _root.bits
+                  cases:
+                    'bits::b32': u4
+                    'bits::b64': u8
+              - id: value_or_ptr
+                type:
+                  switch-on: _root.bits
+                  cases:
+                    'bits::b32': u4
+                    'bits::b64': u8
+            instances:
+              tag_enum:
+                value: tag
+                enum: dynamic_array_tags
+              flag_values:
+                type: dt_flag_values(value_or_ptr)
+                if: "tag_enum == dynamic_array_tags::flags"
+                -webide-parse-mode: eager
+              flag_1_values:
+                type: dt_flag_1_values(value_or_ptr)
+                if: "tag_enum == dynamic_array_tags::flags_1"
+                -webide-parse-mode: eager
+              is_value_str:
+                value: |
+                  value_or_ptr != 0 and (
+                    tag_enum == dynamic_array_tags::needed or
+                    tag_enum == dynamic_array_tags::soname or
+                    tag_enum == dynamic_array_tags::rpath or
+                    tag_enum == dynamic_array_tags::runpath or
+                    tag_enum == dynamic_array_tags::sunw_auxiliary or
+                    tag_enum == dynamic_array_tags::sunw_filter or
+                    tag_enum == dynamic_array_tags::auxiliary or
+                    tag_enum == dynamic_array_tags::filter or
+                    tag_enum == dynamic_array_tags::config or
+                    tag_enum == dynamic_array_tags::depaudit or
+                    tag_enum == dynamic_array_tags::audit
+                  )
         -webide-representation: "{type} - f:{flags_obj:flags} (o:{offset}, s:{filesz:dec})"
       section_header:
         -orig-id: Elf(32|64)_Shdr
@@ -723,9 +787,19 @@ types:
       versym_section:
         seq:
           - id: symbol_versions
-            type: u2
+            type: symbol
             repeat: eos
             doc-ref: https://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/symversion.html
+        types:
+          symbol:
+            seq:
+              - id: symbol_version_raw
+                type: u2
+            instances:
+              hidden:
+                value: symbol_version_raw & 0x8000 != 0
+              version:
+                value: symbol_version_raw & 0x7fff
       verneed_section:
         doc-ref: https://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/symversion.html
         seq:
@@ -770,7 +844,7 @@ types:
             type: u4
         instances:
           hidden:
-            value: object_file_version & 0x10000 != 0
+            value: object_file_version & 0x8000 != 0
       verdef_section:
         doc-ref: https://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/symversion.html
         seq:

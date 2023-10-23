@@ -113,7 +113,7 @@ class GzipUnpackParser(UnpackParser):
                 renamed = True
 
         if not renamed:
-            if meta_directory.file_path.suffix.lower() == '.gz':
+            if meta_directory.file_path.suffix.lower() in ['.gz', '.z']:
                 file_path = pathlib.Path(meta_directory.file_path.stem)
                 if file_path in ['.', '..']:
                     file_path = pathlib.Path("unpacked_from_gzip")
@@ -145,7 +145,7 @@ class GzipUnpackParser(UnpackParser):
 
             yield unpacked_md
 
-    labels = ['gzip', 'archive']
+    labels = ['gzip', 'compressed']
 
     @property
     def metadata(self):

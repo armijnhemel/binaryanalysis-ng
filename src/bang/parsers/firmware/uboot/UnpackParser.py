@@ -29,7 +29,7 @@ from kaitaistruct import ValidationFailedError
 from . import uimage
 
 
-class UbootLegacyUnpackParser(UnpackParser):
+class UbootUnpackParser(UnpackParser):
     extensions = []
 
     # There are different U-Boot files with different magic:
@@ -41,7 +41,7 @@ class UbootLegacyUnpackParser(UnpackParser):
         (0, b'\x83\x80\x00\x00'),
         (0, b'\x93\x00\x00\x00')
     ]
-    pretty_name = 'uboot_legacy'
+    pretty_name = 'uboot'
 
     def parse(self):
         try:
@@ -88,7 +88,7 @@ class UbootLegacyUnpackParser(UnpackParser):
         #
         # TODO: correctly process multi images
 
-        if self.is_asus_device or self.data.header.name == '':
+        if self.is_asus_device or self.data.header.name == '' or not self.data.header.name.isprintable():
             imagename = self.data.header.image_type.name
         else:
             imagename = self.data.header.name

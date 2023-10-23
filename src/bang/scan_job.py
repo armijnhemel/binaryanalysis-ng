@@ -67,7 +67,17 @@ def is_empty(path):
 def extract_file(checking_meta_directory, in_file, offset, file_size):
     # TODO: check if offset and file_size parameters are still needed in next line
     with checking_meta_directory.extract_file(offset, file_size) as (extracted_md, extracted_file):
-        os.sendfile(extracted_file.fileno(), in_file.fileno(), offset, file_size)
+        if file_size > 2147479552:
+            bytes_left = file_size
+            bytes_to_write = min(bytes_left, 2147479552)
+            read_offset = offset
+            while bytes_left > 0:
+                os.sendfile(extracted_file.fileno(), in_file.fileno(), read_offset, bytes_to_write)
+                bytes_left -= bytes_to_write
+                read_offset += bytes_to_write
+                bytes_to_write = min(bytes_left, 2147479552)
+        else:
+            os.sendfile(extracted_file.fileno(), in_file.fileno(), offset, file_size)
     return extracted_md
 
 #####
