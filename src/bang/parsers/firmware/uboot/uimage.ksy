@@ -102,6 +102,7 @@ types:
       - id: name
         encoding: UTF-8
         type: strz
+        size-eos: true
     instances:
       asus_info:
         pos: 0
