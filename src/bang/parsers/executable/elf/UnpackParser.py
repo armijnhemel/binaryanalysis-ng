@@ -725,7 +725,7 @@ class ElfUnpackParser(UnpackParser):
                                         pass
 
                                     symbol['unpacked_value'] = symbol_string
-                                except (pwnlib.exception.PwnlibException, UnicodeDecodeError):
+                                except (pwnlib.exception.PwnlibException, UnicodeDecodeError, KeyError):
                                     pass
 
             elif header.type == elf.Elf.ShType.progbits:
