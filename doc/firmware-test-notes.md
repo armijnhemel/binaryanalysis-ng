@@ -126,3 +126,7 @@ Zephyr firmware.
 ## TL-R460_v5.0_120704_RU_UA.zip
 
 TP-Link TL-R460, uses `vxworks_memfs`
+
+## ANJVision firmware files
+
+<http://www.anjvision.com:8021/firmware/>
