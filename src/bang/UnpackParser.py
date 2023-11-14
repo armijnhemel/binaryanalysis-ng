@@ -259,6 +259,74 @@ class ExtractingParser(UnpackParser):
         '''TODO: write any data about the parent MetaDirectory here.'''
         pass
 
+class StringExtractingParser(UnpackParser):
+    '''Parser to extract human readable ASCII strings from binaries'''
+    def __init__(self, from_meta_directory, offset, configuration):
+        super().__init__(from_meta_directory, offset, configuration)
+        self.from_md = from_meta_directory
+        self.offset = offset
+        self.strings = []
+
+    pretty_name = 'stringextractingparser'
+
+    def parse(self):
+        # reset the file pointer to extract strings
+        self.infile.seek(self.offset)
+
+        # start reading data in chunks of 10 MiB
+        read_size = 10485760
+
+        # then read the data
+        scanbytes = bytearray(read_size)
+        bytes_read = self.file.readinto(scanbytes)
+
+        while bytes_read != 0:
+            data = memoryview(scanbytes[:bytes_read])
+            # first see if there is a \x00 in the data
+
+            # split the read data and extract the strings
+            for s in data.split(b'\x00'):
+                try:
+                    decoded_strings = s.decode().splitlines()
+                    for decoded_string in decoded_strings:
+                        for rc in REMOVE_CHARACTERS:
+                            if rc in decoded_string:
+                                decoded_string = decoded_string.translate(REMOVE_CHARACTERS_TABLE)
+
+                        if len(decoded_string) < string_cutoff_length:
+                            continue
+                        if decoded_string.isspace():
+                            continue
+
+                        translated_string = decoded_string.translate(STRING_TRANSLATION_TABLE)
+                        if decoded_string.isascii():
+                            # test the translated string
+                            if translated_string.isprintable():
+                                self.strings.append(decoded_string)
+                        else:
+                            self.strings.append(decoded_string)
+                except UnicodeDecodeError:
+                    pass
+
+            # read more bytes
+            bytes_read = self.file.readinto(scanbytes)
+
+        if self.strings != []:
+            self.update_metadata(self.from_md)
+            self.from_md.write_ahead()
+
+    def calculate_unpacked_size(self):
+        self.unpacked_size = 0
+
+    labels = []
+
+    @property
+    def metadata(self):
+        metadata = self.from_md.info.get('metadata', {})
+        metadata['strings'] = self.strings
+        return metadata
+
+
 class HashParser(UnpackParser):
     def __init__(self, from_meta_directory, offset, configuration):
         super().__init__(from_meta_directory, offset, configuration)
