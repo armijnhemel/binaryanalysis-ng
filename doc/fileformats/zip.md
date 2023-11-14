@@ -41,12 +41,14 @@ In most cases unpacking ZIP data comes down to:
 5. parse the entries in the central directory, determine types and offsets of
    each individual entry and extract the entries
 
-This method works if the central directory and the records following it can be found
-at the end of the file and is correct.
+This method works very well if the central directory and the records following
+it (optional ZIP64 data, end of central directory) can be found at the end of the
+file and is correct. For most ZIP files this is the case.
 
-If this is not the case, then it becomes a lot harder to unpack data, or it could be
-that the other data than expected is unpacked. Two straightforward examples can help
-illustrate this.
+If this is not the case, for example when a ZIP file is part of a larger file
+(such as a blob like a firmware dump), then it becomes a lot harder to unpack
+data, or it could be that the other data than expected is unpacked. Two
+examples can help illustrate this.
 
 ### Example 1: ZIP file with extra data after the central directory
 
@@ -194,16 +196,72 @@ B will be at the end, so only the entries of file B will be found. To unpack
 entries from A you need to find out where the central directory of A resides.
 This can only be done by parsing from the beginning of the file.
 
+
+```
+$ zip -r test2.zip /bin/vim
+  adding: bin/vim (deflated 48%)
+$ cat /tmp/test.zip /tmp/test2.zip > /tmp/test3.zip
+```
+
+`unzip` says:
+
+```
+$ unzip -l /tmp/test3.zip
+Archive:  /tmp/test3.zip
+warning [/tmp/test3.zip]:  64220 extra bytes at beginning or within zipfile
+  (attempting to process anyway)
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+  4190040  04-25-2023 12:54   bin/vim
+---------                     -------
+  4190040                     1 file
+```
+
+and it unpacks the second archive, but warns about extra data at the beginning
+(namely the first ZIP file).
+
+`p7zip` on the other hand only finds the first ZIP file and warns about extra
+data at the end (namely the second ZIP file):
+
+```
+$ 7z l /tmp/test3.zip
+
+7-Zip [64] 16.02 : Copyright (c) 1999-2016 Igor Pavlov : 2016-05-21
+p7zip Version 16.02 (locale=en_US.UTF-8,Utf16=on,HugeFiles=on,64 bits,8 CPUs Intel(R) Core(TM) i7-6770HQ CPU @ 2.60GHz (506E3),ASM,AES-NI)
+
+Scanning the drive for archives:
+1 file, 2223938 bytes (2172 KiB)
+
+Listing archive: /tmp/test3.zip
+
+--
+Path = /tmp/test3.zip
+Type = zip
+WARNINGS:
+There are data after the end of archive
+Physical Size = 64220
+Tail Size = 2159718
+
+   Date      Time    Attr         Size   Compressed  Name
+------------------- ----- ------------ ------------  ------------------------
+2023-01-04 14:04:07 .....       142088        64058  bin/ls
+------------------- ----- ------------ ------------  ------------------------
+2023-01-04 14:04:07             142088        64058  1 files
+
+Warnings: 1
+```
+
 # ZIP file unpacking in BANG
 
-In BANG it is assumed that ZIP files are always followed by extra data, so
-parsing starts from the beginning of the file, instead of using the central
-directory of the ZIP file to access the files.
+In BANG it is assumed that ZIP files are always followed by extra data and
+need to be carved, so parsing starts from the beginning of the file, instead of
+using the central directory of the ZIP file to locate and access the files.
 
 ZIP file unpacking in BANG works as follows (simplified):
 
-1. open the file
-2. go to the start of a local file header (section 4.3.7)
+1. open the file at a specific offset (namely where a local file header was
+   found)
+2. go to the start of the first local file header (section 4.3.7)
 3. read and parse the data in a local file header
 4. skip the compressed data
 5. process all entries and any optional extra data such as APK signing blocks,
@@ -253,7 +311,7 @@ Schematically it looks like this:
 +------+------+------+------+------+------+------+------+------+------+------+------+------+------+
 ```
 
-The static part if followed by a variable part:
+The static part is followed by a variable part:
 
 ```
 file name (variable size)
@@ -352,8 +410,9 @@ example in one file the value `0x314` was observed.
 
 As long as the value of the corresponding field in the central directory is
 valid it is advised to silently ignore the invalid versions (this is what BANG
-does), as the unpacking tools and libraries primarily use the data in the
-central directory.
+does), as the unpacking tools and libraries primarily rely on the data in the
+central directory, not in the local file header. As long as the data in the
+central directory is valid the file can be unpacked.
 
 ### General purpose bit flag
 
