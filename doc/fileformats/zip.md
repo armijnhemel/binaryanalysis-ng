@@ -22,22 +22,31 @@ official specification.
 
 A ZIP file typically consists of a series of entries, optionally some metadata
 related to archives and encryption, followed by a structure called the "central
-directory" (section 4.3). The central directory essentially serves as a lookup
-table to provide quick access to the files inside the ZIP archive.
+directory" (section 4.3.6). The central directory essentially serves as a lookup
+table to provide quick access to the files inside the ZIP archive. It is then
+followed by (optional) ZIP64 records and finally a variable length record called
+"end of central directory" that contains the offset from the start of the ZIP data
+to the central directory.
 
 In most cases unpacking ZIP data comes down to:
 
 1. open the file
 2. jump to the end of the file
-3. search for and parse the "end of central directory record" (section 4.3.16)
+3. search the data backwards for the beginning of the "end of central directory
+   record" (section 4.3.16) and process it to find the correct offset for the
+   central directory which contains the offsets, sizes, etc. for the individual
+   entries.
 4. jump to the start of the central directory relative to the start of the ZIP
    file (section 4.3.12)
 5. parse the entries in the central directory, determine types and offsets of
    each individual entry and extract the entries
 
-This method works if the central directory can be found at the end of the file
-and is correct. If this is not the case, then the data cannot be unpacked, or
-the wrong data is unpacked. Two examples can illustrate this.
+This method works if the central directory and the records following it can be found
+at the end of the file and is correct.
+
+If this is not the case, then it becomes a lot harder to unpack data, or it could be
+that the other data than expected is unpacked. Two straightforward examples can help
+illustrate this.
 
 ### Example 1: ZIP file with extra data after the central directory
 
@@ -45,7 +54,7 @@ If extra data is appended to a file, then the method as described above does
 not always work with most popular ZIP tools or unpacking libraries, as
 illustrated by the following example.
 
-First create a ZIP file:
+First create a ZIP file and test that it can be unpacked:
 
 ```
 $ zip -r test.zip /bin/ls
@@ -61,7 +70,8 @@ Archive:  test.zip
    142104                     1 file
 ```
 
-Then add extra data:
+Then append data to the ZIP file, for example an ELF file, and test to see if
+the data can be unpacked:
 
 ```
 $ cat /bin/ls >> test.zip
@@ -77,9 +87,27 @@ unzip:  cannot find zipfile directory in one of test.zip or
         test.zip.zip, and cannot find test.zip.ZIP, period.
 ```
 
-For the `unzip` programma used on Fedora (UnZip 6.00) the limit is `67633`
-bytes, which can be verified as follows. When adding `67633` bytes `unzip` will
-still work:
+The amount of data that can be appended before a program or library no longer
+can recognize a file as a valid ZIP file actually differs per program or
+library.
+
+The "end of central directory" record is a variable length record, because there
+can be a file comment. Section 4.3.16 specifies the length as:
+
+```
+      .ZIP file comment length        2 bytes
+      .ZIP file comment       (variable size)
+```
+
+The length of the ZIP file comment is stored in 2 bytes, so the file comment
+itself has a maximum of 65536 bytes.
+
+The `zipfile` module in Python 3.10 uses exactly this length and cannot unpack
+if there is more data appended to the file.
+
+The `unzip` programma used on Fedora (UnZip 6.00) uses a different limit,
+namely `67633` bytes, which can be verified as follows. When adding `67633`
+bytes `unzip` still works:
 
 ```
 $ dd if=/dev/random of=bla bs=67633 count=1
@@ -115,9 +143,44 @@ unzip:  cannot find zipfile directory in one of test2.zip or
         test2.zip.zip, and cannot find test2.zip.ZIP, period.
 ```
 
-The `zipfile` module in Python 3.10 has a different limit of extra data that
-is allowed, namely 65536 bytes, which is the maximum length of the ZIP file
-comment (section 4.3.16).
+`p7zip` does not seem to suffer from having a limit at all, because even after
+adding 11 MiB of random garbage it still manages to find the file, although it
+warns about trailing data:
+
+```
+$ dd if=/dev/random of=/tmp/bla bs=11167633 count=1
+1+0 records in
+1+0 records out
+11167633 bytes (11 MB, 11 MiB) copied, 0.0645893 s, 173 MB/s
+$ cat /tmp/test.zip /tmp/bla > test2.zip
+$ 7z l test2.zip
+
+7-Zip [64] 16.02 : Copyright (c) 1999-2016 Igor Pavlov : 2016-05-21
+p7zip Version 16.02 (locale=en_US.UTF-8,Utf16=on,HugeFiles=on,64 bits,8 CPUs Intel(R) Core(TM) i7-6770HQ CPU @ 2.60GHz (506E3),ASM,AES-NI)
+
+Scanning the drive for archives:
+1 file, 11231853 bytes (11 MiB)
+
+Listing archive: test2.zip
+
+--
+Path = test2.zip
+Type = zip
+WARNINGS:
+There are data after the end of archive
+Physical Size = 64220
+Tail Size = 11167633
+
+   Date      Time    Attr         Size   Compressed  Name
+------------------- ----- ------------ ------------  ------------------------
+2023-01-04 14:04:07 .....       142088        64058  bin/ls
+------------------- ----- ------------ ------------  ------------------------
+2023-01-04 14:04:07             142088        64058  1 files
+
+Warnings: 1
+```
+
+It is possible that other tools use different limits.
 
 If there is more data than what the tools or libraries allowed and data still
 needs to be unpacked from the ZIP file, then it becomes necessary to find out
