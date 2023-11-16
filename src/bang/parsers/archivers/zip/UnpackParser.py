@@ -624,8 +624,18 @@ class ZipUnpackParser(UnpackParser):
                     break
                 if z.file_size == 0 and not z.is_dir() and z.external_attr & 0x10 == 0x10:
                     self.faulty_files.append(z)
+                file_path = pathlib.Path(z.filename)
 
-        except (OSError, zipfile.BadZipFile, NotImplementedError) as e:
+                # Although absolute paths are not permitted according
+                # to the ZIP specification these files exist or can easily
+                # be created.
+                if file_path.is_absolute:
+                    try:
+                        file_path = file_path.relative_to('/')
+                    except ValueError:
+                        file_path = file_path.relative_to('//')
+
+        except (OSError, zipfile.BadZipFile, NotImplementedError, ValueError) as e:
             if self.carved:
                 # cleanup
                 os.unlink(self.temporary_file[1])
@@ -664,6 +674,17 @@ class ZipUnpackParser(UnpackParser):
         # Test data can be found in the Apktool repository
         for z in self.zipinfolist:
             file_path = pathlib.Path(z.filename)
+
+            # Absolute paths are not permitted according to the ZIP
+            # specification so rework to relative paths. TODO: this
+            # means that the files will be unpacked in the "rel"
+            # directory instead of the "abs" directory. Is this intended
+            # behaviour or should it be changed?
+            if file_path.is_absolute:
+                try:
+                    file_path = file_path.relative_to('/')
+                except ValueError:
+                    file_path = file_path.relative_to('//')
 
             if z in self.faulty_files:
                 # create the directory
