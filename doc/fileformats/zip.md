@@ -97,8 +97,8 @@ The "end of central directory" record is a variable length record, because there
 can be a file comment. Section 4.3.16 specifies the length as:
 
 ```
-      .ZIP file comment length        2 bytes
-      .ZIP file comment       (variable size)
+.ZIP file comment length        2 bytes
+.ZIP file comment       (variable size)
 ```
 
 The length of the ZIP file comment is stored in 2 bytes, so the file comment
