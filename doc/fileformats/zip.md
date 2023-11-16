@@ -3,8 +3,10 @@
 This document describes ZIP files and all of the different variants that have
 been encountered while working on BANG. While there are some references to
 BANG this document is by no means exclusive to BANG and more of a generic
-documentation of quirks encountered in real life ZIP files and how some have
-perverted the ZIP file format.
+documentation of unclarities in the specifications, differences between
+different ZIP implementations, quirks encountered in real life ZIP files and
+how some are creatively using the ZIP file format contradicting the official
+specifications.
 
 Some of the information in this document has already been published in a blog
 post which you can find at:
@@ -823,12 +825,12 @@ as does `unzip` (comment from `zip30.tar.gz`, file `unix/unix.c`, line 163):
 ```
 
 Both `unzip` and Python's `zipfile` module rely on having a `/` for directory
-names.
+names, but `p7zip` does not.
 
 There are some ZIP files that contain files where directory names do not end in
 `/` and where the standard utilities fail: instead of creating a directory a
 zero byte file with the same name as the directory is written. Despite bug
-reports being filed this is still a problem. A bug report can be found at:
+reports having been filed this is still a problem. A bug report can be found at:
 
 <http://web.archive.org/web/20190814185417/https://bugzilla.redhat.com/show_bug.cgi?id=907442>
 
@@ -863,13 +865,39 @@ checkdir error:  online_upgrade_img exists but is not directory
                  unable to process online_upgrade_img/V10X.bp28v.
 ```
 
-In BANG this is solved by first looking at the "external file attributes"
-field from the central directory (section 4.3.12) and checking if the low
-order byte corresponds to the MS-DOS directory attribute byte (section 4.4.15)
-while also checking that the size recorded for the file is 0 and that Python's
-`zipfile` module does not recognize the file as a directory. If this is the
-case, then the directory is not unpacked with Python's `zipfile` module, but a
-directory with the name of the entry is created instead.
+`p7zip` will correctly unpack the archive:
+
+```
+$ 7z x 1_06_03P.zip
+
+7-Zip [64] 16.02 : Copyright (c) 1999-2016 Igor Pavlov : 2016-05-21
+p7zip Version 16.02 (locale=en_US.UTF-8,Utf16=on,HugeFiles=on,64 bits,8 CPUs Intel(R) Core(TM) i7-6770HQ CPU @ 2.60GHz (506E3),ASM,AES-NI)
+
+Scanning the drive for archives:
+1 file, 180253537 bytes (172 MiB)
+
+Extracting archive: 1_06_03P.zip
+--
+Path = 1_06_03P.zip
+Type = zip
+Physical Size = 180253537
+
+Everything is Ok
+
+Folders: 1
+Files: 12
+Size:       190915623
+Compressed: 180253537
+```
+
+As BANG depends on Python's `zipfile` module (which cannot correctly unpack
+these files) some workarounds are needed by first looking at the "external file
+attributes" field from the central directory (section 4.3.12) and checking if
+the low order byte corresponds to the MS-DOS directory attribute byte (section
+4.4.15) while also checking that the size recorded for the file is 0 and that
+Python's `zipfile` module does not recognize the file as a directory. If this
+is the case, then the directory is not unpacked with Python's `zipfile` module,
+but a directory with the name of the entry is created instead.
 
 This might not be entirely fool proof, but it seems to be such a very rare edge
 case that so far only one example has been found in the wild.
