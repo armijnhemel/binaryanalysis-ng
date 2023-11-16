@@ -902,6 +902,66 @@ but a directory with the name of the entry is created instead.
 This might not be entirely fool proof, but it seems to be such a very rare edge
 case that so far only one example has been found in the wild.
 
+## Absolute paths
+
+The use of absolute paths in file names is not allowed according to the
+specifications:
+
+```
+4.4.17.1 The name of the file, with optional relative path.
+The path stored MUST NOT contain a drive or
+device letter, or a leading slash.  All slashes
+MUST be forward slashes '/' as opposed to
+backwards slashes '\' for compatibility with Amiga
+and UNIX file systems etc.  If input came from standard
+input, there is no file name field.
+```
+
+In `unzip` it is not possible to create a file with absolute paths, but
+creating a file with a leading slash (or even multiple) is absolutely no
+problem using Python's `zipfile` module:
+
+```
+>>> import zipfile
+>>> z = zipfile.ZipInfo('/tmp/absolute')
+>>> contents = 10*b'c'
+>>> bla = zipfile.ZipFile('/tmp/bla.zip', mode='w')
+>>> bla.writestr(z, contents)
+>>> bla.close()
+```
+
+`unzip` will unpack this to a relative path but also issue a warning:
+
+```
+$ unzip /tmp/bla.zip
+Archive:  /tmp/bla.zip
+warning:  stripped absolute path spec from /tmp/absolute
+ extracting: tmp/absolute
+```
+
+`p7zip` will also correctly unpack the file, but not issue a warning:
+
+```
+$ 7z x /tmp/bla.zip
+
+7-Zip [64] 16.02 : Copyright (c) 1999-2016 Igor Pavlov : 2016-05-21
+p7zip Version 16.02 (locale=en_US.UTF-8,Utf16=on,HugeFiles=on,64 bits,8 CPUs Intel(R) Core(TM) i7-6770HQ CPU @ 2.60GHz (506E3),ASM,AES-NI)
+
+Scanning the drive for archives:
+1 file, 134 bytes (1 KiB)
+
+Extracting archive: /tmp/bla.zip
+--
+Path = /tmp/bla.zip
+Type = zip
+Physical Size = 134
+
+Everything is Ok
+
+Size:       10
+Compressed: 134
+```
+
 ## Multiple entries with the same name
 
 It is possible to have multiple entries in the same ZIP file, with different
