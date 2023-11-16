@@ -732,7 +732,6 @@ the tools:
 The Python `zipfile` module documentation says:
 
 ```
-
 ZipFile.comment
     The comment associated with the ZIP file as a bytes object. If assigning a
     comment to a ZipFile instance created with mode 'w', 'x' or 'a', it should
