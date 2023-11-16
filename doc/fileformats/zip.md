@@ -1,7 +1,7 @@
 # ZIP file format
 
 This document describes ZIP files and all of the different variants that have
-been encountered while working on BANG.  While there are some references to
+been encountered while working on BANG. While there are some references to
 BANG this document is by no means exclusive to BANG and more of a generic
 documentation of quirks encountered in real life ZIP files and how some have
 perverted the ZIP file format.
@@ -595,10 +595,12 @@ extra field.
 
 Of course, the local file header should actually contain an "extra field".
 
-### File name length, extra field length, comment field length
+### File name length, extra field length, file comment field length
 
-Section 4.4.10 - 4.4.12 document the file name length, extra field length and
-notes the following *optional* restriction:
+Section 4.4.10 - 4.4.12 document the file name length (local file header and
+central directory), extra field length (local file header and central
+directory) and the file comment (central directory only). For these fields the
+following *optional* restriction is specified:
 
 ```
 The length of the file name, extra field, and comment
@@ -608,23 +610,164 @@ generally exceed 65,535 bytes.  If input came from standard
 input, the file name length is set to zero.
 ```
 
-In practice this is not a check that should be implemented. In Python it is
-very easy to create a file where these files are each 65,535 bytes in length:
+In practice this is not a check that should be strictly enforced, as ZIP
+implementations tend to completely ignore it. As an example, in Python it
+is very easy to create a file where these fields together are larger than
+65,535 bytes:
 
 ```
 >>> import zipfile
 >>> z = zipfile.ZipInfo(40000*'a')
 >>> z.comment = 65535*b'b'
->>> contents = 40000*b'c'
+>>> contents = 10*b'c'
 >>> bla = zipfile.ZipFile('/tmp/bla.zip', mode='w')
 >>> bla.writestr(z, contents)
 >>> bla.close()
 ```
 
-This will create a ZIP file with a very long file name and a very long comment
-that together exceed 65,535 bytes. Most of the ZIP tools will be able to
-process a file like this just fine although it is very likely that the file
-system will impose limits on the length of the file name.
+This will create a ZIP archive containing a 10 byte file with a very long file
+name (40,000 characters) and a very long comment (65,535 bytes) that together
+exceed 65,535 bytes.  Most of the ZIP tools will be able to process a file like
+this just fine, for example `zipinfo` (output edited for length, indicated by
+`[...]`):
+
+```
+Archive:  bla.zip
+There is no zipfile comment.
+
+End-of-central-directory record:
+-------------------------------
+
+  Zip archive file size:                    145643 (00000000000238EBh)
+  Actual end-cent-dir record offset:        145621 (00000000000238D5h)
+  Expected end-cent-dir record offset:      145621 (00000000000238D5h)
+  (based on the length of the central directory and its expected offset)
+
+  This zipfile constitutes the sole disk of a single-part archive; its
+  central directory contains 1 entry.
+  The central directory is 105581 (0000000000019C6Dh) bytes long,
+  and its (expected) offset in bytes from the beginning of the zipfile
+  is 40040 (0000000000009C68h).
+
+
+Central directory entry #1:
+---------------------------
+
+  aaaaaaaaaaaaaaaaaaaaaaaaaaaa[...]aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+  offset of local header from start of archive:   0
+                                                  (0000000000000000h) bytes
+  file system or operating system of origin:      Unix
+  version of encoding software:                   2.0
+  minimum file system compatibility required:     MS-DOS, OS/2 or NT FAT
+  minimum software version required to extract:   2.0
+  compression method:                             none (stored)
+  file security status:                           not encrypted
+  extended local header:                          no
+  file last modified on (DOS date/time):          1980 Jan 1 00:00:00
+  32-bit CRC value (hex):                         f115ce3f
+  compressed size:                                10 bytes
+  uncompressed size:                              10 bytes
+  length of filename:                             40000 characters
+  length of extra field:                          0 bytes
+  length of file comment:                         65535 characters
+  disk number on which file begins:               disk 1
+  apparent file type:                             binary
+  Unix file attributes (000600 octal):            ?rw-------
+  MS-DOS file attributes (00 hex):                none
+
+------------------------- file comment begins ----------------------------
+bbbbbbbbbb[...]bbbbbbbbbbbbbbbbbbbbbbbbb
+-------------------------- file comment ends -----------------------------
+```
+
+Unpacking might not be possible, as is very likely that the file system itself
+has imposed limits on the length of a file name. As an example, when running
+`p7zip` to unpack the file the following output is printed (truncated for size
+indicated by `[...]`):
+
+```
+$ 7z x /tmp/bla.zip
+
+7-Zip [64] 16.02 : Copyright (c) 1999-2016 Igor Pavlov : 2016-05-21
+p7zip Version 16.02 (locale=en_US.UTF-8,Utf16=on,HugeFiles=on,64 bits,8 CPUs Intel(R) Core(TM) i7-6770HQ CPU @ 2.60GHz (506E3),ASM,AES-NI)
+
+Scanning the drive for archives:
+1 file, 86360 bytes (85 KiB)
+
+Extracting archive: /tmp/bla.zip
+--
+Path = /tmp/bla.zip
+Type = zip
+Physical Size = 86360
+
+ERROR: Can not open output file : File name too long : ./aaaaaaaaaaaaaaaaaaaaaaa[...]
+```
+
+or `unzip`:
+
+```
+$ unzip /tmp/bla.zip
+Archive:  /tmp/bla.zip
+warning:  filename too long--truncating.
+warning:  filename too long--truncating.
+error:  cannot create aaaaaaaaaaaa[...]
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        File name too long
+```
+
+#### Displaying file comments
+
+Not every tool displays file comments and there are clear differences between
+the tools:
+
+* `unzip` will display the comment (if it contains printable characters) only
+  when the `-l` option is used.
+* `zipinfo` will display the comment (if it contains printable characters) only
+  when the `-v` option is used.
+* `p7zip` will not display the comment
+
+#### File comment contents
+
+The Python `zipfile` module documentation says:
+
+```
+
+ZipFile.comment
+    The comment associated with the ZIP file as a bytes object. If assigning a
+    comment to a ZipFile instance created with mode 'w', 'x' or 'a', it should
+    be no longer than 65535 bytes. Comments longer than this will be truncated.
+```
+
+This basically means that there are no restrictions on the *contents* of the
+file comment itself and any kind of data is accepted when assembling a ZIP
+file using Python. For example, embedding a small JPEG as a file comment is
+absolutely no problem at all:
+
+```
+>>> import zipfile
+>>> z = zipfile.ZipInfo(40000*'a')
+>>> test_jpeg = open('/tmp/test.jpg', 'rb').read()
+>>> len(test_jpeg)
+6252
+>>> z.comment = test_jpeg
+>>> contents = 10*b'c'
+>>> bla = zipfile.ZipFile('/tmp/bla.zip', mode='w')
+>>> bla.writestr(z, contents)
+>>> bla.close()
+```
+
+When expecting the file with `hexdump` it is very easy to see that there
+is a JPEG file embedded in the file comment:
+
+```
+$ hexdump -C bla.zip | grep JFIF
+000138d0  61 61 61 61 61 61 ff d8  ff e0 00 10 4a 46 49 46  |aaaaaa......JFIF|
+```
+
+This would allow someone to hide information in the ZIP file that is not
+easy to extract unless the ZIP file is parsed in a particular way (and not
+with regular unpacking tools).
 
 ### Extra fields
 
