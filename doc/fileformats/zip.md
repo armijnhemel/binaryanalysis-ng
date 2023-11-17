@@ -769,7 +769,45 @@ struct.error: ushort format requires 0 <= number <= (0x7fff * 2 + 1)
 
 ## End of central directory
 
-### Comment
+```
+end of central dir signature    4 bytes  (0x06054b50)
+number of this disk             2 bytes
+
+number of the disk with the
+start of the central directory  2 bytes
+
+total number of entries in the
+central directory on this disk  2 bytes
+
+total number of entries in
+the central directory           2 bytes
+size of the central directory   4 bytes
+
+offset of start of central
+directory with respect to
+the starting disk number        4 bytes
+.ZIP file comment length        2 bytes
+```
+
+Schematically it looks like this:
+
+```
++------+------+------+------+------+------+------+------+------+------+------+------+
+|  P   |   K  | 0x05 | 0x06 | this disk   | disk with   | total files | total files |
+|      |      |      |      |             | central dir | on this disk|             |
++------+------+------+------+------+------+------+------+------+------+------+------+
+| total files | size of     | offset to central dir     | comment     |
+|             | central dir |                           | size        |
++------+------+------+------+------+------+------+------+------+------+
+```
+
+The static part is followed by a variable part:
+
+```
+.ZIP file comment       (variable size)
+```
+
+### .ZIP file comment
 
 The end of central directory has room for a comment. Like the comments for
 individual ZIP file entries it has a maximum size of 65,353 bytes (with no
