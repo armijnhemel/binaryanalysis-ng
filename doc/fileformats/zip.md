@@ -24,13 +24,18 @@ official specification.
 
 A ZIP file typically consists of a series of entries, optionally some metadata
 related to archives and encryption, followed by a structure called the "central
-directory" (section 4.3.6). The central directory essentially serves as a lookup
-table to provide quick access to the files inside the ZIP archive. It is then
-followed by (optional) ZIP64 records and finally a variable length record called
-"end of central directory" that contains the offset from the start of the ZIP data
-to the central directory.
+directory" (section 4.3.6). The central directory essentially serves as a random
+access lookup table to provide quick access to the files inside the ZIP archive
+because it contains the offsets to the start of each file.
 
-In most cases unpacking ZIP data comes down to:
+The central directory is then followed by (optional) ZIP64 records and finally
+a variable length record called "end of central directory" that contains
+(amongst others) the offset from the start of the ZIP data to the central
+directory.
+
+### Unpacking ZIP files
+
+Most tools unpack ZIP files as follows:
 
 1. open the file
 2. jump to the end of the file
@@ -49,10 +54,10 @@ file and is correct. For most ZIP files this is the case.
 
 If this is not the case, for example when a ZIP file is part of a larger file
 (such as a blob like a firmware dump), then it becomes a lot harder to unpack
-data, or it could be that the other data than expected is unpacked. Two
+data, or it could be that the other data than expected is unpacked. Two small
 examples can help illustrate this.
 
-### Example 1: ZIP file with extra data after the central directory
+#### Example 1: ZIP file with extra data after the central directory
 
 If extra data is appended to a file, then the method as described above does
 not always work with most popular ZIP tools or unpacking libraries, as
@@ -190,7 +195,7 @@ If there is more data than what the tools or libraries allowed and data still
 needs to be unpacked from the ZIP file, then it becomes necessary to find out
 where the ZIP file starts and ends, and then unpack all the data.
 
-### Example 2: Two concatenated ZIP files
+#### Example 2: Two concatenated ZIP files
 
 Imagine that there are two ZIP files A and B. When these are concatenated (A,
 then B) and then unpacked using the standard method the central directory of
@@ -253,29 +258,6 @@ Tail Size = 2159718
 Warnings: 1
 ```
 
-# ZIP file unpacking in BANG
-
-In BANG it is assumed that ZIP files are always followed by extra data and
-need to be carved, so parsing starts from the beginning of the file, instead of
-using the central directory of the ZIP file to locate and access the files.
-
-ZIP file unpacking in BANG works as follows (simplified):
-
-1. open the file at a specific offset (namely where a local file header was
-   found)
-2. go to the start of the first local file header (section 4.3.7)
-3. read and parse the data in a local file header
-4. skip the compressed data
-5. process all entries and any optional extra data such as APK signing blocks,
-   until a central directory is found (section 4.3.12)
-6. process the central directory and verify if the contents in the central
-   directory correspond to the entries found in step 5.
-7. verify if there is an end of central directory (section 4.3.16)
-8. carve the ZIP file (if necessary) and process using standard tools
-   (Python's `zipfile` module)
-
-This (simplified) workflow works well, but as it turns out there are a few
-situations that make this tricky.
 
 # Parsing a ZIP file from the beginning of the file
 
@@ -973,3 +955,31 @@ not handle this correctly.
 
 There could be more file entries in the archive than listed in the central
 directory.
+
+# Appendix: ZIP file unpacking in BANG
+
+In BANG it is assumed that ZIP files are always followed by extra data and
+need to be carved, so parsing starts from the beginning of the file, instead of
+using only the central directory of the ZIP file to locate and access the
+files, although the central directory will be used by Python's `zipfile`
+module that BANG relies on.
+
+ZIP file unpacking in BANG works as follows (simplified):
+
+1. open the file at a specific offset (namely where a local file header was
+   found)
+2. go to the start of the first local file header (section 4.3.7)
+3. read and parse the data in a local file header
+4. skip the compressed data
+5. process all entries and any optional extra data such as APK signing blocks,
+   until a central directory is found (section 4.3.12)
+6. process the central directory and verify if the contents in the central
+   directory correspond to the entries found in step 5.
+7. verify if there is an end of central directory (section 4.3.16)
+8. carve the ZIP file (if necessary) or replace headers (example: Dahua
+   firmware files)
+9. extract contents using Python's `zipfile` module, unless the file
+   is encrypted
+
+This (simplified) workflow is enough to process almost all ZIP files found
+in firmware archives.
