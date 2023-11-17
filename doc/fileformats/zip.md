@@ -109,7 +109,7 @@ can be a file comment. Section 4.3.16 specifies the length as:
 ```
 
 The length of the ZIP file comment is stored in 2 bytes, so the file comment
-itself has a maximum of 65536 bytes.
+itself has a maximum of 65,535 bytes.
 
 The `zipfile` module in Python 3.10 uses exactly this length and cannot unpack
 if there is more data appended to the file.
@@ -716,16 +716,14 @@ the tools:
 The Python `zipfile` module documentation says:
 
 ```
-ZipFile.comment
-    The comment associated with the ZIP file as a bytes object. If assigning a
-    comment to a ZipFile instance created with mode 'w', 'x' or 'a', it should
-    be no longer than 65535 bytes. Comments longer than this will be truncated.
+ZipInfo.comment
+    Comment for the individual archive member as a bytes object.
 ```
 
-This basically means that there are no restrictions on the *contents* of the
-file comment itself and any kind of data is accepted when assembling a ZIP
-file using Python. For example, embedding a small JPEG as a file comment is
-absolutely no problem at all:
+Because it is a bytes object it basically means that there are no restrictions
+on the *contents* of the file comment itself and any kind of data is accepted
+when assembling a ZIP file using Python. For example, embedding a small JPEG
+as a file comment is absolutely no problem at all:
 
 ```
 >>> import zipfile
@@ -752,7 +750,72 @@ This would allow someone to hide information in the ZIP file that is not
 easy to extract unless the ZIP file is parsed in a particular way (and not
 with regular unpacking tools).
 
+Trying to write more than 65,535 bytes will result in errors, for example
+Python 3.10:
+
+```
+$ python3 test.py
+Traceback (most recent call last):
+  File "/tmp/test.py", line 13, in <module>
+    bla.close()
+  File "/usr/lib64/python3.10/zipfile.py", line 1839, in close
+    self._write_end_record()
+  File "/usr/lib64/python3.10/zipfile.py", line 1886, in _write_end_record
+    centdir = struct.pack(structCentralDir,
+struct.error: ushort format requires 0 <= number <= (0x7fff * 2 + 1)
+```
+
 ### Extra fields
+
+## End of central directory
+
+### Comment
+
+The end of central directory has room for a comment. Like the comments for
+individual ZIP file entries it has a maximum size of 65,353 bytes (with no
+restriction on the *contents* of the comment):
+
+```
+.ZIP file comment length        2 bytes
+.ZIP file comment       (variable size)
+```
+
+Python's `zipfile` documentation says:
+
+```
+ZipFile.comment
+    The comment associated with the ZIP file as a bytes object. If assigning a
+    comment to a ZipFile instance created with mode 'w', 'x' or 'a', it should
+    be no longer than 65535 bytes. Comments longer than this will be truncated.
+```
+
+The following test script (in this example stored in `/tmp/test.py`) tries to
+add more than the maximum amount of bytes:
+
+```
+#!/usr/bin/env python3
+
+import zipfile
+
+z = zipfile.ZipInfo(4*'a')
+contents = 10*b'c'
+bla = zipfile.ZipFile('/tmp/bla.zip', mode='w')
+bla.writestr(z, contents)
+comment = 70000*b'b'
+bla.comment = comment
+bla.close()
+```
+
+Python 3.10 and 3.11 will display the following warning:
+
+```
+/tmp/test.py:10: UserWarning: Archive comment is too long; truncating to 65535 bytes
+  bla.comment = comment
+```
+
+and then exit gracefully. Inspection of the file reveals that indeed only
+65,535 bytes are in the comment field.
+
 
 ## APK signing blocks
 
