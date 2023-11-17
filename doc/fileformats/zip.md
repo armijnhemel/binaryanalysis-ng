@@ -809,7 +809,7 @@ that will only store 16 bytes (compressed and uncompressed size).
 
 ## Directories unpacked as regular files
 
-Most, if not all, ZIP implementations rely on names of directories being stored
+Most (not all) ZIP implementations rely on names of directories being stored
 with a `/` at the end of the entry name, even though the official ZIP
 specification does not mention that a `/` is mandatory for a directory. It
 seems that at some point this just became a convention. For example, the
@@ -824,13 +824,13 @@ as does `unzip` (comment from `zip30.tar.gz`, file `unix/unix.c`, line 163):
 /* Add trailing / to the directory name */
 ```
 
-Both `unzip` and Python's `zipfile` module rely on having a `/` for directory
-names, but `p7zip` does not.
+Python's `zipfile` module also requires it. `p7zip` on the other hand does not.
 
-There are some ZIP files that contain files where directory names do not end in
-`/` and where the standard utilities fail: instead of creating a directory a
-zero byte file with the same name as the directory is written. Despite bug
-reports having been filed this is still a problem. A bug report can be found at:
+There actually are some ZIP files that contain files where directory names do
+not end in `/` and where most implementations fail: instead of creating a
+directory a zero byte file with the same name as the directory is written.
+Despite bug reports having been filed this is still a problem. A bug report can
+be found at:
 
 <http://web.archive.org/web/20190814185417/https://bugzilla.redhat.com/show_bug.cgi?id=907442>
 
