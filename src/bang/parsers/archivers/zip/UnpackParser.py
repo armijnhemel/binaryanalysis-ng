@@ -318,16 +318,16 @@ class ZipUnpackParser(UnpackParser):
                 compressed_size = file_header.body.header.len_body_compressed
                 uncompressed_size = file_header.body.header.len_body_uncompressed
 
-                broken_zip_version = False
+                known_broken_zip_version = False
 
                 # some files observed in the wild have a weird version
                 if file_header.body.header.version in [0x30a, 0x314]:
-                    broken_zip_version = True
+                    known_broken_zip_version = True
 
                 check_condition(file_header.body.header.version >= MIN_VERSION,
                                 "invalid ZIP version %d" % file_header.body.header.version)
 
-                if not broken_zip_version:
+                if not known_broken_zip_version:
                     check_condition(file_header.body.header.version <= MAX_VERSION,
                                     "invalid ZIP version %d" % file_header.body.header.version)
 
