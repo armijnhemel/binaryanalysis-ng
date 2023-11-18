@@ -629,7 +629,7 @@ class ZipUnpackParser(UnpackParser):
                 # Although absolute paths are not permitted according
                 # to the ZIP specification these files exist or can easily
                 # be created.
-                if file_path.is_absolute:
+                if file_path.is_absolute():
                     try:
                         file_path = file_path.relative_to('/')
                     except ValueError:
@@ -680,7 +680,7 @@ class ZipUnpackParser(UnpackParser):
             # means that the files will be unpacked in the "rel"
             # directory instead of the "abs" directory. Is this intended
             # behaviour or should it be changed?
-            if file_path.is_absolute:
+            if file_path.is_absolute():
                 try:
                     file_path = file_path.relative_to('/')
                 except ValueError:
