@@ -432,13 +432,97 @@ local file header.
 
 There are a few files where the minimum version has a non-existent version
 number in the local file header, but not in the central directory. As an
-example in one file the value `0x314` was observed.
+example in one file the value `0x314` was observed in the local file header
+(with a normal value in the central directory).
 
 As long as the value of the corresponding field in the central directory is
-valid it is advised to silently ignore the invalid versions (this is what BANG
-does), as the unpacking tools and libraries primarily rely on the data for this
-field in the central directory, not in the local file header. As long as the
-data in the central directory is valid the file can be unpacked.
+valid it is advised to ignore invalid versions, as the unpacking tools and
+libraries seem to rely on the data in the central directory for this field,
+not in the local file header (`unzip`), or completely ignore it (`p7zip`).
+As long as the data in the central directory is valid the file can be unpacked.
+
+This can be demonstrated by modifying the number in the local file header and
+the central directory and checking how tools behave. First create a ZIP file
+and run `file` to see what the minimum version needed to unpack is:
+
+```
+$ zip -r test.zip /bin/ls
+  adding: bin/ls (deflated 55%)
+$ file test.zip
+test.zip: Zip archive data, at least v2.0 to extract, compression method=deflate
+```
+
+Then modify the local file header using a hexeditor (example: `ghex`) and
+change the version needed to `0xaa` (17.0, a currently not existing ZIP
+version) and check again:
+
+```
+$ file test.zip
+test.zip: Zip archive data, at least v17.0 to extract, compression method=deflate
+```
+
+`unzip` will happily unpack the file:
+
+```
+$ unzip test.zip
+Archive:  test.zip
+  inflating: bin/ls
+```
+as will `p7zip`:
+
+```
+$ 7z x test.zip
+
+7-Zip [64] 16.02 : Copyright (c) 1999-2016 Igor Pavlov : 2016-05-21
+p7zip Version 16.02 (locale=en_US.UTF-8,Utf16=on,HugeFiles=on,64 bits,8 CPUs Intel(R) Core(TM) i7-6770HQ CPU @ 2.60GHz (506E3),ASM,AES-NI)
+
+Scanning the drive for archives:
+1 file, 64220 bytes (63 KiB)
+
+Extracting archive: test.zip
+--
+Path = test.zip
+Type = zip
+Physical Size = 64220
+
+Everything is Ok
+
+Size:       142088
+Compressed: 64220
+```
+
+Changing the corresponding value in central directory gives different results.
+
+`unzip` refuses to unpack:
+
+```
+$ unzip test.zip
+Archive:  test.zip
+   skipping: bin/ls                  need PK compat. v17.0 (can do v4.6)
+```
+
+but `p7zip` doesn't complain and will unpack the data:
+
+```
+$ 7z x test.zip
+
+7-Zip [64] 16.02 : Copyright (c) 1999-2016 Igor Pavlov : 2016-05-21
+p7zip Version 16.02 (locale=en_US.UTF-8,Utf16=on,HugeFiles=on,64 bits,8 CPUs Intel(R) Core(TM) i7-6770HQ CPU @ 2.60GHz (506E3),ASM,AES-NI)
+
+Scanning the drive for archives:
+1 file, 64220 bytes (63 KiB)
+
+Extracting archive: test.zip
+--
+Path = test.zip
+Type = zip
+Physical Size = 64220
+
+Everything is Ok
+
+Size:       142088
+Compressed: 64220
+```
 
 ### General purpose bit flag
 
