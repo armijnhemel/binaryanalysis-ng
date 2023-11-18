@@ -20,7 +20,7 @@ The official ZIP file specification (latest is 6.3.10) can be found at:
 In the rest of this document there will be references to sections in the
 official specification.
 
-## ZIP file overview
+# ZIP file overview
 
 A ZIP file typically consists of a series of entries, optionally some metadata
 related to archives and encryption, followed by a structure called the "central
@@ -33,7 +33,7 @@ a variable length record called "end of central directory" that contains
 (amongst others) the offset from the start of the ZIP data to the central
 directory.
 
-### Unpacking ZIP files
+## Quick introduction to unpacking ZIP files
 
 Most tools unpack ZIP files as follows:
 
@@ -57,7 +57,7 @@ If this is not the case, for example when a ZIP file is part of a larger file
 data, or it could be that the other data than expected is unpacked. Two small
 examples can help illustrate this.
 
-#### Example 1: ZIP file with extra data after the central directory
+### Example 1: ZIP file with extra data after the central directory
 
 If extra data is appended to a file, then the method as described above does
 not always work with most popular ZIP tools or unpacking libraries, as
@@ -195,14 +195,18 @@ If there is more data than what the tools or libraries allowed and data still
 needs to be unpacked from the ZIP file, then it becomes necessary to find out
 where the ZIP file starts and ends, and then unpack all the data.
 
-#### Example 2: Two concatenated ZIP files
+### Example 2: Two concatenated ZIP files
 
 Imagine that there are two ZIP files A and B. When these are concatenated (A,
-then B) and then unpacked using the standard method the central directory of
-B will be at the end, so only the entries of file B will be found. To unpack
-entries from A you need to find out where the central directory of A resides.
-This can only be done by parsing from the beginning of the file.
+then B) and then unpacked using the standard method (jumping to the end of the
+file, finding the central directory and then traversing the central directory)
+the central directory of B will be at the end, so only the entries of file B
+will be found. To unpack entries from A you need to find out where the central
+directory of A is in the file.
 
+A sample file is easily created, by creating another ZIP file and using `cat`
+to add the contents of the earlier test file (see first example) and the new
+ZIP file to a new combined file:
 
 ```
 $ zip -r test2.zip /bin/vim
@@ -210,7 +214,9 @@ $ zip -r test2.zip /bin/vim
 $ cat /tmp/test.zip /tmp/test2.zip > /tmp/test3.zip
 ```
 
-`unzip` says:
+Different tools process these differently:
+
+`unzip` for example only sees the second archive:
 
 ```
 $ unzip -l /tmp/test3.zip
@@ -227,7 +233,7 @@ warning [/tmp/test3.zip]:  64220 extra bytes at beginning or within zipfile
 and it unpacks the second archive, but warns about extra data at the beginning
 (namely the first ZIP file).
 
-`p7zip` on the other hand only finds the first ZIP file and warns about extra
+`p7zip` on the other hand only sees the first ZIP file and warns about extra
 data at the end (namely the second ZIP file):
 
 ```
@@ -258,8 +264,22 @@ Tail Size = 2159718
 Warnings: 1
 ```
 
+BANG parses the files from the start of the file, so first finds A, then B and
+unpacks both archives.
 
-# Parsing a ZIP file from the beginning of the file
+The tools mentioned above are not the only ones that behave differently.
+Because ZIP is such a widely supported format it is likely that there are
+many tools that are implementing unpacking behaviour differently, which
+potentially gives bad actors an opportunity. In fact, a few years [malware][1]
+was discovered that tried to take advantage of this to smuggle malicious files
+past security scanners.
+
+These examples show that even small changes using valid ZIP files can have an
+impact. In the ZIP file format there are many places where the specifications
+aren't clear or where implementations do not follow the specifications, which
+can lead to edge cases.
+
+# ZIP file internals
 
 In this section the whole structure of a ZIP file is explained and exceptions
 that have been encountered are highlighted.
@@ -1084,3 +1104,5 @@ ZIP file unpacking in BANG works as follows (simplified):
 
 This (simplified) workflow is enough to process almost all ZIP files found
 in firmware archives.
+
+[1]:https://web.archive.org/web/20191107134232/https://www.trustwave.com/en-us/resources/blogs/spiderlabs-blog/double-loaded-zip-file-delivers-nanocore/
