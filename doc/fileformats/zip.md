@@ -277,14 +277,35 @@ past security scanners.
 These examples show that even small changes using valid ZIP files can have an
 impact. In the ZIP file format there are many places where the specifications
 aren't clear or where implementations do not follow the specifications, which
-can lead to edge cases.
+can lead to edge cases, unclarities and possibly crashes or exploits.
 
 # ZIP file internals
 
 In this section the whole structure of a ZIP file is explained and exceptions
 that have been encountered are highlighted.
 
-Every ZIP file starts with a local header.
+The central directory in ZIP files are leading. It serves as a lookup table
+for entries in the ZIP file. The central directory contains information about
+entries in the ZIP file (directories, regular files) in so called "central
+directory headers". Each central directory header points to a "local file
+header" in the ZIP file, which describes a file and associated file data
+(unless it is a directory or an empty file, in wich case there is no associated
+file data).
+
+All of the information in the local file header (except the signature) is
+replicated in the corresponding central directory header for the file (but the
+central directory header will contain also includes some more information). In
+a well formed ZIP file these are corresponding.
+
+According to the specification there should be a central directory header
+for every local file header:
+
+```
+4.3.2 Each file placed into a ZIP file MUST be preceded by a "local
+file header" record for that file. Each "local file header" MUST be
+accompanied by a corresponding "central directory header" record within
+the central directory section of the ZIP file.
+```
 
 ## Local file header
 
@@ -332,12 +353,13 @@ the ZIP file to be unpacked.
 
 ### Version needed to extract
 
-The ZIP file was not complete upon release: new features have been introduced
-in later versions of the ZIP format. Older versions of the program will not be
-able to process files with these new featuers, so the "version needed to
-extract" field can be used to flag which version is needed. This flag is
-repeated in various other headers ("central directory header", "zip64 end of
-central directory") as well.
+The ZIP file format has been under development for many years and new features
+have been introduced over time. As older versions of ZIP programs will not be
+able to process files with these new features the "version needed to extract"
+field can be used to indicate which version of the ZIP feature set should be
+implemented to successfully unpack a file. This flag is repeated in various
+other headers ("central directory header", "zip64 end of central directory")
+as well.
 
 As an example, for ZIP64 files the minimum feature version that the extraction
 program needs to implement is `4.5`. If a ZIP64 file is written, then the
@@ -345,13 +367,13 @@ program writing the ZIP file needs to set the version needed to extract to
 `4.5` or higher. The list of minimum feature versions that have been defined
 can be found in section 4.4.3.
 
+In the local file header the version number is not split in "major/minor" (like
+in section 4.4.3), but stored in a different way. To get back to the version in
+section 4.4.3 the value has to be divided by `10`.  For example, "version 4.6"
+will be stored as `0x2e` (`46`) in the file header.
+
 Storing a file in a ZIP archive with the `store` method (which only stores it
 without any compression) requires version `1.0` to be supported:
-
-In the local file header the version number is not split in "major/minor", but
-stored in a different way. To get back to the version in section 4.4.3 the
-value has to be divided by `10`.  For example, "version 4.6" will be stored as
-`0x2e` (`46`) in the file header.
 
 ```
 $ zip -r test.zip -Z store /bin/ls
@@ -371,7 +393,7 @@ test2.zip: Zip archive data, at least v4.6 to extract, compression method=bzip2
 ```
 
 The minimum version needed to extract is recorded *per file* and inside a ZIP
-file these can be different per files. A small example to illustrate:
+file these can be different for each file. A small example to illustrate:
 
 ```
 $ mkdir test
@@ -414,9 +436,9 @@ example in one file the value `0x314` was observed.
 
 As long as the value of the corresponding field in the central directory is
 valid it is advised to silently ignore the invalid versions (this is what BANG
-does), as the unpacking tools and libraries primarily rely on the data in the
-central directory, not in the local file header. As long as the data in the
-central directory is valid the file can be unpacked.
+does), as the unpacking tools and libraries primarily rely on the data for this
+field in the central directory, not in the local file header. As long as the
+data in the central directory is valid the file can be unpacked.
 
 ### General purpose bit flag
 
