@@ -443,7 +443,9 @@ As long as the data in the central directory is valid the file can be unpacked.
 
 This can be demonstrated by modifying the number in the local file header and
 the central directory and checking how tools behave. First create a ZIP file
-and run `file` to see what the minimum version needed to unpack is:
+with a single file and run `file` to see what the minimum version needed to
+unpack is in the local file header (it is the same in the central directory
+which can be verified using `zipinfo -v`):
 
 ```
 $ zip -r test.zip /bin/ls
@@ -491,9 +493,10 @@ Size:       142088
 Compressed: 64220
 ```
 
-Changing the corresponding value in central directory gives different results.
+Changing the corresponding value in the central directory gives different
+results.
 
-`unzip` refuses to unpack:
+`unzip` for example refuses to unpack:
 
 ```
 $ unzip test.zip
@@ -523,6 +526,10 @@ Everything is Ok
 Size:       142088
 Compressed: 64220
 ```
+
+The reason why `p7zip` ignores it is likely that it only looks at how the data
+is stored or compressed, determines that it can and then ignores the version
+number.
 
 ### General purpose bit flag
 
