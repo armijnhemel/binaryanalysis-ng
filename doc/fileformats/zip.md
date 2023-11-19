@@ -504,7 +504,8 @@ Archive:  test.zip
    skipping: bin/ls                  need PK compat. v17.0 (can do v4.6)
 ```
 
-but `p7zip` doesn't complain and will unpack the data:
+but `p7zip` doesn't complain and will unpack the data (even when changing the
+version in both local file header and central directory):
 
 ```
 $ 7z x test.zip
@@ -1178,6 +1179,49 @@ Size:       10
 Compressed: 134
 ```
 
+## Paths containing current or parent directories
+
+The ZIP specifications do not say anything about paths containing the current
+directory (`.`) or the parent directory (`..`), so it is assumed that these
+paths are valid. Creating such a file is trivial:
+
+```
+>>> import zipfile
+>>> z = zipfile.ZipInfo('../../.././tmp/relative')
+>>> contents = 10*b'c'
+>>> bla = zipfile.ZipFile('/tmp/bla.zip', mode='w')
+>>> bla.writestr(z, contents)
+>>> bla.close()
+```
+
+The relative path with the current and parent directory will be stored in the
+file:
+
+```
+$ unzip -l /tmp/bla.zip
+Archive:  /tmp/bla.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+       10  01-01-1980 00:00   ../../.././tmp/relative
+---------                     -------
+       10                     1 file
+```
+
+`unzip` correctly processes this file but issues a warning:
+
+```
+$ unzip /tmp/bla.zip
+Archive:  /tmp/bla.zip
+warning:  skipped "../" path component(s) in ../../.././tmp/relative
+ extracting: tmp/relative
+```
+
+`p7zip` extracts the file correctly without a warning.
+
+Other ZIP implementations might not and this could be used for a path traversal
+attack. This actually a very old attack [dating back to 1991][2] although it was
+[rediscovered in 2018 as Zip Slip][3] with [many implementations affected][4].
+
 ## Multiple entries with the same name
 
 It is possible to have multiple entries in the same ZIP file, with different
@@ -1219,3 +1263,6 @@ This (simplified) workflow is enough to process almost all ZIP files found
 in firmware archives.
 
 [1]:https://web.archive.org/web/20191107134232/https://www.trustwave.com/en-us/resources/blogs/spiderlabs-blog/double-loaded-zip-file-delivers-nanocore/
+[2]:http://phrack.org/issues/34/5.html
+[3]:https://security.snyk.io/research/zip-slip-vulnerability
+[4]:https://github.com/snyk/zip-slip-vulnerability
