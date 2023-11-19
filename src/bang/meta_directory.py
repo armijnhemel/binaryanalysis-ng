@@ -224,12 +224,12 @@ class MetaDirectory:
         '''Gives a path in the MetaDirectory for an unpacked file with name path_name.
         '''
         if is_block:
-            unpacked_path = self.md_path / self.BLOCK_UNPACK_DIR / path_name
+            unpacked_path = self.unpacked_block_root / path_name
         else:
             if path_name.is_absolute():
-                unpacked_path = self.md_path / self.ABS_UNPACK_DIR / path_name.relative_to('/')
+                unpacked_path = self.unpacked_abs_root / path_name.relative_to('/')
             else:
-                unpacked_path = self.md_path / self.REL_UNPACK_DIR / path_name
+                unpacked_path = self.unpacked_rel_root / path_name
         return unpacked_path
 
     def md_for_unpacked_path(self, unpacked_path):
