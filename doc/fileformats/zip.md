@@ -1242,8 +1242,67 @@ attack. This actually a very old attack [dating back to 1991][2] although it was
 
 It is possible to have multiple entries in the same ZIP file, with different
 properties, for example a copy of a file, and a link with the same name. It
-is unclear how these conflicts should be resolved and BANG currently does
-not handle this correctly.
+is unclear how these conflicts should be resolved.
+
+A simple test script to add a file with the same entries:
+
+```
+#!/usr/bin/env python3
+
+import zipfile
+
+z = zipfile.ZipInfo(4*'a')
+contents = 10*b'c'
+bla = zipfile.ZipFile('/tmp/bla.zip', mode='w')
+bla.writestr(z, contents)
+bla.writestr(z, contents)
+bla.writestr(z, contents)
+bla.close()
+```
+
+This script adds a file called `aaaa` to an archive three times. When running
+this script Python's `zipfile` module issues a warning:
+
+```
+$ python3 test.py
+/usr/lib64/python3.10/zipfile.py:1519: UserWarning: Duplicate name: 'aaaa'
+  return self._open_to_write(zinfo, force_zip64=force_zip64)
+```
+
+but it will write the file with three files, as can be seen when running
+`zipinfo`:
+
+```
+$ zipinfo bla.zip
+Archive:  bla.zip
+Zip file size: 304 bytes, number of entries: 3
+?rw-------  2.0 unx       10 b- stor 80-Jan-01 00:00 aaaa
+?rw-------  2.0 unx       10 b- stor 80-Jan-01 00:00 aaaa
+?rw-------  2.0 unx       10 b- stor 80-Jan-01 00:00 aaaa
+3 files, 30 bytes uncompressed, 30 bytes compressed:  0.0%
+```
+
+`unzip` refuses to unpack the file more than once, except when forced:
+
+```
+$ unzip bla.zip
+Archive:  bla.zip
+ extracting: aaaa
+error: invalid zip file with overlapped components (possible zip bomb)
+ To unzip the file anyway, rerun the command with UNZIP_DISABLE_ZIPBOMB_DETECTION=TRUE environmnent variable
+```
+
+When the environment variable is set the user will be asked what to do (here
+the `All` option was chosen):
+
+```
+$ UNZIP_DISABLE_ZIPBOMB_DETECTION=TRUE unzip bla.zip
+Archive:  bla.zip
+ extracting: aaaa
+replace aaaa? [y]es, [n]o, [A]ll, [N]one, [r]ename: A
+ extracting: aaaa
+ extracting: aaaa
+```
 
 ## Mismatches between central directory and actual files
 
