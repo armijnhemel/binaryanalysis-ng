@@ -872,6 +872,22 @@ as a file comment is absolutely no problem at all:
 >>> bla.close()
 ```
 
+or as a script (used below as `test.py`):
+
+```
+#!/usr/bin/env python3
+
+import zipfile
+
+z = zipfile.ZipInfo(4*'a')
+contents = 10*b'c'
+test_jpeg = open('/tmp/test.jpg', 'rb').read()
+z.comment = test_jpeg
+bla = zipfile.ZipFile('/tmp/bla.zip', mode='w')
+bla.writestr(z, contents)
+bla.close()
+```
+
 When expecting the file with `hexdump` it is very easy to see that there
 is a JPEG file embedded in the file comment:
 
