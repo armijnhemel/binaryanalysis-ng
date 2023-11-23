@@ -44,6 +44,7 @@ class MetaDirectory:
     BLOCK_UNPACK_DIR = 'block'
     REL_UNPACK_DIR = 'rel'
     ROOT_PATH = 'root'
+    PATH_NAME = 'pathname'
     PKL_NAME = 'info.pkl'
 
     def __init__(self, meta_root, name, is_root):
@@ -91,7 +92,7 @@ class MetaDirectory:
     def file_path(self):
         '''The path of the file that this MetaDirectory refers to, relative to the MetaDirectory.'''
         if self._file_path is None:
-            p = self.abs_md_path / 'pathname'
+            p = self.abs_md_path / self.PATH_NAME
             try:
                 with p.open('r') as f:
                     self._file_path = pathlib.Path(f.read())
@@ -103,7 +104,7 @@ class MetaDirectory:
     def file_path(self, path):
         self._file_path = path
         # persist this
-        p = self.abs_md_path / 'pathname'
+        p = self.abs_md_path / self.PATH_NAME
         p.parent.mkdir(parents=True, exist_ok=True)
         with p.open('w') as f:
             f.write(str(path))
