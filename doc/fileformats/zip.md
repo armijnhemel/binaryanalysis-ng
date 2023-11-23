@@ -1223,7 +1223,7 @@ Archive:  /tmp/bla.zip
        10                     1 file
 ```
 
-`unzip` correctly processes this file but issues a warning:
+`unzip` processes this file but issues a warning:
 
 ```
 $ unzip /tmp/bla.zip
@@ -1232,7 +1232,10 @@ warning:  skipped "../" path component(s) in ../../.././tmp/relative
  extracting: tmp/relative
 ```
 
-`p7zip` extracts the file correctly without a warning.
+`p7zip` extracts the file without a warning.
+
+Both implementations simply strip all `..` components and basically rewrite
+the filename from `../../.././tmp/relative` to `tmp/relative`.
 
 Other ZIP implementations might not and this could be used for a path traversal
 attack. This actually a very old attack [dating back to 1991][2] although it was
@@ -1303,6 +1306,8 @@ replace aaaa? [y]es, [n]o, [A]ll, [N]one, [r]ename: A
  extracting: aaaa
  extracting: aaaa
 ```
+
+`p7zip` will also query the user whether to overwrite the files or not.
 
 ## Mismatches between central directory and actual files
 
