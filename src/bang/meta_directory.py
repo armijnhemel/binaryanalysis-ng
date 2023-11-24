@@ -228,12 +228,20 @@ class MetaDirectory:
 
         # (somewhat) sanitize the file name, more cleanups are needed
         path_name = pathlib.Path(os.path.normpath(path_name))
+        is_absolute = False
+
+        if path_name.is_absolute():
+            try:
+                path_name = path_name.relative_to('/')
+            except ValueError:
+                path_name = path_name.relative_to('//')
+            is_absolute = True
 
         if is_block:
             unpacked_path = self.unpacked_block_root / path_name
         else:
-            if path_name.is_absolute():
-                unpacked_path = self.unpacked_abs_root / path_name.relative_to('/')
+            if is_absolute:
+                unpacked_path = self.unpacked_abs_root / path_name
             else:
                 unpacked_path = self.unpacked_rel_root / path_name
         return unpacked_path
