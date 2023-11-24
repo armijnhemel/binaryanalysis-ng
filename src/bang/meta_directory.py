@@ -20,6 +20,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import os
+import os.path
 import pathlib
 import pickle
 import stat
@@ -224,6 +225,10 @@ class MetaDirectory:
     def unpacked_path(self, path_name, is_block=False):
         '''Gives a path in the MetaDirectory for an unpacked file with name path_name.
         '''
+
+        # (somewhat) sanitize the file name, more cleanups are needed
+        path_name = pathlib.Path(os.path.normpath(path_name))
+
         if is_block:
             unpacked_path = self.unpacked_block_root / path_name
         else:
