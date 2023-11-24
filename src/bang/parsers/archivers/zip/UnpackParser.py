@@ -674,6 +674,20 @@ class ZipUnpackParser(UnpackParser):
         # Test data can be found in the Apktool repository
         for z in self.zipinfolist:
             file_path = pathlib.Path(z.filename)
+            file_path_parts = file_path.parts
+
+            # mimic behaviour of unzip and p7zip
+            # that remove '..' from paths.
+            clean_file_path_parts = []
+            for part in file_path_parts:
+                if part == '..':
+                    continue
+                clean_file_path_parts.append(part)
+
+            check_condition(clean_file_path_parts != [],
+                            'invalid file name in ZIP file')
+
+            file_path = pathlib.Path(*clean_file_path_parts)
 
             # Absolute paths are not permitted according to the ZIP
             # specification so rework to relative paths. TODO: this
