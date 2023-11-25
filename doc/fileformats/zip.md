@@ -1040,6 +1040,19 @@ larger than this limit is referred to as ZIP64. The specification of ZIP64
 compressed and uncompresed size, and some other fields), but there are programs
 that will only store 16 bytes (compressed and uncompressed size).
 
+ZIP64 files are easy to create, even without the need for a 4 GiB sized file,
+by streaming the file:
+
+```
+$ cat /bin/ls | zip -r /tmp/bla.zip -
+  adding: - (deflated 55%)
+$ file bla.zip
+bla.zip: Zip archive data, at least v4.5 to extract, compression method=deflate
+```
+
+At the end of the file the ZIP64 end of central directory record and the ZIP64
+end of central directory locator can be found at the end of the file.
+
 ## Directories unpacked as regular files
 
 Most (not all) ZIP implementations rely on names of directories being stored
