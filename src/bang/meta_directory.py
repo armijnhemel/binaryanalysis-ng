@@ -228,7 +228,7 @@ class MetaDirectory:
 
         # (somewhat) sanitize the file name, more cleanups are needed
         normalized_path = os.path.normpath(path_name)
-        if normalized_path in ['/', '.', '..']:
+        if normalized_path in ['/', '//', '.', '..']:
             raise MetaDirectoryException("invalid path name")
 
         path_name = pathlib.Path(normalized_path)
