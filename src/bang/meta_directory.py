@@ -43,6 +43,7 @@ class MetaDirectoryException(Exception):
 class MetaDirectory:
     ABS_UNPACK_DIR = 'abs'
     BLOCK_UNPACK_DIR = 'block'
+    EXTRA_UNPACK_DIR = 'extra'
     REL_UNPACK_DIR = 'rel'
     ROOT_PATH = 'root'
     PATH_NAME = 'pathname'
@@ -222,10 +223,11 @@ class MetaDirectory:
     def unpacked_block_root(self):
         return self.md_path / self.BLOCK_UNPACK_DIR
 
-    def unpacked_path(self, path_name, is_block=False):
-        '''Gives a path in the MetaDirectory for an unpacked file with name path_name.
-        '''
+    @property
+    def unpacked_extradata_root(self):
+        return self.md_path / self.EXTRA_UNPACK_DIR
 
+    def sanitize_path(self, path_name):
         # (somewhat) sanitize the file name, more cleanups are needed
         normalized_path = os.path.normpath(path_name)
         if normalized_path in ['/', '//', '.', '..']:
@@ -241,13 +243,20 @@ class MetaDirectory:
                 path_name = path_name.relative_to('//')
             is_absolute = True
 
+        return (path_name, is_absolute)
+
+    def unpacked_path(self, path_name, is_block=False):
+        '''Gives a path in the MetaDirectory for an unpacked file with name path_name.
+        '''
+        sanitized_path_name, is_absolute = self.sanitize_path(path_name)
+
         if is_block:
-            unpacked_path = self.unpacked_block_root / path_name
+            unpacked_path = self.unpacked_block_root / sanitized_path_name
         else:
             if is_absolute:
-                unpacked_path = self.unpacked_abs_root / path_name
+                unpacked_path = self.unpacked_abs_root / sanitized_path_name
             else:
-                unpacked_path = self.unpacked_rel_root / path_name
+                unpacked_path = self.unpacked_rel_root / sanitized_path_name
         return unpacked_path
 
     def md_for_unpacked_path(self, unpacked_path):
