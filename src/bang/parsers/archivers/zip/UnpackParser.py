@@ -690,10 +690,11 @@ class ZipUnpackParser(UnpackParser):
             file_path = pathlib.Path(*clean_file_path_parts)
 
             # Absolute paths are not permitted according to the ZIP
-            # specification so rework to relative paths. TODO: this
+            # specification so rework to relative paths. This
             # means that the files will be unpacked in the "rel"
-            # directory instead of the "abs" directory. Is this intended
-            # behaviour or should it be changed?
+            # directory instead of the "abs" directory. This is
+            # intended behaviour and consistent with how other tools
+            # unpack data.
             if file_path.is_absolute():
                 try:
                     file_path = file_path.relative_to('/')
