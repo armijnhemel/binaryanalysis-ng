@@ -340,7 +340,7 @@ class MetaDirectory:
         log.debug(f'[{self.md_path}]unpack_regular_file: update info to {self.info}')
 
     def unpack_directory(self, path):
-        '''Unpack a directory with path path into the MetaDirectory.
+        '''Unpack a directory with path 'path' into the MetaDirectory.
         Returns the path relative to the MetaDirectory.
         '''
         sanitized_path, is_absolute = self.sanitize_path(path)
