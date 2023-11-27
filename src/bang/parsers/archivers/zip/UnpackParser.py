@@ -710,6 +710,12 @@ class ZipUnpackParser(UnpackParser):
                         with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                             outfile.write(unpackzipfile.read(z))
                             yield unpacked_md
+                        if z.comment != b'':
+                            suffix = file_path.suffix + '.file_comment'
+                            file_path = file_path.with_suffix(suffix)
+                            with meta_directory.unpack_regular_file(file_path, is_extradata=True) as (unpacked_md, outfile):
+                                outfile.write(z.comment)
+                                yield unpacked_md
                     else:
                         meta_directory.unpack_directory(file_path)
                 except NotADirectoryError:
