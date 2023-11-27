@@ -655,6 +655,14 @@ class ZipUnpackParser(UnpackParser):
                 os.unlink(self.temporary_file[1])
             return
 
+        if self.zip_comment != b'':
+            file_path = pathlib.Path(pathlib.Path(self.infile.name).name)
+            suffix = file_path.suffix + '.comment'
+            file_path = file_path.with_suffix(suffix)
+            with meta_directory.unpack_regular_file(file_path, is_extradata=True) as (unpacked_md, outfile):
+                outfile.write(self.zip_comment)
+                yield unpacked_md
+
         if not self.carved:
             unpackzipfile = zipfile.ZipFile(self.infile)
         else:
@@ -801,6 +809,5 @@ class ZipUnpackParser(UnpackParser):
                 pass
 
         metadata = {}
-        metadata['comment'] = self.zip_comment
         metadata['zip type'] = labels
         return metadata
