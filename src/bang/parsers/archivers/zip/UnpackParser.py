@@ -209,7 +209,7 @@ class ZipUnpackParser(UnpackParser):
                             # which one is used possibly only until after it has
                             # been read.
                             # A hint is the ZIP version: if it is 4.5 or higher
-                            # then it is very likely that it is the ZIP64
+                            # then it is very likely that it is the ZIP64 variant
                             if zip_version >= 45:
                                 self.infile.seek(start_of_entry)
                                 try:
