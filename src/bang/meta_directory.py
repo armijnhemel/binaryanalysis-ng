@@ -246,7 +246,7 @@ class MetaDirectory:
         if is_extradata:
             unpacked_path = self.unpacked_extradata_root / path_name
         else:
-            if path.is_absolute():
+            if path_name.is_absolute():
                 unpacked_path = self.unpacked_abs_root / path_name
             else:
                 unpacked_path = self.unpacked_rel_root / path_name
