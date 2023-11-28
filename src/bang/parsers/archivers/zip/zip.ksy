@@ -260,9 +260,7 @@ types:
             true: empty
             false: extras(section_types::central_dir_entry)
       - id: comment
-        type: str
         size: len_comment
-        encoding: UTF-8
     instances:
       local_header:
         pos: ofs_local_header

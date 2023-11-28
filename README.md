@@ -101,7 +101,7 @@ larger file, unless stated otherwise.
 8. tar
 9. Apple Double encoded files
 10. ICC (colour profile)
-11. ZIP (store, deflate, bzip2, but lzma needs some more testing), also JAR, APK (possible with extra Android signing bytes) and other ZIP-based formats
+11. ZIP (store, deflate, bzip2, but lzma needs some more testing), also JAR, APK (possible with extra Android signing bytes) and other ZIP-based formats, dangling entries without a valid central directory
 12. U-Boot image
 13. XAR (no compression, gzip, bzip2, XZ, LZMA)
 14. ISO9660 (including RockRidge and zisofs)
