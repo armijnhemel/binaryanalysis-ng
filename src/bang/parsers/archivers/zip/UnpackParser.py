@@ -44,10 +44,12 @@ is using the ZIP format for its firmware updates, but has changed the first
 two characters of the file from PK to DH.
 '''
 
+import bz2
 import os
 import pathlib
 import tempfile
 import zipfile
+import zlib
 
 import pyaxmlparser
 
@@ -91,6 +93,7 @@ class ZipUnpackParser(UnpackParser):
         (0, b'DH\x03\04')
     ]
     pretty_name = 'zip'
+    priority = 1000
 
     def parse(self):
         self.encrypted = False
@@ -811,3 +814,95 @@ class ZipUnpackParser(UnpackParser):
         metadata = {}
         metadata['zip type'] = labels
         return metadata
+
+
+class ZipEntryUnpackParser(UnpackParser):
+    extensions = []
+    signatures = [
+        (0, b'PK\x03\04'),
+        #(0, b'PK\x03\07'),
+        # http://web.archive.org/web/20190709133846/https://ipcamtalk.com/threads/dahua-ipc-easy-unbricking-recovery-over-tftp.17189/page-2
+        (0, b'DH\x03\04')
+    ]
+    pretty_name = 'zip_entry'
+
+    def parse(self):
+        self.encrypted = False
+        self.zip64 = False
+
+        self.dahua = False
+        self.instar = False
+
+        try:
+            self.file_header = kaitai_zip.Zip.PkSection.from_io(self.infile)
+        except (UnpackParserException, ValidationFailedError, UnicodeDecodeError, EOFError) as e:
+            raise UnpackParserException(e.args)
+
+        # only support regular ZIP entries for now, not ZIP64
+        compressed_size = self.file_header.body.header.len_body_compressed
+        uncompressed_size = self.file_header.body.header.len_body_uncompressed
+        check_condition(compressed_size != 0xffffffff, 'ZIP64 not supported')
+        check_condition(uncompressed_size != 0xffffffff, 'ZIP64 not supported')
+
+        # then check if the file is a regular file or a directory (TODO)
+        check_condition(compressed_size > 0, 'only regular files supported for now')
+        check_condition(uncompressed_size > 0, 'only regular files supported for now')
+        if self.file_header.body.header.compression_method == kaitai_zip.Zip.Compression.deflated:
+            try:
+                self.decompressed_data = zlib.decompress(self.file_header.body.body, -15)
+            except Exception as e:
+                raise UnpackParserException(e.args)
+        elif self.file_header.body.header.compression_method == kaitai_zip.Zip.Compression.bzip2:
+            try:
+                self.decompressed_data = bz2.decompress(self.file_header.body.body)
+            except Exception as e:
+                raise UnpackParserException(e.args)
+        elif self.file_header.body.header.compression_method == kaitai_zip.Zip.Compression.lzma:
+            try:
+                decompressor = zipfile.LZMADecompressor()
+                self.decompressed_data = decompressor.decompress(self.file_header.body.body)
+            except Exception as e:
+                raise UnpackParserException(e.args)
+        elif self.file_header.body.header.compression_method == kaitai_zip.Zip.Compression.none:
+            self.decompressed_data = self.file_header.body.body
+        else:
+            raise UnpackParserException("unsupported compression")
+
+        check_condition(len(self.decompressed_data) == uncompressed_size,
+                        "wrong declared uncompresed size or incomplete decompression")
+
+        file_path = pathlib.Path(self.file_header.body.header.file_name)
+        file_path_parts = file_path.parts
+
+        # mimic behaviour of unzip and p7zip
+        # that remove '..' from paths.
+        clean_file_path_parts = []
+        for part in file_path_parts:
+            if part == '..':
+                continue
+            clean_file_path_parts.append(part)
+
+        check_condition(clean_file_path_parts != [],
+                        'invalid file name in ZIP file')
+
+        self.file_path = pathlib.Path(*clean_file_path_parts)
+
+        # Absolute paths are not permitted according to the ZIP
+        # specification so rework to relative paths. This
+        # means that the files will be unpacked in the "rel"
+        # directory instead of the "abs" directory. This is
+        # intended behaviour and consistent with how other tools
+        # unpack data.
+        if self.file_path.is_absolute():
+            try:
+                self.file_path = self.file_path.relative_to('/')
+            except ValueError:
+                self.file_path = self.file_path.relative_to('//')
+
+    def unpack(self, meta_directory):
+        with meta_directory.unpack_regular_file(self.file_path) as (unpacked_md, outfile):
+            outfile.write(self.decompressed_data)
+            yield unpacked_md
+
+    labels = ['zip_entry']
+    metadata = {}
