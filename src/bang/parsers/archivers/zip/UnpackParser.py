@@ -209,7 +209,7 @@ class ZipUnpackParser(UnpackParser):
                             # which one is used possibly only until after it has
                             # been read.
                             # A hint is the ZIP version: if it is 4.5 or higher
-                            # then it is very likely that it is the ZIP64
+                            # then it is very likely that it is the ZIP64 variant
                             if zip_version >= 45:
                                 self.infile.seek(start_of_entry)
                                 try:
@@ -655,6 +655,14 @@ class ZipUnpackParser(UnpackParser):
                 os.unlink(self.temporary_file[1])
             return
 
+        if self.zip_comment != b'':
+            file_path = pathlib.Path(pathlib.Path(self.infile.name).name)
+            suffix = file_path.suffix + '.comment'
+            file_path = file_path.with_suffix(suffix)
+            with meta_directory.unpack_regular_file(file_path, is_extradata=True) as (unpacked_md, outfile):
+                outfile.write(self.zip_comment)
+                yield unpacked_md
+
         if not self.carved:
             unpackzipfile = zipfile.ZipFile(self.infile)
         else:
@@ -690,10 +698,11 @@ class ZipUnpackParser(UnpackParser):
             file_path = pathlib.Path(*clean_file_path_parts)
 
             # Absolute paths are not permitted according to the ZIP
-            # specification so rework to relative paths. TODO: this
+            # specification so rework to relative paths. This
             # means that the files will be unpacked in the "rel"
-            # directory instead of the "abs" directory. Is this intended
-            # behaviour or should it be changed?
+            # directory instead of the "abs" directory. This is
+            # intended behaviour and consistent with how other tools
+            # unpack data.
             if file_path.is_absolute():
                 try:
                     file_path = file_path.relative_to('/')
@@ -709,6 +718,12 @@ class ZipUnpackParser(UnpackParser):
                         with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                             outfile.write(unpackzipfile.read(z))
                             yield unpacked_md
+                        if z.comment != b'':
+                            suffix = file_path.suffix + '.file_comment'
+                            file_path = file_path.with_suffix(suffix)
+                            with meta_directory.unpack_regular_file(file_path, is_extradata=True) as (unpacked_md, outfile):
+                                outfile.write(z.comment)
+                                yield unpacked_md
                     else:
                         meta_directory.unpack_directory(file_path)
                 except NotADirectoryError:
@@ -794,6 +809,5 @@ class ZipUnpackParser(UnpackParser):
                 pass
 
         metadata = {}
-        metadata['comment'] = self.zip_comment
         metadata['zip type'] = labels
         return metadata

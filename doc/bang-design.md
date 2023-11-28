@@ -140,8 +140,9 @@ directories. It also contains general metadata and unpacked symlinks.
 
 Unpacked files that have absolute paths can be found under `abs`, while those
 with relative paths are under `rel`. Files that are carved from a larger file
-are stored in a directory `extracted`. Files like boot blocks (example: ISO9660
-file systems) are stored in the directory `block`.
+are stored in a directory `extracted`. Extra data like boot blocks (example:
+ISO9660 file systems) or file comments (example: ZIP file comments and archive
+comments) are stored in the directory `extra`.
 
 This structure makes it harder to navigate unpacked results, but unpacked files
 will not clutter the directory structure. To navigate the results there are

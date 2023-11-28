@@ -42,7 +42,6 @@ class MetaDirectoryException(Exception):
 
 class MetaDirectory:
     ABS_UNPACK_DIR = 'abs'
-    BLOCK_UNPACK_DIR = 'block'
     EXTRA_UNPACK_DIR = 'extra'
     REL_UNPACK_DIR = 'rel'
     ROOT_PATH = 'root'
@@ -220,10 +219,6 @@ class MetaDirectory:
         return self.md_path / self.REL_UNPACK_DIR
 
     @property
-    def unpacked_block_root(self):
-        return self.md_path / self.BLOCK_UNPACK_DIR
-
-    @property
     def unpacked_extradata_root(self):
         return self.md_path / self.EXTRA_UNPACK_DIR
 
@@ -245,13 +240,13 @@ class MetaDirectory:
 
         return (path_name, is_absolute)
 
-    def unpacked_path(self, path_name, is_block=False):
+    def unpacked_path(self, path_name, is_extradata=False):
         '''Gives a path in the MetaDirectory for an unpacked file with name path_name.
         '''
-        if is_block:
-            unpacked_path = self.unpacked_block_root / path_name
+        if is_extradata:
+            unpacked_path = self.unpacked_extradata_root / path_name
         else:
-            if path.is_absolute():
+            if path_name.is_absolute():
                 unpacked_path = self.unpacked_abs_root / path_name
             else:
                 unpacked_path = self.unpacked_rel_root / path_name
@@ -285,13 +280,13 @@ class MetaDirectory:
         return md, f
 
     @contextmanager
-    def unpack_regular_file_no_open(self, path, is_block=False):
+    def unpack_regular_file_no_open(self, path, is_extradata=False):
         '''Context manager for unpacking a file with path path into the MetaDirectory,
         yields a file name, that can be used to write data to.
         '''
         sanitized_path, is_absolute = self.sanitize_path(path)
 
-        unpacked_path = self.unpacked_path(sanitized_path, is_block)
+        unpacked_path = self.unpacked_path(sanitized_path, is_extradata)
         unpacked_md, unpacked_file = self.make_new_md_for_file(unpacked_path)
         unpacked_file.close()
 
@@ -301,8 +296,8 @@ class MetaDirectory:
         yield unpacked_md, unpacked_file.name
 
         # update info
-        if is_block:
-            self.info.setdefault('unpacked_block_files', {})[unpacked_path] = unpacked_md.md_path
+        if is_extradata:
+            self.info.setdefault('unpacked_extradata_files', {})[unpacked_path] = unpacked_md.md_path
         else:
             if absolute:
                 self.info.setdefault('unpacked_absolute_files', {})[unpacked_path] = unpacked_md.md_path
@@ -311,14 +306,14 @@ class MetaDirectory:
         log.debug(f'[{self.md_path}]unpack_regular_file: update info to {self.info}')
 
     @contextmanager
-    def unpack_regular_file(self, path, is_block=False):
+    def unpack_regular_file(self, path, is_extradata=False):
         '''Context manager for unpacking a file with path path into the MetaDirectory,
         yields a file object, that you can write to, directly or via sendfile().
         '''
 
         sanitized_path, is_absolute = self.sanitize_path(path)
 
-        unpacked_path = self.unpacked_path(sanitized_path, is_block)
+        unpacked_path = self.unpacked_path(sanitized_path, is_extradata)
         unpacked_md, unpacked_file = self.make_new_md_for_file(unpacked_path)
         try:
             yield unpacked_md, unpacked_file
@@ -330,8 +325,8 @@ class MetaDirectory:
             unpacked_md.size = unpacked_path.stat().st_size
 
         # update info
-        if is_block:
-            self.info.setdefault('unpacked_block_files', {})[unpacked_path] = unpacked_md.md_path
+        if is_extradata:
+            self.info.setdefault('unpacked_extradata_files', {})[unpacked_path] = unpacked_md.md_path
         else:
             if is_absolute:
                 self.info.setdefault('unpacked_absolute_files', {})[unpacked_path] = unpacked_md.md_path
@@ -392,7 +387,7 @@ class MetaDirectory:
 
     @property
     def unpacked_files(self):
-        return self.unpacked_relative_files | self.unpacked_absolute_files | self.unpacked_block_files
+        return self.unpacked_relative_files | self.unpacked_absolute_files | self.unpacked_extradata_files
 
     @property
     def unpacked_relative_files(self):
@@ -407,9 +402,9 @@ class MetaDirectory:
         return files
 
     @property
-    def unpacked_block_files(self):
-        files =  self.info.get('unpacked_block_files',{})
-        log.debug(f'[{self.md_path}]unpacked_block_files: got {files}')
+    def unpacked_extradata_files(self):
+        files =  self.info.get('unpacked_extradata_files',{})
+        log.debug(f'[{self.md_path}]unpacked_extradata_files: got {files}')
         return files
 
     @contextmanager
