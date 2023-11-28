@@ -838,6 +838,14 @@ class ZipEntryUnpackParser(UnpackParser):
         except (UnpackParserException, ValidationFailedError, UnicodeDecodeError, EOFError) as e:
             raise UnpackParserException(e.args)
 
+        if self.file_header.section_type == kaitai_zip.Zip.SectionTypes.dahua_local_file:
+            self.dahua = True
+        elif self.file_header.section_type == kaitai_zip.Zip.SectionTypes.instar_local_file:
+            self.instar = True
+
+        if self.file_header.body.header.flags.file_encrypted:
+            self.encrypted = True
+
         # only support regular ZIP entries for now, not ZIP64
         compressed_size = self.file_header.body.header.len_body_compressed
         uncompressed_size = self.file_header.body.header.len_body_uncompressed
@@ -847,29 +855,31 @@ class ZipEntryUnpackParser(UnpackParser):
         # then check if the file is a regular file or a directory (TODO)
         check_condition(compressed_size > 0, 'only regular files supported for now')
         check_condition(uncompressed_size > 0, 'only regular files supported for now')
-        if self.file_header.body.header.compression_method == kaitai_zip.Zip.Compression.deflated:
-            try:
-                self.decompressed_data = zlib.decompress(self.file_header.body.body, -15)
-            except Exception as e:
-                raise UnpackParserException(e.args)
-        elif self.file_header.body.header.compression_method == kaitai_zip.Zip.Compression.bzip2:
-            try:
-                self.decompressed_data = bz2.decompress(self.file_header.body.body)
-            except Exception as e:
-                raise UnpackParserException(e.args)
-        elif self.file_header.body.header.compression_method == kaitai_zip.Zip.Compression.lzma:
-            try:
-                decompressor = zipfile.LZMADecompressor()
-                self.decompressed_data = decompressor.decompress(self.file_header.body.body)
-            except Exception as e:
-                raise UnpackParserException(e.args)
-        elif self.file_header.body.header.compression_method == kaitai_zip.Zip.Compression.none:
-            self.decompressed_data = self.file_header.body.body
-        else:
-            raise UnpackParserException("unsupported compression")
 
-        check_condition(len(self.decompressed_data) == uncompressed_size,
-                        "wrong declared uncompresed size or incomplete decompression")
+        if not self.encrypted:
+            if self.file_header.body.header.compression_method == kaitai_zip.Zip.Compression.deflated:
+                try:
+                    self.decompressed_data = zlib.decompress(self.file_header.body.body, -15)
+                except Exception as e:
+                    raise UnpackParserException(e.args)
+            elif self.file_header.body.header.compression_method == kaitai_zip.Zip.Compression.bzip2:
+                try:
+                    self.decompressed_data = bz2.decompress(self.file_header.body.body)
+                except Exception as e:
+                    raise UnpackParserException(e.args)
+            elif self.file_header.body.header.compression_method == kaitai_zip.Zip.Compression.lzma:
+                try:
+                    decompressor = zipfile.LZMADecompressor()
+                    self.decompressed_data = decompressor.decompress(self.file_header.body.body)
+                except Exception as e:
+                    raise UnpackParserException(e.args)
+            elif self.file_header.body.header.compression_method == kaitai_zip.Zip.Compression.none:
+                self.decompressed_data = self.file_header.body.body
+            else:
+                raise UnpackParserException("unsupported compression")
+
+            check_condition(len(self.decompressed_data) == uncompressed_size,
+                            "wrong declared uncompresed size or incomplete decompression")
 
         file_path = pathlib.Path(self.file_header.body.header.file_name)
         file_path_parts = file_path.parts
@@ -900,9 +910,21 @@ class ZipEntryUnpackParser(UnpackParser):
                 self.file_path = self.file_path.relative_to('//')
 
     def unpack(self, meta_directory):
-        with meta_directory.unpack_regular_file(self.file_path) as (unpacked_md, outfile):
-            outfile.write(self.decompressed_data)
-            yield unpacked_md
+        if not self.encrypted:
+            with meta_directory.unpack_regular_file(self.file_path) as (unpacked_md, outfile):
+                outfile.write(self.decompressed_data)
+                yield unpacked_md
 
-    labels = ['zip_entry']
+    @property
+    def labels(self):
+        labels = ['zip_entry', 'compressed']
+        if self.encrypted:
+            labels.append('encrypted')
+        if self.dahua:
+            labels.append('dahua')
+        if self.instar:
+            labels.append('instar zip')
+
+        return labels
+
     metadata = {}
