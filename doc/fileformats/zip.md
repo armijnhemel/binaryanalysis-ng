@@ -1332,18 +1332,31 @@ directory.
 In BANG it is assumed that ZIP files are always followed by extra data and
 need to be carved, so parsing starts from the beginning of the file, instead of
 using only the central directory of the ZIP file to locate and access the
-files, although the central directory will be used by Python's `zipfile`
-module that BANG relies on.
+files.
+
+FIles are unpacked using Python's `zipfile` module so then the central
+directory will of course be used.
 
 ZIP file unpacking in BANG works as follows (simplified):
 
 1. open the file at a specific offset (namely where a local file header was
    found)
 2. go to the start of the first local file header (section 4.3.7)
+3. try to parse the entire file using the Kaitai Struct grammar
+4. extract contents using Python's `zipfile` module, unless the file
+   is encrypted
+
+If parsing using the Kaitai Struct grammar is not successful, then the
+following steps are taken (some steps are performed using Kaitai Struct,
+see the code):
+
+1. open the file at a specific offset (namely where a local file header was
+   found)
+2. go to the start of the first local file header (section 4.3.7)
 3. read and parse the data in a local file header
 4. skip the compressed data
-5. process all entries and any optional extra data such as APK signing blocks,
-   until a central directory is found (section 4.3.12)
+5. process all ZIP entries and any optional extra data such as APK signing
+   blocks, until a central directory is found (section 4.3.12)
 6. process the central directory and verify if the contents in the central
    directory correspond to the entries found in step 5.
 7. verify if there is an end of central directory (section 4.3.16)
