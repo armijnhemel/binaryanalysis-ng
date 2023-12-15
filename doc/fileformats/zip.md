@@ -270,14 +270,17 @@ unpacks both archives.
 The tools mentioned above are not the only ones that behave differently.
 Because ZIP is such a widely supported format it is likely that there are
 many tools that are implementing unpacking behaviour differently, which
-potentially gives bad actors an opportunity. In fact, a few years [malware][1]
-was discovered that tried to take advantage of this to smuggle malicious files
-past security scanners.
+potentially gives bad actors an opportunity. In fact, a few years ago
+[malware][1] was discovered that tried to take advantage of this to smuggle
+malicious files past security scanners.
 
-These examples show that even small changes using valid ZIP files can have an
-impact. In the ZIP file format there are many places where the specifications
-aren't clear or where implementations do not follow the specifications, which
-can lead to edge cases, unclarities and possibly crashes or exploits.
+These examples show that even very straightforward uses with valid ZIP files
+can confuse unpackers and lead to different results when using different
+unpackers. In the ZIP file format specification there are more places where
+the specification isn't clear. Sometimes the specifications are clear, but
+implementations do not follow the specifications or make assumptions that are
+not made in the specifications, which can lead to edge cases, unclarities and
+possibly crashes or exploits.
 
 # ZIP file internals
 
@@ -393,7 +396,8 @@ test2.zip: Zip archive data, at least v4.6 to extract, compression method=bzip2
 ```
 
 The minimum version needed to extract is recorded *per file* and inside a ZIP
-file these can be different for each file. A small example to illustrate:
+file these can be (and frequently are) different for each individual entry.
+A small example to illustrate:
 
 ```
 $ mkdir test
@@ -405,9 +409,11 @@ $ file test.zip
 test.zip: Zip archive data, at least v1.0 to extract, compression method=store
 ```
 
-This file is storing a directory (minimum version `1.0`) but compressing a file
-with the `deflate` algorithm (minimum version `2.0`). The `file` command only
-looks at the first few bytes of the file, but when using `zipinfo -v` (as well
+This file has a directory stored (minimum version needed: `1.0`) but also
+a file compressed with the `deflate` algorithm (minimum version needed: `2.0`).
+
+The `file` command only looks at the first few bytes of the file and only sees
+the metadata for the stored directory, but when using `zipinfo -v` (as well
 as when inspecting the file itself) it can clearly be seen that the minimum
 version for the file compressed with `deflate` is in fact `2.0` (output edited
 for clarity):
@@ -426,20 +432,26 @@ Central directory entry #2:
   minimum software version required to extract:   2.0
 ```
 
-When parsing a file it could be that invalid versions are encountered. The
-latest published ZIP version is `6.3` which would be stored as `0x3f` in the
-local file header.
+Mixing the different versions allow a tool to unpack the data that it can
+process, while skipping data that it cannot process.
 
-There are a few files where the minimum version has a non-existent version
-number in the local file header, but not in the central directory. As an
-example in one file the value `0x314` was observed in the local file header
-(with a normal value in the central directory).
+When parsing a file it could be that invalid minimal versions are encountered.
+The latest published ZIP version is `6.3` (section 4.4.3.2) which would be
+stored as `0x3f` in the local file header.
+
+There are a few files where the "minimum version needed" field in the local
+file header contains a non-existent version number, but the central directory
+contains a valid version number. As an example in one file the value `0x314`
+was observed in the local file header (with a normal value in the central
+directory).
 
 As long as the value of the corresponding field in the central directory is
-valid it is advised to ignore invalid versions, as the unpacking tools and
-libraries seem to rely on the data in the central directory for this field,
-not in the local file header (`unzip`), or completely ignore it (`p7zip`).
-As long as the data in the central directory is valid the file can be unpacked.
+valid it is advised to ignore invalid versions in the local file header, as
+the unpacking tools and libraries seem to rely on the data in the central
+directory for this field and not in the local file header (`unzip`), or ignore
+the field completely, regardless of what is stored in the local file header or
+the central directory (`p7zip`). A rule of thumb: as long as the data in the
+central directory is valid the file can be unpacked by the unpackers tested.
 
 This can be demonstrated by modifying the number in the local file header and
 the central directory and checking how tools behave. First create a ZIP file
@@ -529,8 +541,9 @@ Compressed: 64220
 ```
 
 The reason why `p7zip` ignores it is likely that it only looks at how the data
-is stored or compressed, determines that it can and then ignores the version
-number.
+is stored or compressed, determines that (in this case) it can unpack the data
+and then simply ignores the version number in both the local file header and
+the central directory.
 
 ### General purpose bit flag
 
@@ -542,11 +555,80 @@ the same).
 #### Encryption
 
 Entries in ZIP files can be encrypted with a variety of methods. The standard
-password encryption is weak (and prone to a known plaintext attack). If an entry
-is encryted then the "encryption" bit in the general purpose bit flag is set.
+password encryption in ZIP is weak and prone to a known plaintext attack. If an
+entry is encryted with this encryption method then the "encryption" bit in the
+general purpose bit flag should have been set.
+
 In case an encrypted entry is found and there is no password available then it
 still possible to do structural checks (extract file name, CRC32, and so on)
-and verify if the data is sound.
+and verify if the data is sound and skip the encrypted data, while unpacking
+data that has not been encrypted (such as directories, which are only stored).
+
+This can be easily demonstrated by building an encrypted ZIP file with a file
+inside a directory:
+
+```
+$ zip -r test.zip test -e -Ptest
+  adding: test/ (stored 0%)
+  adding: test/ls (deflated 55%)
+```
+
+and then extracting it with `unzip`. If the correct password is not given the
+directory (which has not been encrypted, but merely stored) will still be
+unpacked/created:
+
+```
+$ unzip test.zip
+Archive:  test.zip
+   creating: test/
+[test.zip] test/ls password:
+   skipping: test/ls                 incorrect password
+```
+
+and no files will have been unpacked:
+
+```
+$ ls test/ | wc -l
+0
+```
+
+Interestingly, and unlike `unzip`, when running `p7zip` an empty placeholder
+file will be created:
+
+```
+$ 7z x test.zip
+
+7-Zip [64] 16.02 : Copyright (c) 1999-2016 Igor Pavlov : 2016-05-21
+p7zip Version 16.02 (locale=en_US.UTF-8,Utf16=on,HugeFiles=on,64 bits,8 CPUs Intel(R) Core(TM) i7-6770HQ CPU @ 2.60GHz (506E3),ASM,AES-NI)
+
+Scanning the drive for archives:
+1 file, 64388 bytes (63 KiB)
+
+Extracting archive: test.zip
+--
+Path = test.zip
+Type = zip
+Physical Size = 64388
+
+
+Enter password (will not be echoed):
+ERROR: Wrong password : test/ls
+
+Sub items Errors: 1
+
+Archives with Errors: 1
+
+Sub items Errors: 1
+```
+
+The directory `test` will now contain an empty file:
+
+```
+$ find test/ -type f | wc -l
+1
+$ du -h test/ls
+0	test/ls
+```
 
 Other encryption methods are stronger. Depending on the encryption method the
 encryption bit flag might or might not be set. For example: for AE-x it will
