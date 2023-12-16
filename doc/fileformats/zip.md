@@ -683,7 +683,7 @@ $ du -h test/ls
 Other encryption methods are stronger. Depending on the encryption method the
 encryption bit flag might or might not be set. For example: for AE-x it will
 be set (APPENDIX E), while for other encryption methods it might not. The flag
-should not be used as the sole indicator of encrypption.
+should not be used as the sole indicator of encryption.
 
 #### Data descriptor
 
