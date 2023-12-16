@@ -298,9 +298,9 @@ types:
       zip64_end_of_central_dir_body:
         seq:
           - id: version_made_by
-            type: u2
+            type: version
           - id: version_needed_to_extract
-            type: u2
+            type: version
           - id: this_disk
             type: u4
             doc: number of this disk
