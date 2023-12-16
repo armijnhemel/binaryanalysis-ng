@@ -370,11 +370,6 @@ program writing the ZIP file needs to set the version needed to extract to
 `4.5` or higher. The list of minimum feature versions that have been defined
 can be found in section 4.4.3.
 
-In the local file header the version number is not split in "major/minor" (like
-in section 4.4.3), but stored in a different way. To get back to the version in
-section 4.4.3 the value has to be divided by `10`.  For example, "version 4.6"
-will be stored as `0x2e` (`46`) in the file header.
-
 Storing a file in a ZIP archive with the `store` method (which only stores it
 without any compression) requires version `1.0` to be supported:
 
@@ -435,23 +430,75 @@ Central directory entry #2:
 Mixing the different versions allow a tool to unpack the data that it can
 process, while skipping data that it cannot process.
 
-When parsing a file it could be that invalid minimal versions are encountered.
-The latest published ZIP version is `6.3` (section 4.4.3.2) which would be
-stored as `0x3f` in the local file header.
+When reading the ZIP specifications superficially it is easy to miss that the
+version flag is actually not a pure version number, but can also contain some
+information about the host operating system where the ZIP file was created.
+This is explained in sections 4.4.2 and 4.4.3. The upper byte contains the
+information about the host operating system or file systems (around 20 have
+been defined).
 
-There are a few files where the "minimum version needed" field in the local
-file header contains a non-existent version number, but the central directory
-contains a valid version number. As an example in one file the value `0x314`
-was observed in the local file header (with a normal value in the central
-directory).
+The lower byte contains the actual version number. The version number is not
+split in "major/minor" (like in section 4.4.3), but stored in a different way.
+To get back to the version in section 4.4.3 the value has to be divided by
+`10`. For example, "version 4.6" will be stored as `0x2e` (`46`) in the file
+header.
 
-As long as the value of the corresponding field in the central directory is
-valid it is advised to ignore invalid versions in the local file header, as
-the unpacking tools and libraries seem to rely on the data in the central
-directory for this field and not in the local file header (`unzip`), or ignore
-the field completely, regardless of what is stored in the local file header or
-the central directory (`p7zip`). A rule of thumb: as long as the data in the
-central directory is valid the file can be unpacked by the unpackers tested.
+When a ZIP file is created the program that creates the ZIP file can choose
+to store the host operating system. Not every tool does this: when using
+`unzip` on Linux the host operating system is set to `0`, but `p7zip` sets
+it to `3` (Unix), as shown by the following example.
+
+The version of `p7zip` used is:
+
+```
+$ 7z
+
+7-Zip [64] 16.02 : Copyright (c) 1999-2016 Igor Pavlov : 2016-05-21
+p7zip Version 16.02 (locale=en_US.UTF-8,Utf16=on,HugeFiles=on,64 bits,8 CPUs Intel(R) Core(TM) i7-6770HQ CPU @ 2.60GHz (506E3),ASM,AES-NI)
+```
+
+The following command adds the file `ls` to a file `ls.zip`:
+
+```
+$ 7z a -tZIP -Pbla ls.zip ls
+```
+
+This creates a regular ZIP file:
+
+```
+$ file ls.zip
+ls.zip: Zip archive data, at least v2.0 to extract, compression method=deflate
+```
+
+The hexadecimal output of the first line of the file looks like this:
+
+```
+$ hexdump -C ls.zip | head -n 1
+00000000  50 4b 03 04 14 03 01 00  08 00 cc a1 8f 57 57 35  |PK...........WW5|
+```
+
+The "minimum version needed to extract" can be found in bytes 5 and 6.
+this file the version is `0x314`. The upper byte is the host operating system
+(`3`, corresponding to Unix) and the actual version is `0x14` (`20`) which
+translates to version `2.0`.
+
+The hexadecimal output of a similar file with the same contents made with
+`unzip` looks like this:
+
+```
+00000000  50 4b 03 04 14 00 09 00  08 00 cc a1 8f 57 57 35  |PK...........WW5|
+```
+
+Here the version is `0x14` (`20`, corresponding to `2.0` in table 4.4.3.2).
+
+The different programs seem to ignore the upper byte (host operating system)
+even if the value in there is not one that is in the ZIP specification. The
+lower byte (with the actual version) is checked somewhat, depending on the
+program. As it turns out: the value in the local file header does not matter
+at all for `unzip`: it looks at the corresponding field in the central
+directory instead. As long as the value in the central directory is valid
+`unzip` will unpack it. If it isn't then `unzip` refuses to unpack it. `p7zip`
+completely ignores the field.
 
 This can be demonstrated by modifying the number in the local file header and
 the central directory and checking how tools behave. First create a ZIP file
@@ -544,6 +591,9 @@ The reason why `p7zip` ignores it is likely that it only looks at how the data
 is stored or compressed, determines that (in this case) it can unpack the data
 and then simply ignores the version number in both the local file header and
 the central directory.
+
+A rule of thumb: as long as the data in the central directory is valid the file
+can be unpacked by the unpackers tested.
 
 ### General purpose bit flag
 
@@ -709,7 +759,7 @@ with and without signature. The 64 bit without signature variant has not been
 encountered so far.
 
 Good test files to find a data descriptor (with signature) are many Android APK
-files from (fairly) recent devices.
+files from (fairly) recent devices, or encrypted files created with `zip`.
 
 ### Compression method
 
