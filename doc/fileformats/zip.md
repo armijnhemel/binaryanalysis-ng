@@ -497,9 +497,11 @@ The hexadecimal output of a similar file with the same contents made with
 
 Here the version is `0x14` (`20`, corresponding to `2.0` in table 4.4.3.2).
 
-The different programs seem to ignore the upper byte (host operating system)
-even if the value in there is not one that is in the ZIP specification. The
-lower byte (with the actual version) is checked somewhat, depending on the
+`unzip` and `p7zip` seem to ignore the upper byte (host operating system)
+even if the value used is not in the ZIP specification (BANG actually does
+verify if it is valid).
+
+The lower byte (with the actual version) is checked somewhat, depending on the
 program. As it turns out: the value in the local file header does not matter
 at all for `unzip`: it looks at the corresponding field in the central
 directory instead. As long as the value in the central directory is valid
