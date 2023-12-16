@@ -600,8 +600,10 @@ enums:
     0x0023: smartcrypt_policy_key_data
     0x0065: ibm_s390_uncomp
     0x0066: ibm_s390_comp
+    0x10c5: minizip_ng_sign
     # https://github.com/PixarAnimationStudios/USD/blob/4d8a92af5a26f7f/pxr/usd/usd/zipFile.cpp#L451
     0x1986: usd
+    0x1a51: minizip_ng_hash
     0x4690: poszip_4690
     0x5455: extended_timestamp
     0x554e: xceed_unicode
@@ -619,6 +621,7 @@ enums:
     0xa220: microsoft_open_packaging_growth_hint
     # http://hg.openjdk.java.net/jdk7/jdk7/jdk/file/00cd9dc3c2b5/src/share/classes/java/util/jar/JarOutputStream.java#l46
     0xcafe: java_jar
+    0xcdcd: minizip_ng_central_directory
     # https://android.googlesource.com/platform/tools/apksig/+/87d6acee83378201b/src/main/java/com/android/apksig/ApkSigner.java#74
     # https://developer.android.com/studio/command-line/zipalign
     0xd935: zip_align
