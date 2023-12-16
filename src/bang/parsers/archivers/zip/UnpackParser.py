@@ -60,7 +60,7 @@ from kaitaistruct import ValidationFailedError
 from . import zip as kaitai_zip
 
 MIN_VERSION = 0
-MAX_VERSION = 90
+MAX_VERSION = 63
 
 # all known ZIP headers
 ARCHIVE_EXTRA_DATA = b'PK\x06\x08'
@@ -321,20 +321,13 @@ class ZipUnpackParser(UnpackParser):
                 compressed_size = file_header.body.header.len_body_compressed
                 uncompressed_size = file_header.body.header.len_body_uncompressed
 
-                known_broken_zip_version = False
+                zip_version = file_header.body.header.version.version
 
-                # some files observed in the wild have a weird version
-                if file_header.body.header.version in [0x30a, 0x314]:
-                    known_broken_zip_version = True
+                check_condition(zip_version >= MIN_VERSION,
+                                "invalid ZIP version %d" % zip_version)
 
-                check_condition(file_header.body.header.version >= MIN_VERSION,
-                                "invalid ZIP version %d" % file_header.body.header.version)
-
-                if not known_broken_zip_version:
-                    check_condition(file_header.body.header.version <= MAX_VERSION,
-                                    "invalid ZIP version %d" % file_header.body.header.version)
-
-                zip_version = file_header.body.header.version
+                check_condition(zip_version <= MAX_VERSION,
+                                "invalid ZIP version %d" % zip_version)
 
                 if file_header.body.header.flags.file_encrypted:
                     self.encrypted = True
@@ -363,7 +356,7 @@ class ZipUnpackParser(UnpackParser):
                             # ZIP64, section 4.5.3
                             # according to 4.4.3.2 PKZIP 4.5 or later is
                             # needed to unpack ZIP64 files.
-                            check_condition(file_header.body.header.version >= 45, "wrong minimal needed version for ZIP64")
+                            check_condition(zip_version >= 45, "wrong minimal needed version for ZIP64")
 
                             # according to the official ZIP specifications the length of the
                             # header should be 28, but there are files where this field is

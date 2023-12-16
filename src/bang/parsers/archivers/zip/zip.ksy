@@ -126,7 +126,7 @@ types:
   local_file_header:
     seq:
       - id: version
-        type: u2
+        type: version
       - id: flags
         type: gp_flags
         size: 2
@@ -217,9 +217,9 @@ types:
     doc-ref: https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT - 4.3.12
     seq:
       - id: version_made_by
-        type: u2
+        type: version
       - id: version_needed_to_extract
-        type: u2
+        type: version
       - id: flags
         type: u2
       - id: compression_method
@@ -503,6 +503,35 @@ types:
         seq:
           - id: code_page
             type: u4
+  version:
+    seq:
+      - id: version
+        type: u1
+      - id: host_system
+        type: u1
+        enum: version_mapping
+        valid:
+          any-of:
+            - version_mapping::msdos
+            - version_mapping::amiga
+            - version_mapping::openvms
+            - version_mapping::unix
+            - version_mapping::vm_cms
+            - version_mapping::atari_st
+            - version_mapping::os2_hpfs
+            - version_mapping::macintosh
+            - version_mapping::z_system
+            - version_mapping::cp_m
+            - version_mapping::windows_ntfs
+            - version_mapping::mvs
+            - version_mapping::vse
+            - version_mapping::acorn_risc
+            - version_mapping::vfat
+            - version_mapping::alternate_mvs
+            - version_mapping::beos
+            - version_mapping::tandem
+            - version_mapping::os_400
+            - version_mapping::os_x
 enums:
   compression:
     0: none
@@ -526,6 +555,28 @@ enums:
     97: wavpack
     98: ppmd
     99: aex_encryption_marker
+  version_mapping:
+    # sections 4.4.2 and 4.4.3
+    0: msdos
+    1: amiga
+    2: openvms
+    3: unix
+    4: vm_cms
+    5: atari_st
+    6: os2_hpfs
+    7: macintosh
+    8: z_system
+    9: cp_m
+    10: windows_ntfs
+    11: mvs
+    12: vse
+    13: acorn_risc
+    14: vfat
+    15: alternate_mvs
+    16: beos
+    17: tandem
+    18: os_400
+    19: os_x
   extra_codes:
     # https://github.com/LuaDist/zip/blob/b710806/proginfo/extrafld.txt
     0x0001: zip64
