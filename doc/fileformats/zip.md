@@ -271,8 +271,8 @@ The tools mentioned above are not the only ones that behave differently.
 Because ZIP is such a widely supported format it is likely that there are
 many tools that are implementing unpacking behaviour differently, which
 potentially gives bad actors an opportunity. In fact, a few years ago
-[malware][1] was discovered that tried to take advantage of this to smuggle
-malicious files past security scanners.
+[malware][double_loaded] was discovered that tried to take advantage of this
+to smuggle malicious files past security scanners.
 
 These examples show that even very straightforward uses with valid ZIP files
 can confuse unpackers and lead to different results when using different
@@ -298,7 +298,9 @@ file data).
 All of the information in the local file header (except the signature) is
 replicated in the corresponding central directory header for the file (but the
 central directory header will contain also includes some more information). In
-a well formed ZIP file these are corresponding.
+a well formed ZIP file these are corresponding. Depending on the field and the
+program used for unpacking the data in the local file header might be just
+informational, or will be completely ignored.
 
 According to the specification there should be a central directory header
 for every local file header:
@@ -345,6 +347,10 @@ The static part is followed by a variable part:
 file name (variable size)
 extra field (variable size)
 ```
+
+There is a lot of overlap with the "central directory" records which is leading
+when unpacking data, so many descriptions below will discuss the field for both
+the local file header and the central directory where applicable.
 
 ### Local file header signature
 
@@ -1047,7 +1053,311 @@ Traceback (most recent call last):
 struct.error: ushort format requires 0 <= number <= (0x7fff * 2 + 1)
 ```
 
+### File name
+
+The file name in ZIP files is defined as follows:
+
+```
+4.4.17.1 The name of the file, with optional relative path.
+The path stored MUST NOT contain a drive or
+device letter, or a leading slash.  All slashes
+MUST be forward slashes '/' as opposed to
+backwards slashes '\' for compatibility with Amiga
+and UNIX file systems etc.  If input came from standard
+input, there is no file name field.
+```
+
+When the ZIP file format was created the only supported characters were the
+ones defined in [IBM Code Page 437][code_page_437] as UTF-8 hadn't been
+invented yet. Appendix D in the specification describes how to work with
+filenames with other characters.
+
+Say we have a file name with an UTF-8 file name and add it to a ZIP file:
+
+```
+$ zip -r test-korean.zip ㅋㅋㅋ
+  adding: ㅋㅋㅋ (stored 0%)
+```
+
+#### Directory names
+
+Most (not all) ZIP implementations rely on names of directories being stored
+with a `/` at the end of the entry name, even though the official ZIP
+specification does not mention that a `/` is mandatory for a directory. At some
+point this just became a convention. For example, the .NET API seems to rely on
+it:
+
+<https://github.com/PowerShell/Microsoft.PowerShell.Archive/blob/b783599348e726069f17b90bd490f4f856f661f6/src/ZipArchive.cs#L43>
+<https://github.com/dotnet/runtime/blob/96a0fb1cd6210fc4842f32f549870a1d82e95c6f/src/libraries/System.IO.Compression.ZipFile/src/System/IO/Compression/ZipFile.Create.cs#L394>
+
+as does `unzip` (comment from `zip30.tar.gz`, file `unix/unix.c`, line 163):
+
+```
+/* Add trailing / to the directory name */
+```
+
+Python's `zipfile` module also requires it. `p7zip` on the other hand does not.
+
+There actually are some ZIP files that contain files where directory names do
+not end in `/` and where most implementations fail: instead of creating a
+directory a zero byte file with the same name as the directory is written.
+Despite bug reports having been filed this is still a problem. A bug report can
+be found at:
+
+<http://web.archive.org/web/20190814185417/https://bugzilla.redhat.com/show_bug.cgi?id=907442>
+
+Trying to unpack the file mentioned in this bug report leads to the following
+error with `unzip`:
+
+```
+$ unzip 1_06_03P.zip
+Archive:  1_06_03P.zip
+ extracting: online_upgrade_img
+checkdir error:  online_upgrade_img exists but is not directory
+                 unable to process online_upgrade_img/bp28v_md5.
+checkdir error:  online_upgrade_img exists but is not directory
+                 unable to process online_upgrade_img/bp28_md5.
+checkdir error:  online_upgrade_img exists but is not directory
+                 unable to process online_upgrade_img/emergency_recovery.sh.
+checkdir error:  online_upgrade_img exists but is not directory
+                 unable to process online_upgrade_img/J120.bp28.
+checkdir error:  online_upgrade_img exists but is not directory
+                 unable to process online_upgrade_img/machine_type.
+checkdir error:  online_upgrade_img exists but is not directory
+                 unable to process online_upgrade_img/md5.
+checkdir error:  online_upgrade_img exists but is not directory
+                 unable to process online_upgrade_img/ouimg.bin.
+checkdir error:  online_upgrade_img exists but is not directory
+                 unable to process online_upgrade_img/ouimg.ver.
+checkdir error:  online_upgrade_img exists but is not directory
+                 unable to process online_upgrade_img/OU_Burner.
+checkdir error:  online_upgrade_img exists but is not directory
+                 unable to process online_upgrade_img/Software_Version.
+checkdir error:  online_upgrade_img exists but is not directory
+                 unable to process online_upgrade_img/V10X.bp28v.
+```
+
+`p7zip` will correctly unpack the archive:
+
+```
+$ 7z x 1_06_03P.zip
+
+7-Zip [64] 16.02 : Copyright (c) 1999-2016 Igor Pavlov : 2016-05-21
+p7zip Version 16.02 (locale=en_US.UTF-8,Utf16=on,HugeFiles=on,64 bits,8 CPUs Intel(R) Core(TM) i7-6770HQ CPU @ 2.60GHz (506E3),ASM,AES-NI)
+
+Scanning the drive for archives:
+1 file, 180253537 bytes (172 MiB)
+
+Extracting archive: 1_06_03P.zip
+--
+Path = 1_06_03P.zip
+Type = zip
+Physical Size = 180253537
+
+Everything is Ok
+
+Folders: 1
+Files: 12
+Size:       190915623
+Compressed: 180253537
+```
+
+As BANG depends on Python's `zipfile` module (which cannot correctly unpack
+these files) some workarounds are needed by first looking at the "external file
+attributes" field from the central directory (section 4.3.12) and checking if
+the low order byte corresponds to the MS-DOS directory attribute byte (section
+4.4.15) while also checking that the size recorded for the file is 0 and that
+Python's `zipfile` module does not recognize the file as a directory. If this
+is the case, then the directory is not unpacked with Python's `zipfile` module,
+but a directory with the name of the entry is created instead.
+
+This might not be entirely fool proof, but it seems to be such a very rare edge
+case that so far only one example has been found in the wild.
+
+#### Absolute path names
+
+The use of absolute paths in file names is not allowed according to the
+specifications:
+
+```
+The path stored MUST NOT contain a drive or
+device letter, or a leading slash.
+```
+
+In `unzip` it is not possible to create a file with absolute paths, but
+creating a file with a leading slash (or even multiple) is absolutely no
+problem using Python's `zipfile` module:
+
+```
+>>> import zipfile
+>>> z = zipfile.ZipInfo('/tmp/absolute')
+>>> contents = 10*b'c'
+>>> bla = zipfile.ZipFile('/tmp/bla.zip', mode='w')
+>>> bla.writestr(z, contents)
+>>> bla.close()
+```
+
+`unzip` will unpack this to a relative path but also issue a warning:
+
+```
+$ unzip /tmp/bla.zip
+Archive:  /tmp/bla.zip
+warning:  stripped absolute path spec from /tmp/absolute
+ extracting: tmp/absolute
+```
+
+`p7zip` will also correctly unpack the file, but not issue a warning:
+
+```
+$ 7z x /tmp/bla.zip
+
+7-Zip [64] 16.02 : Copyright (c) 1999-2016 Igor Pavlov : 2016-05-21
+p7zip Version 16.02 (locale=en_US.UTF-8,Utf16=on,HugeFiles=on,64 bits,8 CPUs Intel(R) Core(TM) i7-6770HQ CPU @ 2.60GHz (506E3),ASM,AES-NI)
+
+Scanning the drive for archives:
+1 file, 134 bytes (1 KiB)
+
+Extracting archive: /tmp/bla.zip
+--
+Path = /tmp/bla.zip
+Type = zip
+Physical Size = 134
+
+Everything is Ok
+
+Size:       10
+Compressed: 134
+```
+
+#### Names containing current or parent directories
+
+The ZIP specifications do not say anything about paths containing the current
+directory (`.`) or the parent directory (`..`). The only thing that is said is:
+
+```
+The name of the file, with optional relative path.
+The path stored MUST NOT contain a drive or
+device letter, or a leading slash.
+```
+
+As both `.` and `..` are relative paths this could be interpreted
+to read that that these paths are valid.
+
+Creating a file with any of these paths is trivial using Python's `zipfile`
+module:
+
+```
+>>> import zipfile
+>>> z = zipfile.ZipInfo('../../.././tmp/relative')
+>>> contents = 10*b'c'
+>>> bla = zipfile.ZipFile('/tmp/bla.zip', mode='w')
+>>> bla.writestr(z, contents)
+>>> bla.close()
+```
+
+The relative path with the current and parent directory will be stored in the
+file:
+
+```
+$ unzip -l /tmp/bla.zip
+Archive:  /tmp/bla.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+       10  01-01-1980 00:00   ../../.././tmp/relative
+---------                     -------
+       10                     1 file
+```
+
+`unzip` processes this file but issues a warning:
+
+```
+$ unzip /tmp/bla.zip
+Archive:  /tmp/bla.zip
+warning:  skipped "../" path component(s) in ../../.././tmp/relative
+ extracting: tmp/relative
+```
+
+`p7zip` extracts the file without a warning.
+
+Both implementations will strip all `..` components and basically rewrite
+the filename from `../../.././tmp/relative` to `tmp/relative`.
+
+Other ZIP implementations might not and this could be used for a path traversal
+attack. This actually a very old attack [dating back to 1991][phrack] although
+it was [rediscovered in 2018 as Zip Slip][zip_slip] with
+[many implementations affected][zip_slip_2].
+
+#### Multiple entries with the same name
+
+It is possible to have multiple entries in the same ZIP file, with different
+properties, for example a copy of a file, and a link with the same name. It
+is unclear how these conflicts should be resolved.
+
+A simple test script to add a file with the same entries:
+
+```
+#!/usr/bin/env python3
+
+import zipfile
+
+z = zipfile.ZipInfo(4*'a')
+contents = 10*b'c'
+bla = zipfile.ZipFile('/tmp/bla.zip', mode='w')
+bla.writestr(z, contents)
+bla.writestr(z, contents)
+bla.writestr(z, contents)
+bla.close()
+```
+
+This script adds a file called `aaaa` to an archive three times. When running
+this script Python's `zipfile` module issues a warning:
+
+```
+$ python3 test.py
+/usr/lib64/python3.10/zipfile.py:1519: UserWarning: Duplicate name: 'aaaa'
+  return self._open_to_write(zinfo, force_zip64=force_zip64)
+```
+
+but it will write the file with three files, as can be seen when running
+`zipinfo`:
+
+```
+$ zipinfo bla.zip
+Archive:  bla.zip
+Zip file size: 304 bytes, number of entries: 3
+?rw-------  2.0 unx       10 b- stor 80-Jan-01 00:00 aaaa
+?rw-------  2.0 unx       10 b- stor 80-Jan-01 00:00 aaaa
+?rw-------  2.0 unx       10 b- stor 80-Jan-01 00:00 aaaa
+3 files, 30 bytes uncompressed, 30 bytes compressed:  0.0%
+```
+
+`unzip` refuses to unpack the file more than once, except when forced:
+
+```
+$ unzip bla.zip
+Archive:  bla.zip
+ extracting: aaaa
+error: invalid zip file with overlapped components (possible zip bomb)
+ To unzip the file anyway, rerun the command with UNZIP_DISABLE_ZIPBOMB_DETECTION=TRUE environmnent variable
+```
+
+When the environment variable is set the user will be asked what to do (here
+the `All` option was chosen):
+
+```
+$ UNZIP_DISABLE_ZIPBOMB_DETECTION=TRUE unzip bla.zip
+Archive:  bla.zip
+ extracting: aaaa
+replace aaaa? [y]es, [n]o, [A]ll, [N]one, [r]ename: A
+ extracting: aaaa
+ extracting: aaaa
+```
+
+`p7zip` will also query the user whether to overwrite the files or not.
+
 ### Extra fields
+
+## File data
 
 ## End of central directory
 
@@ -1185,275 +1495,6 @@ bla.zip: Zip archive data, at least v4.5 to extract, compression method=deflate
 At the end of the file the ZIP64 end of central directory record and the ZIP64
 end of central directory locator can be found at the end of the file.
 
-## Directories unpacked as regular files
-
-Most (not all) ZIP implementations rely on names of directories being stored
-with a `/` at the end of the entry name, even though the official ZIP
-specification does not mention that a `/` is mandatory for a directory. It
-seems that at some point this just became a convention. For example, the
-.NET API seems to rely on it:
-
-<https://github.com/PowerShell/Microsoft.PowerShell.Archive/blob/b783599348e726069f17b90bd490f4f856f661f6/src/ZipArchive.cs#L43>
-<https://github.com/dotnet/runtime/blob/96a0fb1cd6210fc4842f32f549870a1d82e95c6f/src/libraries/System.IO.Compression.ZipFile/src/System/IO/Compression/ZipFile.Create.cs#L394>
-
-as does `unzip` (comment from `zip30.tar.gz`, file `unix/unix.c`, line 163):
-
-```
-/* Add trailing / to the directory name */
-```
-
-Python's `zipfile` module also requires it. `p7zip` on the other hand does not.
-
-There actually are some ZIP files that contain files where directory names do
-not end in `/` and where most implementations fail: instead of creating a
-directory a zero byte file with the same name as the directory is written.
-Despite bug reports having been filed this is still a problem. A bug report can
-be found at:
-
-<http://web.archive.org/web/20190814185417/https://bugzilla.redhat.com/show_bug.cgi?id=907442>
-
-Trying to unpack the file mentioned in this bug report leads to the following
-error with `unzip`:
-
-```
-$ unzip 1_06_03P.zip
-Archive:  1_06_03P.zip
- extracting: online_upgrade_img
-checkdir error:  online_upgrade_img exists but is not directory
-                 unable to process online_upgrade_img/bp28v_md5.
-checkdir error:  online_upgrade_img exists but is not directory
-                 unable to process online_upgrade_img/bp28_md5.
-checkdir error:  online_upgrade_img exists but is not directory
-                 unable to process online_upgrade_img/emergency_recovery.sh.
-checkdir error:  online_upgrade_img exists but is not directory
-                 unable to process online_upgrade_img/J120.bp28.
-checkdir error:  online_upgrade_img exists but is not directory
-                 unable to process online_upgrade_img/machine_type.
-checkdir error:  online_upgrade_img exists but is not directory
-                 unable to process online_upgrade_img/md5.
-checkdir error:  online_upgrade_img exists but is not directory
-                 unable to process online_upgrade_img/ouimg.bin.
-checkdir error:  online_upgrade_img exists but is not directory
-                 unable to process online_upgrade_img/ouimg.ver.
-checkdir error:  online_upgrade_img exists but is not directory
-                 unable to process online_upgrade_img/OU_Burner.
-checkdir error:  online_upgrade_img exists but is not directory
-                 unable to process online_upgrade_img/Software_Version.
-checkdir error:  online_upgrade_img exists but is not directory
-                 unable to process online_upgrade_img/V10X.bp28v.
-```
-
-`p7zip` will correctly unpack the archive:
-
-```
-$ 7z x 1_06_03P.zip
-
-7-Zip [64] 16.02 : Copyright (c) 1999-2016 Igor Pavlov : 2016-05-21
-p7zip Version 16.02 (locale=en_US.UTF-8,Utf16=on,HugeFiles=on,64 bits,8 CPUs Intel(R) Core(TM) i7-6770HQ CPU @ 2.60GHz (506E3),ASM,AES-NI)
-
-Scanning the drive for archives:
-1 file, 180253537 bytes (172 MiB)
-
-Extracting archive: 1_06_03P.zip
---
-Path = 1_06_03P.zip
-Type = zip
-Physical Size = 180253537
-
-Everything is Ok
-
-Folders: 1
-Files: 12
-Size:       190915623
-Compressed: 180253537
-```
-
-As BANG depends on Python's `zipfile` module (which cannot correctly unpack
-these files) some workarounds are needed by first looking at the "external file
-attributes" field from the central directory (section 4.3.12) and checking if
-the low order byte corresponds to the MS-DOS directory attribute byte (section
-4.4.15) while also checking that the size recorded for the file is 0 and that
-Python's `zipfile` module does not recognize the file as a directory. If this
-is the case, then the directory is not unpacked with Python's `zipfile` module,
-but a directory with the name of the entry is created instead.
-
-This might not be entirely fool proof, but it seems to be such a very rare edge
-case that so far only one example has been found in the wild.
-
-## Absolute paths
-
-The use of absolute paths in file names is not allowed according to the
-specifications:
-
-```
-4.4.17.1 The name of the file, with optional relative path.
-The path stored MUST NOT contain a drive or
-device letter, or a leading slash.  All slashes
-MUST be forward slashes '/' as opposed to
-backwards slashes '\' for compatibility with Amiga
-and UNIX file systems etc.  If input came from standard
-input, there is no file name field.
-```
-
-In `unzip` it is not possible to create a file with absolute paths, but
-creating a file with a leading slash (or even multiple) is absolutely no
-problem using Python's `zipfile` module:
-
-```
->>> import zipfile
->>> z = zipfile.ZipInfo('/tmp/absolute')
->>> contents = 10*b'c'
->>> bla = zipfile.ZipFile('/tmp/bla.zip', mode='w')
->>> bla.writestr(z, contents)
->>> bla.close()
-```
-
-`unzip` will unpack this to a relative path but also issue a warning:
-
-```
-$ unzip /tmp/bla.zip
-Archive:  /tmp/bla.zip
-warning:  stripped absolute path spec from /tmp/absolute
- extracting: tmp/absolute
-```
-
-`p7zip` will also correctly unpack the file, but not issue a warning:
-
-```
-$ 7z x /tmp/bla.zip
-
-7-Zip [64] 16.02 : Copyright (c) 1999-2016 Igor Pavlov : 2016-05-21
-p7zip Version 16.02 (locale=en_US.UTF-8,Utf16=on,HugeFiles=on,64 bits,8 CPUs Intel(R) Core(TM) i7-6770HQ CPU @ 2.60GHz (506E3),ASM,AES-NI)
-
-Scanning the drive for archives:
-1 file, 134 bytes (1 KiB)
-
-Extracting archive: /tmp/bla.zip
---
-Path = /tmp/bla.zip
-Type = zip
-Physical Size = 134
-
-Everything is Ok
-
-Size:       10
-Compressed: 134
-```
-
-## Paths containing current or parent directories
-
-The ZIP specifications do not say anything about paths containing the current
-directory (`.`) or the parent directory (`..`), so it is assumed that these
-paths are valid. Creating such a file is trivial:
-
-```
->>> import zipfile
->>> z = zipfile.ZipInfo('../../.././tmp/relative')
->>> contents = 10*b'c'
->>> bla = zipfile.ZipFile('/tmp/bla.zip', mode='w')
->>> bla.writestr(z, contents)
->>> bla.close()
-```
-
-The relative path with the current and parent directory will be stored in the
-file:
-
-```
-$ unzip -l /tmp/bla.zip
-Archive:  /tmp/bla.zip
-  Length      Date    Time    Name
----------  ---------- -----   ----
-       10  01-01-1980 00:00   ../../.././tmp/relative
----------                     -------
-       10                     1 file
-```
-
-`unzip` processes this file but issues a warning:
-
-```
-$ unzip /tmp/bla.zip
-Archive:  /tmp/bla.zip
-warning:  skipped "../" path component(s) in ../../.././tmp/relative
- extracting: tmp/relative
-```
-
-`p7zip` extracts the file without a warning.
-
-Both implementations simply strip all `..` components and basically rewrite
-the filename from `../../.././tmp/relative` to `tmp/relative`.
-
-Other ZIP implementations might not and this could be used for a path traversal
-attack. This actually a very old attack [dating back to 1991][2] although it was
-[rediscovered in 2018 as Zip Slip][3] with [many implementations affected][4].
-
-## Multiple entries with the same name
-
-It is possible to have multiple entries in the same ZIP file, with different
-properties, for example a copy of a file, and a link with the same name. It
-is unclear how these conflicts should be resolved.
-
-A simple test script to add a file with the same entries:
-
-```
-#!/usr/bin/env python3
-
-import zipfile
-
-z = zipfile.ZipInfo(4*'a')
-contents = 10*b'c'
-bla = zipfile.ZipFile('/tmp/bla.zip', mode='w')
-bla.writestr(z, contents)
-bla.writestr(z, contents)
-bla.writestr(z, contents)
-bla.close()
-```
-
-This script adds a file called `aaaa` to an archive three times. When running
-this script Python's `zipfile` module issues a warning:
-
-```
-$ python3 test.py
-/usr/lib64/python3.10/zipfile.py:1519: UserWarning: Duplicate name: 'aaaa'
-  return self._open_to_write(zinfo, force_zip64=force_zip64)
-```
-
-but it will write the file with three files, as can be seen when running
-`zipinfo`:
-
-```
-$ zipinfo bla.zip
-Archive:  bla.zip
-Zip file size: 304 bytes, number of entries: 3
-?rw-------  2.0 unx       10 b- stor 80-Jan-01 00:00 aaaa
-?rw-------  2.0 unx       10 b- stor 80-Jan-01 00:00 aaaa
-?rw-------  2.0 unx       10 b- stor 80-Jan-01 00:00 aaaa
-3 files, 30 bytes uncompressed, 30 bytes compressed:  0.0%
-```
-
-`unzip` refuses to unpack the file more than once, except when forced:
-
-```
-$ unzip bla.zip
-Archive:  bla.zip
- extracting: aaaa
-error: invalid zip file with overlapped components (possible zip bomb)
- To unzip the file anyway, rerun the command with UNZIP_DISABLE_ZIPBOMB_DETECTION=TRUE environmnent variable
-```
-
-When the environment variable is set the user will be asked what to do (here
-the `All` option was chosen):
-
-```
-$ UNZIP_DISABLE_ZIPBOMB_DETECTION=TRUE unzip bla.zip
-Archive:  bla.zip
- extracting: aaaa
-replace aaaa? [y]es, [n]o, [A]ll, [N]one, [r]ename: A
- extracting: aaaa
- extracting: aaaa
-```
-
-`p7zip` will also query the user whether to overwrite the files or not.
-
 ## Mismatches between central directory and actual files
 
 There could be more file entries in the archive than listed in the central
@@ -1500,7 +1541,8 @@ see the code):
 This (simplified) workflow is enough to process almost all ZIP files found
 in firmware archives.
 
-[1]:https://web.archive.org/web/20191107134232/https://www.trustwave.com/en-us/resources/blogs/spiderlabs-blog/double-loaded-zip-file-delivers-nanocore/
-[2]:http://phrack.org/issues/34/5.html
-[3]:https://security.snyk.io/research/zip-slip-vulnerability
-[4]:https://github.com/snyk/zip-slip-vulnerability
+[double_loaded]:https://web.archive.org/web/20191107134232/https://www.trustwave.com/en-us/resources/blogs/spiderlabs-blog/double-loaded-zip-file-delivers-nanocore/
+[phrack]:http://phrack.org/issues/34/5.html
+[zip_slip]:https://security.snyk.io/research/zip-slip-vulnerability
+[zip_slip_2]:https://github.com/snyk/zip-slip-vulnerability
+[code_page_437]:https://en.wikipedia.org/wiki/Code_page_437
