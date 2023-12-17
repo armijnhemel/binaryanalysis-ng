@@ -1500,31 +1500,6 @@ Python 3.10 and 3.11 will display the following warning:
 and then exit gracefully. Inspection of the file reveals that indeed only
 65,535 bytes are in the comment field.
 
-
-## APK signing blocks
-
-Android APK files are essentially ZIP files. To increase security Google added
-signatures, or so called "APK signing blocks". Three versions have been
-published so far. Since there is no standard header in the ZIP file format for
-this information Google decided to add it after the last data descriptor and
-before the central directory. Even though this is not allowed according to the
-specifications it will work because every unpacking program (except, of course,
-BANG) will simply read the central directory to get the offsets for the
-individual file entries. As long as the offsets in the central directory are
-correct it doesn't really matter how much extra data is in the file and where
-this data is in the ZIP file.
-
-In some files the APK signing block is aligned to 4096 bytes:
-
-<https://android.googlesource.com/platform/tools/apksig/+/24aeb9bff8b6479397960eadac9283cc8a509f0b/src/main/java/com/android/apksig/internal/apk/ApkSigningBlockUtils.java#851>
-
-If this is the case, then there will be a padding block identifier:
-
-<https://android.googlesource.com/platform/tools/apksig/+/24aeb9bff8b6479397960eadac9283cc8a509f0b/src/main/java/com/android/apksig/internal/apk/ApkSigningBlockUtils.java#98>
-
-but this identifier doesn't appear at the start of the signing block, but at
-the end (which makes sense when reading from the end of the file).
-
 ## ZIP64
 
 The size field in the local file header cannot store a number larger than
@@ -1553,6 +1528,83 @@ end of central directory locator can be found at the end of the file.
 
 There could be more file entries in the archive than listed in the central
 directory.
+
+# Non-compliant ZIP files
+
+There are ZIP files that are strictly speaking not compliant with the ZIP
+specification but which can still be unpacked (partially) successfully by
+the standard ZIP-utilities. This is because many of the tools rely on the
+central directory to decide what to unpack. The central directory acts as
+a lookup table, but there are no checks to see if any data has been wedged
+in between the different entries in the ZIP file and if the data in the ZIP
+file before the central directory is contiguous.
+
+The specification has the following diagram for the structure of a ZIP file
+in section 4.3.6:
+
+```
+[local file header 1]
+[encryption header 1]
+[file data 1]
+[data descriptor 1]
+.
+.
+.
+[local file header n]
+[encryption header n]
+[file data n]
+[data descriptor n]
+[archive decryption header]
+[archive extra data record]
+[central directory header 1]
+.
+.
+.
+[central directory header n]
+[zip64 end of central directory record]
+[zip64 end of central directory locator]
+[end of central directory record]
+```
+
+This diagram seems to suggest that no random data is allowed between the
+different entries in the file although it isn't mentioned in the text
+explicitly.
+
+## Android APK with APK signing blocks
+
+Android APK files are essentially ZIP files. To increase security Google added
+signatures, or so called "APK signing blocks". Three versions have been
+published so far. Since there is no standard header in the ZIP file format for
+this information Google decided to add it after the last data descriptor and
+before the central directory.
+
+Unpacking with regular unpacking programs works because they will simply read
+the central directory to get the offsets for the individual file entries. As
+long as the offsets in the central directory are correct it doesn't really
+matter how much extra data is in the file and where this data is in the ZIP file
+(except, of course, BANG, which takes a slightly approach).
+
+In some files the APK signing block is aligned to 4096 bytes:
+
+<https://android.googlesource.com/platform/tools/apksig/+/24aeb9bff8b6479397960eadac9283cc8a509f0b/src/main/java/com/android/apksig/internal/apk/ApkSigningBlockUtils.java#851>
+
+If this is the case, then there will be a padding block identifier:
+
+<https://android.googlesource.com/platform/tools/apksig/+/24aeb9bff8b6479397960eadac9283cc8a509f0b/src/main/java/com/android/apksig/internal/apk/ApkSigningBlockUtils.java#98>
+
+but this identifier doesn't appear at the start of the signing block, but at
+the end (which makes sense when reading from the end of the file).
+
+Google could have chosen some more standard mechanisms available in the ZIP
+standard: every APK could have been a ZIP64 files and the "zip64 extensible
+data sector" field in the "Zip64 end of central directory record" could have
+been used. Alternatively the "digital signature" header or the "Archive extra
+data record" could have been used.
+
+Some of these features require a ZIP implementation that supports these headers
+and not all implementations do, so it could be that for maximum backwards
+compatibility this mechanism was chosen, even if it meant relying on an
+unclarity in the ZIP specifications.
 
 # Appendix: ZIP file unpacking in BANG
 
