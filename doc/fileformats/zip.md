@@ -1074,11 +1074,61 @@ ones defined in [IBM Code Page 437][code_page_437] as UTF-8 hadn't been
 invented yet. Appendix D in the specification describes how to work with
 filenames with other characters.
 
-Say we have a file name with an UTF-8 file name and add it to a ZIP file:
+To store a file name in UTF-8 bit 11 has to be set in the general purpose
+flag. Say we have a file name with an UTF-8 file name and add it to a ZIP file:
 
 ```
 $ zip -r test-korean.zip ㅋㅋㅋ
   adding: ㅋㅋㅋ (stored 0%)
+```
+
+#### Mismatched names between local file header and central directory
+
+The name of the file is recorded in both the local file header and the central
+directory. These should be the same according to the specification and if these
+are not the same, then the file is invalid (according to the specification),
+but that's not how the tools behave.
+
+Imagine that there is a ZIP file with the `ls` binary:
+
+```
+$ zip -r ls.zip ls
+  adding: ls (deflated 55%)
+```
+
+and that in the local file header the name is changed to `ll` (for example
+using `ghex`) and then moved to a file called `ls-invalid-name.zip`.
+
+The `unzip` program will report that there is a mismatch, but then proceeed
+to use the name found in the central directory:
+
+```
+$ unzip ls-invalid-name.zip
+Archive:  ls-invalid-name.zip
+ls:  mismatching "local" filename (ll),
+         continuing with "central" filename version
+  inflating: ls
+```
+
+`p7zip` will not report anything about a mismatch, but simply use the name
+from the central directory. `zipinfo` will not report a mismatch but report
+the name from the central directory.
+
+Python's `zipfile` will report an error:
+
+```
+>>> import zipfile
+>>> test_zip = zipfile.ZipFile('ls-invalid-name.zip')
+>>> test_zip.extractall()
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/usr/lib64/python3.10/zipfile.py", line 1647, in extractall
+    self._extract_member(zipinfo, path, pwd)
+  File "/usr/lib64/python3.10/zipfile.py", line 1700, in _extract_member
+    with self.open(member, pwd=pwd) as source, \
+  File "/usr/lib64/python3.10/zipfile.py", line 1558, in open
+    raise BadZipFile(
+zipfile.BadZipFile: File name in directory 'ls' and header b'll' differ.
 ```
 
 #### Directory names
