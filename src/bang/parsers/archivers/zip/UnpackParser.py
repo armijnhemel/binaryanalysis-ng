@@ -118,12 +118,14 @@ class ZipUnpackParser(UnpackParser):
         # with the Kaitai Struct grammar. This means that sizes in
         # the local file headers are known and correct, and so on.
         # This is the most basic ZIP file format without any of the
-        # countless exceptions.
+        # countless exceptions that exist.
         try:
             self.data = kaitai_zip.Zip.from_io(self.infile)
 
             # store file names and CRC32 to see if they match in the local
             # file headers and in the end of central directory
+            # TODO: extra sanity checks to see if the order in which
+            # the different records/sections appear, see section 4.3.6.
             for s in self.data.sections:
                 if s.section_type == kaitai_zip.Zip.SectionTypes.dahua_local_file:
                     self.dahua = True
