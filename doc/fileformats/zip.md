@@ -1497,7 +1497,7 @@ bla.zip: Zip archive data, at least v4.5 to extract, compression method=deflate
 At the end of the file the ZIP64 end of central directory record and the ZIP64
 end of central directory locator can be found at the end of the file.
 
-## Mismatches between central directory and actual files
+## Mismatches between number of files in central directory and local file headers
 
 There could be more file entries in the archive than listed in the central
 directory.
