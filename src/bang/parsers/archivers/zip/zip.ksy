@@ -359,6 +359,7 @@ types:
           switch-on: code
           cases:
             'extra_codes::ntfs': ntfs
+            'extra_codes::minizip_ng_hash': minizip_ng_hash
             'extra_codes::extended_timestamp': extended_timestamp
             'extra_codes::infozip_unicode_path': infozip_unicode_path
             'extra_codes::infozip_unix_var_size': infozip_unix_var_size
@@ -399,6 +400,26 @@ types:
           - id: disk_start_number
             type: u4
             doc: Number of the disk on which this file starts
+      minizip_ng_hash:
+        doc-ref:
+          - 'https://github.com/zlib-ng/minizip-ng/blob/3da04514/doc/mz_extrafield.md'
+          - 'https://github.com/zlib-ng/minizip-ng/blob/3da04514cd51b75a325565393ba31ff719d7f5f2/mz.h#L124'
+        seq:
+          - id: algorithm
+            type: u2
+            enum: minizip_ng_hash_algorithms
+          - id: len_digest
+            type: u2
+          - id: digest
+            size: len_digest
+        enums:
+          minizip_ng_hash_algorithms:
+            10: md5
+            20: sha1
+            22: sha224
+            23: sha256
+            24: sha384
+            25: sha512
       ntfs:
         doc-ref: 'https://github.com/LuaDist/zip/blob/b710806/proginfo/extrafld.txt#L191'
         seq:
