@@ -1281,6 +1281,8 @@ Size:       10
 Compressed: 134
 ```
 
+Python's `zipfile` will also correctly unpack the file, but issue no warning.
+
 #### Names containing current or parent directories
 
 The ZIP specifications do not say anything about paths containing the current
