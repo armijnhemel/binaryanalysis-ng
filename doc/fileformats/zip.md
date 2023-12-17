@@ -1645,7 +1645,10 @@ see the code):
    is encrypted
 
 This (simplified) workflow is enough to process almost all ZIP files found
-in firmware archives.
+in or used for firmware archives.
+
+In case BANG cannot unpack a ZIP file it will try to unpack individual records
+(stored, deflate, bzip2 and LZMA).
 
 [double_loaded]:https://web.archive.org/web/20191107134232/https://www.trustwave.com/en-us/resources/blogs/spiderlabs-blog/double-loaded-zip-file-delivers-nanocore/
 [phrack]:http://phrack.org/issues/34/5.html
