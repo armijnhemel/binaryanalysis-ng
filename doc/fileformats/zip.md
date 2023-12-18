@@ -1606,6 +1606,32 @@ and not all implementations do, so it could be that for maximum backwards
 compatibility this mechanism was chosen, even if it meant relying on an
 unclarity in the ZIP specifications.
 
+## Seek-Optimized ZIP
+
+A fairly obscure format is the "Seek-Optimized ZIP" format, or [SOZip][sozip].
+This format, originating in the geospatial workd, adds extra files to the ZIP
+file that contain metadata that can be used for quick random access for
+compressed data. This metadata is added as regular files, but without a
+corresponding entry in the central directory. A SOZip-aware reader can use
+these files to do quick seeks in the file and a reader that is not aware will
+not notice these files and ignore them.
+
+This is explicitly not allowed according to section 4.3.2:
+
+```
+4.3.2 Each file placed into a ZIP file MUST be preceded by  a "local
+file header" record for that file.  Each "local file header" MUST be
+accompanied by a corresponding "central directory header" record within
+the central directory section of the ZIP file.
+```
+
+Every unpacker tested (`unzip`, `p7zip`, Python's `zipfile`) ignores the
+extra files.
+
+The extra files are metadata, not actual files. A correct unpacker should
+probably write these extra files to a different location than the contents of
+the ZIP file.
+
 # Appendix: ZIP file unpacking in BANG
 
 In BANG it is assumed that ZIP files are always followed by extra data and
@@ -1655,3 +1681,4 @@ In case BANG cannot unpack a ZIP file it will try to unpack individual records
 [zip_slip]:https://security.snyk.io/research/zip-slip-vulnerability
 [zip_slip_2]:https://github.com/snyk/zip-slip-vulnerability
 [code_page_437]:https://en.wikipedia.org/wiki/Code_page_437
+[sozip]:https://github.com/sozip/sozip-spec
