@@ -1508,7 +1508,7 @@ larger than this number the actual size is stored in the "extra field" in the
 local file header (section 4.3.7). Storing files with file sizes equal to or
 larger than this limit is referred to as ZIP64. The specification of ZIP64
 (section 4.5.3) says that the size of the data should be 28 bytes (8 bytes for
-compressed and uncompresed size, and some other fields), but there are programs
+compressed and uncompressed size, and some other fields), but there are programs
 that will only store 16 bytes (compressed and uncompressed size).
 
 ZIP64 files are easy to create, even without the need for a 4 GiB sized file,
