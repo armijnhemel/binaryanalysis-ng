@@ -1415,6 +1415,12 @@ replace aaaa? [y]es, [n]o, [A]ll, [N]one, [r]ename: A
 
 ## End of central directory
 
+The "end of central directory" indicates the end of the ZIP file. It contains
+important information, such as the start of the central directory, which is not
+fixed. The "end of central directory" record itself is also not fixed in size,
+because there is a variable part, namely the .ZIP file comment field (see also
+the introduction at the top of this document).
+
 ```
 end of central dir signature    4 bytes  (0x06054b50)
 number of this disk             2 bytes
@@ -1435,7 +1441,7 @@ the starting disk number        4 bytes
 .ZIP file comment length        2 bytes
 ```
 
-Schematically it looks like this:
+Schematically the static part looks like this:
 
 ```
 +------+------+------+------+------+------+------+------+------+------+------+------+
