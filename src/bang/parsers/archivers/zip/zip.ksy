@@ -509,6 +509,38 @@ types:
           - id: gid
             size: len_gid
             doc: GID (Group ID) for a file
+      keyvaluepairs:
+        seq:
+          - id: len_payload
+            type: u2
+          - id: payload
+            size: len_payload
+            type: payload
+        types:
+          payload:
+            seq:
+              - id: signature
+                contents: 'KeyValuePairs'
+              - id: num_keyvaluepairs
+                type: u1
+              - id: keyvaluepairs
+                type: keyvaluepair
+                repeat: expr
+                repeat-expr: num_keyvaluepairs
+          keyvaluepair:
+            seq:
+              - id: len_key
+                type: u2
+              - id: key
+                size: len_key
+                type: str
+                encoding: UTF-8
+              - id: len_value
+                type: u2
+              - id: value
+                size: len_value
+                type: str
+                encoding: UTF-8
       xceed_unicode:
         seq:
           - id: magic
@@ -628,6 +660,8 @@ enums:
     0x4690: poszip_4690
     0x5455: extended_timestamp
     0x554e: xceed_unicode
+    # https://github.com/sozip/keyvaluepairs-spec/blob/master/zip_keyvalue_extra_field_specification.md
+    0x564b: keyvaluepairs
     0x5855: infozip_unix_old
     # https://www.artpol-software.com/ZipArchive/KB/0610242300.aspx
     0x5a4c: ziparchive_unicode
