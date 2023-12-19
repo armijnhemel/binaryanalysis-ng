@@ -1411,6 +1411,15 @@ replace aaaa? [y]es, [n]o, [A]ll, [N]one, [r]ename: A
 
 ### Extra fields
 
+The "extra fields" are a way to store some more metadata for individual files
+in the local file header and/or central directory. Typically what is stored
+are more granular timestamps (Unix, NTFS), permissions (Unix), 64-bit
+extensions, Unicode data or program specific data.
+
+The extra fields defined by PKWARE are found in section 4.5, while third party
+fields are described in section 4.6 (this list is not complete and there are
+more, see `zip.ksy` in the BANG Git repository).
+
 ## File data
 
 ## End of central directory
