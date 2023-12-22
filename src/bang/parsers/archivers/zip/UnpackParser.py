@@ -93,6 +93,9 @@ class ZipUnpackParser(UnpackParser):
         (0, b'DH\x03\04')
     ]
     pretty_name = 'zip'
+
+    # set the priority high so this one will be tried first, before
+    # the parser for individual ZIP entries (see bottom of this file)
     priority = 1000
 
     def parse(self):
@@ -106,10 +109,14 @@ class ZipUnpackParser(UnpackParser):
         # https://source.android.com/security/apksigning/
         self.android_signing = False
 
-        # In a ZIP file there are file entries, followed by a central
-        # directory, possibly with other headers following/preceding
-        # store the local file names to check if they appear in the
-        # central directory in the same order (optional)
+        # For every local file header in the ZIP file there should
+        # be a corresponding entry in the central directory.
+        # Store the file names plus the CRC32 from the local file
+        # headers as well # as the central directory to see if these
+        # correspond. Note: this won't necessarily work if data
+        # descriptors are used (section 4.4.4) as then the CRC32
+        # field might be set to 0 in the local file header (but not
+        # the central directory).
         local_files = []
         central_directory_files = []
 
