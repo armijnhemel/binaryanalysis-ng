@@ -113,6 +113,12 @@ class ZipUnpackParser(UnpackParser):
         local_files = []
         central_directory_files = []
 
+        # store the order in which headers appear. This is to be
+        # able to check the order in which all the different headers
+        # appear in the file as the specification mandates a certain
+        # ordering.
+        order_for_headers = []
+
         # first do a simple sanity check for the most common case
         # where the file is a single ZIP archive that can be parsed
         # with the Kaitai Struct grammar. This means that sizes in
@@ -126,19 +132,20 @@ class ZipUnpackParser(UnpackParser):
             # file headers and in the end of central directory
             # TODO: extra sanity checks to see if the order in which
             # the different records/sections appear, see section 4.3.6.
-            for s in self.data.sections:
-                if s.section_type == kaitai_zip.Zip.SectionTypes.dahua_local_file:
+            for file_header in self.data.sections:
+                order_for_headers.append(file_header.section_type)
+                if file_header.section_type == kaitai_zip.Zip.SectionTypes.dahua_local_file:
                     self.dahua = True
-                if s.section_type == kaitai_zip.Zip.SectionTypes.instar_local_file:
+                if file_header.section_type == kaitai_zip.Zip.SectionTypes.instar_local_file:
                     self.instar = True
-                if s.section_type == kaitai_zip.Zip.SectionTypes.local_file or s.section_type == kaitai_zip.Zip.SectionTypes.dahua_local_file:
-                    local_files.append((s.body.header.file_name, s.body.header.crc32))
-                    if s.body.header.flags.file_encrypted:
+                if file_header.section_type in [kaitai_zip.Zip.SectionTypes.local_file, kaitai_zip.Zip.SectionTypes.dahua_local_file]:
+                    local_files.append((file_header.body.header.file_name, file_header.body.header.crc32))
+                    if file_header.body.header.flags.file_encrypted:
                         self.encrypted = True
-                elif s.section_type == kaitai_zip.Zip.SectionTypes.central_dir_entry:
-                    central_directory_files.append((s.body.file_name, s.body.crc32))
-                elif s.section_type == kaitai_zip.Zip.SectionTypes.end_of_central_dir:
-                    self.zip_comment = s.body.comment
+                elif file_header.section_type == kaitai_zip.Zip.SectionTypes.central_dir_entry:
+                    central_directory_files.append((file_header.body.file_name, file_header.body.crc32))
+                elif file_header.section_type == kaitai_zip.Zip.SectionTypes.end_of_central_dir:
+                    self.zip_comment = file_header.body.comment
 
             # some more sanity checks here: verify if the local files
             # and the central directory (including CRC32 values) match
@@ -154,8 +161,17 @@ class ZipUnpackParser(UnpackParser):
         # Kaitai Struct there is only the hard way left: parse from
         # the start of the file and keep track of everything manually.
         if not kaitai_success:
+            # store if the previous header is a local file header.
+            # Local file headers can only be interleaved by data
+            # descriptors. All other headers should set this variable
+            #  to False.
+            previous_header_local = True
+
+            # reset the order_for_headers list to get rid of any
+            # possible old data.
+            order_for_headers = []
+
             seen_end_of_central_directory = False
-            in_local_entry = True
             seen_zip64_end_of_central_dir = False
             possible_android = False
 
@@ -184,22 +200,24 @@ class ZipUnpackParser(UnpackParser):
                         except (UnpackParserException, ValidationFailedError, UnicodeDecodeError, EOFError) as e:
                             raise UnpackParserException(e.args)
 
+                        order_for_headers.append(file_header.section_type)
+
                         if file_header.section_type == kaitai_zip.Zip.SectionTypes.central_dir_entry:
                             # store the file name (as byte string)
                             central_directory_files.append(file_header.body.file_name)
-                            in_local_entry = False
-                        elif buf == ZIP64_END_OF_CENTRAL_DIRECTORY:
+                            previous_header_local = False
+                        elif file_header.section_type == kaitai_zip.Zip.SectionTypes.zip64_end_of_central_dir:
                             # first read the size of the ZIP64 end of
                             # central directory (section 4.3.14.1)
                             seen_zip64_end_of_central_dir = True
-                            in_local_entry = False
-                        elif buf == ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR:
+                            previous_header_local = False
+                        elif file_header.section_type == kaitai_zip.Zip.SectionTypes.zip64_end_of_central_dir_locator:
                             # check for ZIP64 end of central directory locator
                             # (section 4.3.15)
-                            in_local_entry = False
-                        elif buf == END_OF_CENTRAL_DIRECTORY:
+                            previous_header_local = False
+                        elif file_header.section_type == kaitai_zip.Zip.SectionTypes.end_of_central_dir:
                             # check for end of central directory (section 4.3.16)
-                            in_local_entry = False
+                            previous_header_local = False
 
                             # read the ZIP comment length
                             self.zip_comment = file_header.body.comment
@@ -208,7 +226,7 @@ class ZipUnpackParser(UnpackParser):
 
                             # end of ZIP file reached, so break out of the loop
                             break
-                        elif buf == DATA_DESCRIPTOR:
+                        elif file_header.section_type == kaitai_zip.Zip.SectionTypes.data_descriptor:
                             # challenge: this could be both a 32 bit and 64 bit
                             # data descriptor and it is not always easy to find
                             # which one is used possibly only until after it has
@@ -307,7 +325,7 @@ class ZipUnpackParser(UnpackParser):
                     continue
 
                 # continue with the local file headers
-                if buf == LOCAL_FILE_HEADER and not in_local_entry:
+                if buf == LOCAL_FILE_HEADER and not previous_header_local:
                     # this should not happen in a valid ZIP file:
                     # local file headers should not be interleaved
                     # with other headers, except data descriptors.
@@ -320,6 +338,7 @@ class ZipUnpackParser(UnpackParser):
                 except (UnpackParserException, ValidationFailedError, UnicodeDecodeError, EOFError) as e:
                     raise UnpackParserException(e.args)
 
+                order_for_headers.append(file_header.section_type)
                 compressed_size = file_header.body.header.len_body_compressed
                 uncompressed_size = file_header.body.header.len_body_uncompressed
 
