@@ -1414,13 +1414,24 @@ replace aaaa? [y]es, [n]o, [A]ll, [N]one, [r]ename: A
 The "extra fields" are a way to store some more metadata for individual files
 in the local file header and/or central directory. Typically what is stored
 are more granular timestamps (Unix, NTFS), permissions (Unix), 64-bit
-extensions, Unicode data or program specific data.
+extensions, Unicode data or program specific data to give hints that an
+unpacker can use to better unpack the data.
 
 The extra fields defined by PKWARE are found in section 4.5, while third party
 fields are described in section 4.6 (this list is not complete and there are
 more, see `zip.ksy` in the BANG Git repository).
 
+Not all unzip programs have support for all the extra fields. Some common ones,
+such as the Unix permission fields, are widely supported. The extra fields that
+are not recognized can be skipped by a reader that doesn't support these
+fields.
+
 ## File data
+
+The file data is typically just a blob of data. If the file is encrypted an
+extra encryption header will be in front of the data. Otherwise it is just a
+blob that, depending on the compression used, could be unpacked without using
+the central directory at all (which is something that BANG can do).
 
 ## End of central directory
 
@@ -1539,20 +1550,16 @@ bla.zip: Zip archive data, at least v4.5 to extract, compression method=deflate
 At the end of the file the ZIP64 end of central directory record and the ZIP64
 end of central directory locator can be found at the end of the file.
 
-## Mismatches between number of files in central directory and local file headers
-
-There could be more file entries in the archive than listed in the central
-directory.
-
 # Non-compliant ZIP files
 
 There are ZIP files that are strictly speaking not compliant with the ZIP
 specification but which can still be unpacked (partially) successfully by
-the standard ZIP-utilities. This is because many of the tools rely on the
-central directory to decide what to unpack. The central directory acts as
-a lookup table, but there are no checks to see if any data has been wedged
+many of the standard ZIP-utilities. This is because many of the tools rely
+on the central directory to decide what to unpack. The central directory acts
+as a lookup table, but there are no checks to see if any data has been wedged
 in between the different entries in the ZIP file and if the data in the ZIP
-file before the central directory is contiguous.
+file before the central directory is contiguous, or if the number of entries
+in the central directory matches the amount of files in the file.
 
 The specification has the following diagram for the structure of a ZIP file
 in section 4.3.6:
