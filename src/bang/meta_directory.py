@@ -299,7 +299,7 @@ class MetaDirectory:
         if is_extradata:
             self.info.setdefault('unpacked_extradata_files', {})[unpacked_path] = unpacked_md.md_path
         else:
-            if absolute:
+            if is_absolute:
                 self.info.setdefault('unpacked_absolute_files', {})[unpacked_path] = unpacked_md.md_path
             else:
                 self.info.setdefault('unpacked_relative_files', {})[unpacked_path] = unpacked_md.md_path
