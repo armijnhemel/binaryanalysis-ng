@@ -39,6 +39,8 @@ when writing this code can be found here:
 
 http://binary-analysis.blogspot.com/2018/07/walkthrough-zip-file-format.html
 
+as well as in the file 'doc/fileformats/zip.md' in this repository.
+
 Also supported is a ZIP variant from Dahua. Dahua is a Chinese vendor that
 is using the ZIP format for its firmware updates, but has changed the first
 two characters of the file from PK to DH.
@@ -123,7 +125,8 @@ class ZipUnpackParser(UnpackParser):
         # store the order in which headers appear. This is to be
         # able to check the order in which all the different headers
         # appear in the file as the specification mandates a certain
-        # ordering.
+        # ordering: local file headers cannot appear after the first
+        # central directory entry.
         order_for_headers = []
 
         # first do a simple sanity check for the most common case
