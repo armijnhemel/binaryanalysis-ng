@@ -435,9 +435,8 @@ class ZipUnpackParser(UnpackParser):
                 #
                 # This is not necessarily correct though: there are files
                 # where a data descriptor has been set and the sizes
-                # and CRC have not been changed.
-                ddfound = False
-                ddsearched = False
+                # and CRC in the local file header have not been changed.
+                dd_found = False
 
                 if (not file_header.body.header.file_name.endswith('/') and compressed_size == 0) or has_data_descriptor and compressed_size == 0:
                     # first store where the possible data descriptor starts
@@ -475,8 +474,7 @@ class ZipUnpackParser(UnpackParser):
                             while True:
                                 ddpos = buf.find(DATA_DESCRIPTOR, ddpos+1)
                                 if ddpos != -1:
-                                    ddsearched = True
-                                    ddfound = True
+                                    dd_found = True
 
                                     # sanity check to make sure that the
                                     # compressed size makes sense in the data descriptor
@@ -655,7 +653,7 @@ class ZipUnpackParser(UnpackParser):
 
             for z in self.zipinfolist:
                 # only stored, deflate, bzip2 and lzma are supported
-                # in Python's zipfile module.
+                # in Python's standard zipfile module.
                 if z.compress_type not in [0, 8, 12, 14]:
                     self.unsupported_compression = True
                     break
