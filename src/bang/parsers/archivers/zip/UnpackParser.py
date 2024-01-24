@@ -185,6 +185,10 @@ class ZipUnpackParser(UnpackParser):
             seen_zip64_end_of_central_dir = False
             possible_android = False
 
+            # store any unscanned data, such as APK signing blocks.
+            # This data will later be written to a separate file.
+            self.unscanned_data = b''
+
             # go back to the start of the file
             self.infile.seek(0)
 
@@ -196,7 +200,7 @@ class ZipUnpackParser(UnpackParser):
                 check_condition(len(buf) == 4,
                                 "not enough data for ZIP entry header")
 
-                if buf != LOCAL_FILE_HEADER and buf != DAHUA_LOCAL_FILE_HEADER:
+                if buf not in [LOCAL_FILE_HEADER, DAHUA_LOCAL_FILE_HEADER]:
                     # process everything that is not a local file header, but
                     # either a ZIP section header or an Android signing signature.
                     if buf in ALL_HEADERS:
@@ -250,15 +254,16 @@ class ZipUnpackParser(UnpackParser):
                                 except (UnpackParserException, ValidationFailedError, UnicodeDecodeError, EOFError) as e:
                                     raise UnpackParserException(e.args)
                     else:
-                        # then check to see if this is possibly an Android
-                        # signing block (v2 or v3):
+                        # There could be extra data in between the last local
+                        # file header and the start of the central directory,
+                        # despite the ZIP specification not allowing for this.
+                        # A typical valid use is the Android signing block (v2 or v3).
+                        # An invalid use would be malware that's hiding. The code
+                        # below only looks at the Android signing block.
+                        #
+                        # The Android signing block is explained at:
                         #
                         # https://source.android.com/security/apksigning/
-                        #
-                        # The Android signing block is squeezed in between the
-                        # latest entry and the central directory, despite the
-                        # ZIP specification not allowing this. There have been
-                        # various versions.
                         #
                         # The following code is triggered under three conditions:
                         #
@@ -331,6 +336,7 @@ class ZipUnpackParser(UnpackParser):
                                             "wrong magic for Android signing block")
                             self.android_signing = True
                         else:
+                            # This is not a signing block, but something else.
                             break
                     continue
 
@@ -382,6 +388,7 @@ class ZipUnpackParser(UnpackParser):
                     for extra in file_header.body.header.extra.entries:
                         # skip any unknown extra fields for now
                         if extra.code == kaitai_zip.Zip.ExtraCodes.zip_align:
+                            # the zip_align extra field is only used in Android APK packages
                             possible_android = True
                         elif extra.code == kaitai_zip.Zip.ExtraCodes.zip64:
                             # ZIP64, section 4.5.3
@@ -682,6 +689,9 @@ class ZipUnpackParser(UnpackParser):
                 os.unlink(self.temporary_file[1])
             return
 
+        # unpack archve comment. Archive comments (and file comments) can
+        # contain binary data as the ZIP specification doesn't put any
+        # restrictions on it.
         if self.zip_comment != b'':
             file_path = pathlib.Path(pathlib.Path(self.infile.name).name)
             suffix = file_path.suffix + '.comment'
@@ -695,12 +705,10 @@ class ZipUnpackParser(UnpackParser):
         else:
             unpackzipfile = zipfile.ZipFile(self.temporary_file[1])
 
-        # Extract files (or create a directory for faulty files) but
-        # do not yet add a file result. There are some files where
-        # there are relative entries. Python's zip module will take
-        # care of these entries and write in the correct place, but
-        # this means that the filename from the ZIP info object cannot
-        # be used.
+        # Extract files or create a directory for faulty files
+        # There are some files where there are relative entries.
+        # Care should be taken to make sure that the correct
+        # names are used.
         #
         # Examples:
         # https://github.com/iBotPeaches/Apktool/issues/1498
@@ -745,6 +753,8 @@ class ZipUnpackParser(UnpackParser):
                         with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                             outfile.write(unpackzipfile.read(z))
                             yield unpacked_md
+
+                        # unpack file comments.
                         if z.comment != b'':
                             suffix = file_path.suffix + '.file_comment'
                             file_path = file_path.with_suffix(suffix)
