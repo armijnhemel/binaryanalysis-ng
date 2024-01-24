@@ -405,8 +405,8 @@ class ZipUnpackParser(UnpackParser):
                             check_condition(len(extra.body) in [16, 28],
                                             "wrong extra field header length for ZIP64")
 
-                            zip64uncompressedsize = int.from_bytes(extra.body[:8], byteorder='little')
-                            zip64compressedsize = int.from_bytes(extra.body[8:16], byteorder='little')
+                            zip64_uncompressed_size = int.from_bytes(extra.body[:8], byteorder='little')
+                            zip64_compressed_size = int.from_bytes(extra.body[8:16], byteorder='little')
 
                             is_zip64_entry = True
                             orig_compressed_size = compressed_size
@@ -414,9 +414,9 @@ class ZipUnpackParser(UnpackParser):
                             # replace compressed size and uncompressed size but only
                             # if they have the special value 0xffffffff
                             if compressed_size == 0xffffffff:
-                                compressed_size = zip64compressedsize
+                                compressed_size = zip64_compressed_size
                             if uncompressed_size == 0xffffffff:
-                                uncompressed_size = zip64uncompressedsize
+                                uncompressed_size = zip64_uncompressed_size
 
                 if is_zip64_entry:
                     # skip the data but only if it was changed as there is
@@ -458,7 +458,7 @@ class ZipUnpackParser(UnpackParser):
 
                         # read a number of bytes to be searched for markers
                         buf = self.infile.read(50000)
-                        newcurpos = self.infile.tell()
+                        new_cur_pos = self.infile.tell()
 
                         # EOF is reached
                         if buf == b'':
@@ -494,12 +494,12 @@ class ZipUnpackParser(UnpackParser):
                         # search for a local file header which indicates
                         # the next entry in the ZIP file (not a Dahua local file
                         # header as that is always the first one in the file)
-                        localheaderpos = buf.find(LOCAL_FILE_HEADER)
-                        if localheaderpos != -1 and (localheaderpos < tmppos or tmppos == -1):
+                        local_header_pos = buf.find(LOCAL_FILE_HEADER)
+                        if local_header_pos != -1 and (local_header_pos < tmppos or tmppos == -1):
                             # In case the file that is stored is an empty
                             # file, then there will be no data descriptor field
                             # so just continue as normal.
-                            if current_position + localheaderpos == start_of_possible_data_descriptor:
+                            if current_position + local_header_pos == start_of_possible_data_descriptor:
                                 self.infile.seek(current_position)
                                 break
 
@@ -510,22 +510,23 @@ class ZipUnpackParser(UnpackParser):
                             # * uncompressed size
                             # section 4.3.9
                             if has_data_descriptor:
-                                if current_position + localheaderpos - start_of_possible_data_descriptor > 12:
-                                    self.infile.seek(current_position + localheaderpos - 8)
-                                    tmpcompressedsize = int.from_bytes(self.infile.read(4), byteorder='little')
+                                if current_position + local_header_pos - start_of_possible_data_descriptor > 12:
+                                    self.infile.seek(current_position + local_header_pos - 8)
+                                    tmp_compressed_size = int.from_bytes(self.infile.read(4), byteorder='little')
+
                                     # and return to the original position
-                                    self.infile.seek(newcurpos)
-                                    if current_position + localheaderpos - start_of_possible_data_descriptor == tmpcompressedsize + 16:
+                                    self.infile.seek(new_cur_pos)
+                                    if current_position + local_header_pos - start_of_possible_data_descriptor == tmp_compressed_size + 16:
                                         if tmppos == -1:
-                                            tmppos = localheaderpos
+                                            tmppos = local_header_pos
                                         else:
-                                            tmppos = min(localheaderpos, tmppos)
+                                            tmppos = min(local_header_pos, tmppos)
                             else:
                                 if tmppos == -1:
-                                    tmppos = localheaderpos
+                                    tmppos = local_header_pos
                                 else:
-                                    tmppos = min(localheaderpos, tmppos)
-                            self.infile.seek(newcurpos)
+                                    tmppos = min(local_header_pos, tmppos)
+                            self.infile.seek(new_cur_pos)
 
                         # then search for the start of the central directory
                         centraldirpos = buf.find(CENTRAL_DIRECTORY)
@@ -546,10 +547,10 @@ class ZipUnpackParser(UnpackParser):
                             if has_data_descriptor:
                                 if current_position + centraldirpos - start_of_possible_data_descriptor > 12:
                                     self.infile.seek(current_position + centraldirpos - 8)
-                                    tmpcompressedsize = int.from_bytes(self.infile.read(4), byteorder='little')
+                                    tmp_compressed_size = int.from_bytes(self.infile.read(4), byteorder='little')
                                     # and return to the original position
-                                    self.infile.seek(newcurpos)
-                                    if current_position + centraldirpos - start_of_possible_data_descriptor == tmpcompressedsize + 16:
+                                    self.infile.seek(new_cur_pos)
+                                    if current_position + centraldirpos - start_of_possible_data_descriptor == tmp_compressed_size + 16:
                                         if tmppos == -1:
                                             tmppos = centraldirpos
                                         else:
@@ -562,14 +563,14 @@ class ZipUnpackParser(UnpackParser):
                                                 self.android_signing = True
                                             # and (again) return to the
                                             # original position
-                                            self.infile.seek(newcurpos)
+                                            self.infile.seek(new_cur_pos)
                             else:
                                 if tmppos == -1:
                                     tmppos = centraldirpos
                                 else:
                                     tmppos = min(centraldirpos, tmppos)
 
-                            self.infile.seek(newcurpos)
+                            self.infile.seek(new_cur_pos)
 
                             oldtmppos = tmppos
 
@@ -586,7 +587,8 @@ class ZipUnpackParser(UnpackParser):
                             break
 
                         # have a small overlap the size of a possible header
-                        # unless it is the last 4 bytes of the file
+                        # unless it is the last 4 bytes of the file to avoid
+                        # getting stuck in a loop.
                         if self.infile.tell() == self.infile.size:
                             break
                         self.infile.seek(-4, os.SEEK_CUR)
@@ -628,7 +630,12 @@ class ZipUnpackParser(UnpackParser):
         # store if an unsupported compression was found
         self.unsupported_compression = False
 
-        # Malformed ZIP files where directories are stored as normal files exist:
+        # Some ZIP files store directory names without a slash. Although
+        # this is most probably allowed according to the specifications
+        # many tools cannot correctly unpack these files and instead of
+        # looking at other characteristics of the file will unpack the
+        # directory as a regular file:
+        #
         # http://web.archive.org/web/20190814185417/https://bugzilla.redhat.com/show_bug.cgi?id=907442
         self.faulty_files = []
 
