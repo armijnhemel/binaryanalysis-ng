@@ -26,13 +26,14 @@ ZIP specifications can be found at:
 https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT
 (latest version: version 6.3.10)
 
-This parser first verifies a file to see where the ZIP data
-starts and where it ends.
-
 Python's zipfile module starts looking at the end of the file
 for a central directory. If multiple ZIP files have been concatenated
 and the last ZIP file is at the end, then only this ZIP file
-will be unpacked by Python's zipfile module.
+will be unpacked by Python's zipfile module. This is why this parser
+first verifies a file to see where the ZIP data starts and where it ends
+and carves the data if necessary. It does this by parsing from the start
+of the file, instead of jumping to the end of the file and only rely on
+the central directory.
 
 A description of some of the underlying problems encountered
 when writing this code can be found here:
@@ -114,11 +115,11 @@ class ZipUnpackParser(UnpackParser):
         # For every local file header in the ZIP file there should
         # be a corresponding entry in the central directory.
         # Store the file names plus the CRC32 from the local file
-        # headers as well # as the central directory to see if these
+        # headers as well as the central directory to see if these
         # correspond. Note: this won't necessarily work if data
         # descriptors are used (section 4.4.4) as then the CRC32
-        # field might be set to 0 in the local file header (but not
-        # the central directory).
+        # field might be set to 0 in the local file header but not
+        # the central directory.
         local_files = []
         central_directory_files = []
 
@@ -126,7 +127,8 @@ class ZipUnpackParser(UnpackParser):
         # able to check the order in which all the different headers
         # appear in the file as the specification mandates a certain
         # ordering: local file headers cannot appear after the first
-        # central directory entry.
+        # central directory entry and a digital signature will only
+        # appear after the last entry in the central directory.
         order_for_headers = []
 
         # first do a simple sanity check for the most common case
@@ -259,23 +261,24 @@ class ZipUnpackParser(UnpackParser):
                         # file header and the start of the central directory,
                         # despite the ZIP specification not allowing for this.
                         # A typical valid use is the Android signing block (v2 or v3).
-                        # An invalid use would be malware that's hiding. The code
-                        # below only looks at the Android signing block.
-                        #
-                        # The Android signing block is explained at:
-                        #
-                        # https://source.android.com/security/apksigning/
-                        #
-                        # The following code is triggered under three conditions:
-                        #
-                        # 1. data descriptors are used and it was already determined
-                        #    that there is an Android signing block.
-                        # 2. the bytes read are 0x00 0x00 0x00 0x00 which could
-                        #    possibly be an APK signing v3 block, as it is possibly
-                        #    padded.
-                        # 3. no data descriptors are used, meaning it might be a
-                        #    length of a signing block.
+                        # An invalid use would be malware that's hiding.
                         if self.android_signing or buf == b'\x00\x00\x00\x00' or possible_android or not has_data_descriptor:
+                            # The Android signing block is explained at:
+                            #
+                            # https://source.android.com/security/apksigning/
+                            #
+                            # The code below is triggered under the following conditions:
+                            #
+                            # 1. data descriptors are used and it was already determined
+                            #    that there is an Android signing block.
+                            # 2. the bytes read are 0x00 0x00 0x00 0x00 which could
+                            #    possibly be an APK signing v3 block, as it is possibly
+                            #    padded.
+                            # 3. there is a strong indication that it is an Android package
+                            #    because an extra field specifically used in Android was used.
+                            # 4. no data descriptors are used, meaning it might be a
+                            #    length of a signing block.
+
                             # first go back to the beginning of the block
                             self.infile.seek(-4, os.SEEK_CUR)
                             self.start_of_signing_block = self.infile.tell()
@@ -363,11 +366,8 @@ class ZipUnpackParser(UnpackParser):
 
                 zip_version = file_header.body.header.version.version
 
-                check_condition(zip_version >= MIN_VERSION,
-                                "invalid ZIP version %d" % zip_version)
-
-                check_condition(zip_version <= MAX_VERSION,
-                                "invalid ZIP version %d" % zip_version)
+                check_condition(MIN_VERSION <= zip_version <= MAX_VERSION,
+                                f"invalid ZIP version {zip_version}")
 
                 if file_header.body.header.flags.file_encrypted:
                     self.encrypted = True
@@ -703,7 +703,7 @@ class ZipUnpackParser(UnpackParser):
 
         signing_block_length = self.end_of_signing_block - self.start_of_signing_block
 
-        if signing_block_length != 0:
+        if self.android_signing and signing_block_length != 0:
             file_path = pathlib.Path(pathlib.Path(self.infile.name).name)
             suffix = file_path.suffix + '.signing_block'
             file_path = file_path.with_suffix(suffix)
@@ -813,7 +813,7 @@ class ZipUnpackParser(UnpackParser):
             # https://setuptools.readthedocs.io/en/latest/formats.html
             if z.filename == 'EGG-INFO/PKG-INFO':
                 labels.append('python egg')
-            if z.filename == 'AndroidManifest.xml' or z.filename == 'classes.dex':
+            if z.filename in ['AndroidManifest.xml', 'classes.dex']:
                 if zip_name.suffix.lower() == '.apk':
                     labels.append('android')
                     labels.append('apk')
