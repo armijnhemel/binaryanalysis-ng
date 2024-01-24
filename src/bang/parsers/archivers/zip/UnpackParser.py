@@ -652,7 +652,7 @@ class ZipUnpackParser(UnpackParser):
 
             self.zipfiles = unpackzipfile.namelist()
             self.zipinfolist = unpackzipfile.infolist()
-            oldcwd = os.getcwd()
+
             for z in self.zipinfolist:
                 # only stored, deflate, bzip2 and lzma are supported
                 # in Python's zipfile module.
