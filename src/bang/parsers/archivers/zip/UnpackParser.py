@@ -187,7 +187,8 @@ class ZipUnpackParser(UnpackParser):
 
             # store any unscanned data, such as APK signing blocks.
             # This data will later be written to a separate file.
-            self.unscanned_data = b''
+            self.start_of_signing_block = 0
+            self.end_of_signing_block = 0
 
             # go back to the start of the file
             self.infile.seek(0)
@@ -277,6 +278,7 @@ class ZipUnpackParser(UnpackParser):
                         if self.android_signing or buf == b'\x00\x00\x00\x00' or possible_android or not has_data_descriptor:
                             # first go back to the beginning of the block
                             self.infile.seek(-4, os.SEEK_CUR)
+                            self.start_of_signing_block = self.infile.tell()
 
                             # then read 8 bytes for the APK signing block size
                             buf = self.infile.read(8)
@@ -335,6 +337,7 @@ class ZipUnpackParser(UnpackParser):
                             check_condition(buf == b'APK Sig Block 42',
                                             "wrong magic for Android signing block")
                             self.android_signing = True
+                            self.end_of_signing_block = self.infile.tell()
                         else:
                             # This is not a signing block, but something else.
                             break
@@ -698,6 +701,17 @@ class ZipUnpackParser(UnpackParser):
             file_path = file_path.with_suffix(suffix)
             with meta_directory.unpack_regular_file(file_path, is_extradata=True) as (unpacked_md, outfile):
                 outfile.write(self.zip_comment)
+                yield unpacked_md
+
+        signing_block_length = self.end_of_signing_block - self.start_of_signing_block
+
+        if signing_block_length != 0:
+            file_path = pathlib.Path(pathlib.Path(self.infile.name).name)
+            suffix = file_path.suffix + '.signing_block'
+            file_path = file_path.with_suffix(suffix)
+            with meta_directory.unpack_regular_file(file_path, is_extradata=True) as (unpacked_md, outfile):
+                self.infile.seek(self.start_of_signing_block)
+                outfile.write(self.infile.read(signing_block_length))
                 yield unpacked_md
 
         if not self.carved:
