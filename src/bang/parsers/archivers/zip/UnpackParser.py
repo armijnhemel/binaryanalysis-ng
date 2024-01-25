@@ -637,7 +637,7 @@ class ZipUnpackParser(UnpackParser):
         # directory as a regular file:
         #
         # http://web.archive.org/web/20190814185417/https://bugzilla.redhat.com/show_bug.cgi?id=907442
-        self.faulty_files = []
+        self.dirs_without_slash = []
 
         try:
             if not self.carved:
@@ -663,7 +663,7 @@ class ZipUnpackParser(UnpackParser):
                     self.unsupported_compression = True
                     break
                 if z.file_size == 0 and not z.is_dir() and z.external_attr & 0x10 == 0x10:
-                    self.faulty_files.append(z)
+                    self.dirs_without_slash.append(z)
                 file_path = pathlib.Path(z.filename)
 
                 # Although absolute paths are not permitted according
@@ -763,7 +763,7 @@ class ZipUnpackParser(UnpackParser):
                 except ValueError:
                     file_path = file_path.relative_to('//')
 
-            if z in self.faulty_files:
+            if z in self.dirs_without_slash:
                 # create the directory
                 meta_directory.unpack_directory(file_path)
             else:
