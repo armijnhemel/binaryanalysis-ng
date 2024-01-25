@@ -706,23 +706,25 @@ class ZipUnpackParser(UnpackParser):
                 outfile.write(self.zip_comment)
                 yield unpacked_md
 
-        signing_block_length = self.end_of_signing_block - self.start_of_signing_block
+        if self.android_signing:
+            signing_block_length = self.end_of_signing_block - self.start_of_signing_block
 
-        if self.android_signing and signing_block_length != 0:
-            file_path = pathlib.Path(pathlib.Path(self.infile.name).name)
-            suffix = file_path.suffix + '.signing_block'
-            file_path = file_path.with_suffix(suffix)
-            with meta_directory.unpack_regular_file(file_path, is_extradata=True) as (unpacked_md, outfile):
-                self.infile.seek(self.start_of_signing_block)
-                outfile.write(self.infile.read(signing_block_length))
-                yield unpacked_md
+            if signing_block_length != 0:
+                file_path = pathlib.Path(pathlib.Path(self.infile.name).name)
+                suffix = file_path.suffix + '.signing_block'
+                file_path = file_path.with_suffix(suffix)
+                with meta_directory.unpack_regular_file(file_path, is_extradata=True) as (unpacked_md, outfile):
+                    self.infile.seek(self.start_of_signing_block)
+                    outfile.write(self.infile.read(signing_block_length))
+                    yield unpacked_md
 
         if not self.carved:
             unpackzipfile = zipfile.ZipFile(self.infile)
         else:
             unpackzipfile = zipfile.ZipFile(self.temporary_file[1])
 
-        # Extract files or create a directory for faulty files
+        # Extract files or create a directory for files that zipfile
+        # thinks are files, but are actually directories.
         # There are some files where there are relative entries.
         # Care should be taken to make sure that the correct
         # names are used.
