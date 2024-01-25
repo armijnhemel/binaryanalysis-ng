@@ -639,21 +639,19 @@ class ZipUnpackParser(UnpackParser):
         # http://web.archive.org/web/20190814185417/https://bugzilla.redhat.com/show_bug.cgi?id=907442
         self.faulty_files = []
 
-        zip_test_result = None
-
         try:
             if not self.carved:
                 unpackzipfile = zipfile.ZipFile(self.infile)
             else:
                 unpackzipfile = zipfile.ZipFile(self.temporary_file[1])
             if not self.encrypted:
-                zip_test_result = unpackzipfile.testzip()
 
-            if zip_test_result is not None:
-                if self.carved:
-                    # cleanup
-                    os.unlink(self.temporary_file[1])
-                raise UnpackParserException("bad zip file according to testzip()")
+                # check to see if Python's zipfile module thinks it's a valid file
+                if unpackzipfile.testzip() is not None:
+                    if self.carved:
+                        # cleanup
+                        os.unlink(self.temporary_file[1])
+                    raise UnpackParserException("bad zip file according to testzip()")
 
             self.zipfiles = unpackzipfile.namelist()
             self.zipinfolist = unpackzipfile.infolist()
