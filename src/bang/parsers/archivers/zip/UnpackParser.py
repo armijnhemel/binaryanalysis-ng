@@ -150,6 +150,8 @@ class ZipUnpackParser(UnpackParser):
                     self.dahua = True
                 if file_header.section_type == kaitai_zip.Zip.SectionTypes.instar_local_file:
                     self.instar = True
+
+                # store some metadata based for later sanity checks
                 if file_header.section_type in [kaitai_zip.Zip.SectionTypes.local_file, kaitai_zip.Zip.SectionTypes.dahua_local_file]:
                     local_files.append((file_header.body.header.file_name, file_header.body.header.crc32))
                     if file_header.body.header.flags.file_encrypted:
@@ -346,7 +348,7 @@ class ZipUnpackParser(UnpackParser):
                             break
                     continue
 
-                # continue with the local file headers
+                # continue with the local file header
                 if buf == LOCAL_FILE_HEADER and not previous_header_local:
                     # this should not happen in a valid ZIP file:
                     # local file headers should not be interleaved
@@ -378,6 +380,17 @@ class ZipUnpackParser(UnpackParser):
                 # general purpose bit flag. This usually won't be set for
                 # directories although sometimes it is
                 # (example: framework/ext.jar from various Android versions)
+                #
+                # Section 4.4.4, bit 3:
+                # "If this bit is set, the fields crc-32, compressed
+                # size and uncompressed size are set to zero in the
+                # local header.  The correct values are put in the
+                # data descriptor immediately following the compressed
+                # data."
+                #
+                # This is not necessarily correct though: there are files
+                # where a data descriptor has been set and the sizes
+                # and CRC in the local file header have not been changed.
                 if file_header.body.header.flags.has_data_descriptor:
                     has_data_descriptor = True
 
@@ -426,31 +439,27 @@ class ZipUnpackParser(UnpackParser):
                     if orig_compressed_size == 0xffffffff:
                         self.infile.seek(compressed_size, os.SEEK_CUR)
 
-                # Section 4.4.4, bit 3:
-                # "If this bit is set, the fields crc-32, compressed
-                # size and uncompressed size are set to zero in the
-                # local header.  The correct values are put in the
-                # data descriptor immediately following the compressed
-                # data."
-                #
-                # This is not necessarily correct though: there are files
-                # where a data descriptor has been set and the sizes
-                # and CRC in the local file header have not been changed.
-                dd_found = False
-
+                # If the length of the data isn't known, it could be stored
+                # in a data descriptor. Although a flag should have been set
+                # (section 4.3.9) this isn't a guarantee.
                 if (not file_header.body.header.file_name.endswith('/') and compressed_size == 0) or has_data_descriptor and compressed_size == 0:
+                    # The data needs to be parsed to find a data descriptor.
+                    # Many ZIP implementations use a signature for the data descriptor
+                    # (section 4.3.9.3), making it fairly easy to search for it. However,
+                    # this is not mandatory and there are indeed files where this signature
+                    # is not used. In that case the only solution is to look for the next entry
+                    # (valid) entry in the file and then backtrack. These entries are:
+                    #
+                    # * a local file header
+                    # * central directory entry
+                    # * Android Signing block
+                    #
+                    # whichever comes first. The 12 bytes preceding it (or in the case
+                    # of ZIP64 the first 20 bytes) will then be the data descriptor.
+
                     # first store where the possible data descriptor starts
                     start_of_possible_data_descriptor = self.infile.tell()
 
-                    # In case the length is not known it is very difficult
-                    # to see where the data ends so it is needed to search for
-                    # a specific signature. This can either be:
-                    #
-                    # * data descriptor header
-                    # * local file header
-                    # * central directory header
-                    #
-                    # Whichever appears first in the data will be processed.
                     while True:
                         # store the current position of the pointer in the file
                         current_position = self.infile.tell()
@@ -466,19 +475,16 @@ class ZipUnpackParser(UnpackParser):
 
                         best_so_far = tmppos
 
-                        # first search for the common marker for data descriptors,
-                        # but only if the right flag has been set in the general
-                        # purpose bit flag.
+                        # first search for the common data descriptor signature
+                        # but only if the data descriptor flag has been set
                         if has_data_descriptor:
                             ddpos = -1
                             while True:
                                 ddpos = buf.find(DATA_DESCRIPTOR, ddpos+1)
                                 if ddpos != -1:
-                                    dd_found = True
 
-                                    # sanity check to make sure that the
-                                    # compressed size makes sense in the data descriptor
-                                    # makes sense.
+                                    # sanity check to make sure that the compressed
+                                    # size in the data descriptor makes sense.
                                     self.infile.seek(current_position + ddpos + 8)
                                     tmp_compressed_size = int.from_bytes(self.infile.read(4), byteorder='little')
 
@@ -493,7 +499,8 @@ class ZipUnpackParser(UnpackParser):
 
                         # search for a local file header which indicates
                         # the next entry in the ZIP file (not a Dahua local file
-                        # header as that is always the first one in the file)
+                        # header as that is always the first one in the file and
+                        # cannot appear later in the file).
                         local_header_pos = buf.find(LOCAL_FILE_HEADER)
                         if local_header_pos != -1 and (local_header_pos < tmppos or tmppos == -1):
                             # In case the file that is stored is an empty
@@ -529,12 +536,14 @@ class ZipUnpackParser(UnpackParser):
                             self.infile.seek(new_cur_pos)
 
                         # then search for the start of the central directory
-                        centraldirpos = buf.find(CENTRAL_DIRECTORY)
-                        if centraldirpos != -1:
+                        # to see if it is earlierin the file (unlikely, unless
+                        # ZIP files have been concatenated.
+                        central_dir_pos = buf.find(CENTRAL_DIRECTORY)
+                        if central_dir_pos != -1:
                             # In case the file that is stored is an empty
                             # file, then there will be no data descriptor field
                             # so just continue as normal.
-                            if current_position + centraldirpos == start_of_possible_data_descriptor:
+                            if current_position + central_dir_pos == start_of_possible_data_descriptor:
                                 self.infile.seek(current_position)
                                 break
 
@@ -545,19 +554,19 @@ class ZipUnpackParser(UnpackParser):
                             # * uncompressed size
                             # section 4.3.9
                             if has_data_descriptor:
-                                if current_position + centraldirpos - start_of_possible_data_descriptor > 12:
-                                    self.infile.seek(current_position + centraldirpos - 8)
+                                if current_position + central_dir_pos - start_of_possible_data_descriptor > 12:
+                                    self.infile.seek(current_position + central_dir_pos - 8)
                                     tmp_compressed_size = int.from_bytes(self.infile.read(4), byteorder='little')
                                     # and return to the original position
                                     self.infile.seek(new_cur_pos)
-                                    if current_position + centraldirpos - start_of_possible_data_descriptor == tmp_compressed_size + 16:
+                                    if current_position + central_dir_pos - start_of_possible_data_descriptor == tmp_compressed_size + 16:
                                         if tmppos == -1:
-                                            tmppos = centraldirpos
+                                            tmppos = central_dir_pos
                                         else:
-                                            tmppos = min(centraldirpos, tmppos)
+                                            tmppos = min(central_dir_pos, tmppos)
                                     else:
-                                        if current_position + centraldirpos - start_of_possible_data_descriptor > 16:
-                                            self.infile.seek(current_position + centraldirpos - 16)
+                                        if current_position + central_dir_pos - start_of_possible_data_descriptor > 16:
+                                            self.infile.seek(current_position + central_dir_pos - 16)
                                             tmpbytes = self.infile.read(16)
                                             if tmpbytes == b'APK Sig Block 42':
                                                 self.android_signing = True
@@ -566,9 +575,9 @@ class ZipUnpackParser(UnpackParser):
                                             self.infile.seek(new_cur_pos)
                             else:
                                 if tmppos == -1:
-                                    tmppos = centraldirpos
+                                    tmppos = central_dir_pos
                                 else:
-                                    tmppos = min(centraldirpos, tmppos)
+                                    tmppos = min(central_dir_pos, tmppos)
 
                             self.infile.seek(new_cur_pos)
 
@@ -592,9 +601,6 @@ class ZipUnpackParser(UnpackParser):
                         if self.infile.tell() == self.infile.size:
                             break
                         self.infile.seek(-4, os.SEEK_CUR)
-                else:
-                    # default
-                    pass
 
             # there always has to be an end of central directory
             check_condition(seen_end_of_central_directory, "no end of central directory found")
