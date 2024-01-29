@@ -194,7 +194,7 @@ def extract_identifiers(process_queue, temporary_directory, json_output_director
                         for line in lines:
                             try:
                                 ctags_json = json.loads(line)
-                            except Exception as e:
+                            except json.decoder.JSONDecodeError:
                                 continue
                             try:
                                 ctags_name = ctags_json['name']
