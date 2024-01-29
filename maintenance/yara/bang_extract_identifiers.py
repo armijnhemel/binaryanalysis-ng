@@ -309,7 +309,7 @@ def main(config_file, source_directory, meta):
                 print(f"{source_directory / release_filename} does not exist", file=sys.stderr)
                 if extraction_env['error_fatal']:
                     sys.exit(1)
-                    continue
+                continue
             packages.append((release_version, release_filename))
 
     json_output_directory = extraction_env['json_directory'] / package
