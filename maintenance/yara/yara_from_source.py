@@ -206,7 +206,9 @@ def extract_identifiers(process_queue, result_queue, json_directory,
 
             if not (strings == [] and variables == [] and functions == []):
                 yara_tags = yara_env['tags'] + [language]
-                yara_name = generate_yara(yara_output_directory, metadata, functions, variables, strings, yara_tags, heuristics, yara_env['fullword'], yara_env['operator'])
+                yara_name = generate_yara(yara_output_directory, metadata, functions,
+                                          variables, strings, yara_tags, heuristics,
+                                          yara_env['fullword'], yara_env['operator'])
 
         result_meta = {}
         for language in identifiers_per_language:
@@ -316,7 +318,7 @@ def main(config_file, json_directory, identifiers, meta):
     if identifiers is not None:
         try:
             lq_identifiers = pickle.load(identifiers)
-        except:
+        except pickle.UnpicklingError:
             pass
 
     yara_output_directory = yara_env['yara_directory'] / 'src' / top_purl.type / top_purl.name
@@ -473,6 +475,8 @@ def main(config_file, json_directory, identifiers, meta):
         heuristics['variables_percentage'] = min(heuristics['variables_percentage'],
                                                  heuristics['variables_percentage'] * min_per_language[language]['variables'] / len(variables))
 
+        # finally generate union and intersection files
+        # that operate on all versions of a package
         metadata = {'archive': top_purl.name + "-union", 'language': language,
                     'package': top_purl.name, 'packageurl': top_purl,
                     'website': website, 'cpe': cpe, 'cpe23': cpe23}
@@ -496,7 +500,9 @@ def main(config_file, json_directory, identifiers, meta):
 
         if not (strings == [] and variables == [] and functions == []):
             yara_tags = yara_env['tags'] + [language]
-            yara_name = generate_yara(yara_output_directory, metadata, functions, variables, strings, yara_tags, heuristics, yara_env['fullword'], yara_env['operator'])
+            yara_name = generate_yara(yara_output_directory, metadata, functions,
+                                      variables, strings, yara_tags, heuristics,
+                                      yara_env['fullword'], yara_env['operator'])
 
 
 if __name__ == "__main__":
