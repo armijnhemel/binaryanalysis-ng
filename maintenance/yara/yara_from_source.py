@@ -179,6 +179,9 @@ def extract_identifiers(process_queue, result_queue, json_directory,
 
         for string in identifiers['strings']:
             if len(string) >= yara_env['string_min_cutoff'] and len(string) <= yara_env['string_max_cutoff']:
+                if language == 'c':
+                    if string in yara_env['lq_identifiers']['elf']['strings']:
+                        continue
                 identifiers_per_language[language]['strings'].add(string)
 
         for function in identifiers['functions']:
@@ -419,6 +422,9 @@ def main(config_file, json_directory, identifiers, meta):
 
                 for string in json_results['strings']:
                     if len(string) >= yara_env['string_min_cutoff'] and len(string) <= yara_env['string_max_cutoff']:
+                        if language == 'c':
+                            if string in yara_env['lq_identifiers']['elf']['strings']:
+                                continue
                         strings.add(string)
 
                 functions = set()
