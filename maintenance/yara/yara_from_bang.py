@@ -171,6 +171,8 @@ def app():
 @click.option('--identifiers', '-i', help='pickle with low quality identifiers',
               required=True, type=click.File('rb'))
 def binary(config_file, result_json, identifiers):
+    bang_type = 'binary'
+
     # define a data structure with low quality
     # identifiers for ELF and Dex
     lq_identifiers = {'elf': {'functions': [], 'variables': [], 'strings': []},
@@ -313,7 +315,7 @@ def binary(config_file, result_json, identifiers):
         yara_tags = yara_env['tags'] + ['elf']
         generate_yara(yara_binary_directory, metadata, sorted(functions), sorted(variables),
                       sorted(strings), yara_tags, heuristics, yara_env['fullword'],
-                      yara_env['operator'])
+                      yara_env['operator'], bang_type)
     elif exec_type == 'dex':
         functions = set()
         variables = set()
@@ -365,10 +367,10 @@ def binary(config_file, result_json, identifiers):
         yara_tags = yara_env['tags'] + ['dex']
         generate_yara(yara_binary_directory, metadata, sorted(functions), sorted(variables),
                       sorted(strings), yara_tags, heuristics, yara_env['fullword'],
-                      yara_env['operator'])
+                      yara_env['operator'], bang_type)
 
 def process_identifiers(process_queue, result_queue, json_directory,
-                        yara_output_directory, yara_env):
+                        yara_output_directory, yara_env, bang_type):
     '''Read a JSON result file with identifiers extracted from source code,
        clean up and generate YARA rules'''
     heuristics = yara_env['heuristics']
@@ -411,6 +413,7 @@ def process_identifiers(process_queue, result_queue, json_directory,
 
         for language in identifiers_per_language:
             metadata = identifiers['metadata']
+            metadata['name'] = metadata['archive']
 
             strings = sorted(identifiers_per_language[language]['strings'])
             variables = sorted(identifiers_per_language[language]['variables'])
@@ -420,7 +423,7 @@ def process_identifiers(process_queue, result_queue, json_directory,
                 yara_tags = yara_env['tags'] + [language]
                 yara_name = generate_yara(yara_output_directory, metadata, functions,
                                           variables, strings, yara_tags, heuristics,
-                                          yara_env['fullword'], yara_env['operator'])
+                                          yara_env['fullword'], yara_env['operator'], bang_type)
 
         result_meta = {}
         for language in identifiers_per_language:
@@ -443,6 +446,7 @@ def process_identifiers(process_queue, result_queue, json_directory,
 @click.option('--meta', '-m', required=True, help='file with meta information about a package',
               type=click.File('r'))
 def source(config_file, json_directory, identifiers, meta):
+    bang_type = "source"
     json_directory = pathlib.Path(json_directory)
 
     # should be a real directory
@@ -559,7 +563,7 @@ def source(config_file, json_directory, identifiers, meta):
     for i in range(0, yara_env['threads']):
         process = multiprocessing.Process(target=process_identifiers,
                                           args=(process_queue, result_queue, json_directory,
-                                                yara_output_directory, yara_env))
+                                                yara_output_directory, yara_env, bang_type))
         processes.append(process)
 
     # start all the processes
@@ -692,7 +696,8 @@ def source(config_file, json_directory, identifiers, meta):
 
         # finally generate union and intersection files
         # that operate on all versions of a package
-        metadata = {'archive': top_purl.name + "-union", 'language': language,
+        archive_name = f'{top_purl.name}-union'
+        metadata = {'archive': archive_name, 'name': archive_name, 'language': language,
                     'package': top_purl.name, 'packageurl': top_purl,
                     'website': website, 'cpe': cpe, 'cpe23': cpe23}
 
@@ -700,7 +705,7 @@ def source(config_file, json_directory, identifiers, meta):
             yara_tags = yara_env['tags'] + [language]
             yara_name = generate_yara(yara_output_directory, metadata, functions, variables,
                                       strings, yara_tags, heuristics, yara_env['fullword'],
-                                      yara_env['operator'])
+                                      yara_env['operator'], bang_type)
 
         strings = sorted(all_strings_intersection)
         variables = sorted(all_variables_intersection)
@@ -709,7 +714,8 @@ def source(config_file, json_directory, identifiers, meta):
         # reset heuristics
         heuristics = copy.deepcopy(yara_env['heuristics'])
 
-        metadata = {'archive': top_purl.name + "-intersection", 'language': language,
+        archive_name = f'{top_purl.name}-intersection'
+        metadata = {'archive': archive_name, 'name': archive_name, 'language': language,
                     'package': top_purl.name, 'packageurl': top_purl,
                     'website': website, 'cpe': cpe, 'cpe23': cpe23}
 
@@ -717,7 +723,7 @@ def source(config_file, json_directory, identifiers, meta):
             yara_tags = yara_env['tags'] + [language]
             yara_name = generate_yara(yara_output_directory, metadata, functions,
                                       variables, strings, yara_tags, heuristics,
-                                      yara_env['fullword'], yara_env['operator'])
+                                      yara_env['fullword'], yara_env['operator'], bang_type)
 
 
 if __name__ == "__main__":

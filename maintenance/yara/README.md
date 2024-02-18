@@ -3,9 +3,12 @@
 This directory contains scripts to generate YARA rules. There are various scripts:
 
 1. script to generate JSON from BANG results (binary files), plus a separate
-script to generate YARA files from the JSON results, possibly doing some extra
-filtering.
-2. script to generate YARA rules from source code
+   script to generate YARA files from the JSON results, possibly doing some
+   extra filtering such as low quality identifiers.
+2. script to extract identifiers (functions, strings, etc.) from source code
+   and write to JSON, plus a script to generate YARA rules from the JSON
+   results, possibly doing some extra filtering such as low quality
+   identifiers.
 
 The script to generate JSON files from binaries currently only supports ELF
 and Android Dex. More formats will be added soon.
