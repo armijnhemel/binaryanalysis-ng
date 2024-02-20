@@ -34,8 +34,8 @@ in turned created from source code files. Dependencies (like third parties)
 typically do not end up in the dynamically linked ELF file (although there
 are of course exceptions, for example when there is a complete copy of
 third party software included in the package), so the separation between
-package and third party code tends to be clean. Information extracted from
-binaries in a package usually is from just that package.
+package and third party code tends to be fairly clean. Information extracted
+from binaries in a package usually is from just that package.
 
 Extracting identifiers from the binary has advantages over extracting
 identifiers from the source code: in many packages not all source code files
@@ -70,17 +70,15 @@ and dependencies.
 ### Android Dex files
 
 For Android Dex files it is much more difficult to make a good match using
-rules generated from binaries, as Dex files are much closer to statically
-linked files: you will find a lot dependencies included in the `classes.dex`
-files that cannot be found in the source code of a project, but can be found
-in the dependencies.
+rules generated from binaries, as Dex files are conceptually much closer to
+statically linked ELF files than to dynamically linked ELF files: you will find
+a lot of identifiers included in the `classes.dex` files that cannot be found
+in the source code of a project, but can be found in the source code of the
+dependencies.
 
 By default many programs are also obfuscated or shrunk by Android tools
-such as Android Studio:
-
-<https://developer.android.com/studio/build/shrink-code>
-
-which advertises obfuscation of class names and method names as a feature.
+such as [Android Studio][android_studio] which advertises obfuscation of class
+names and method names as a feature.
 
 This makes rules generated from binary `.dex` files not very well suited as
 there will be a lot of junk. Results will be much better with rules created
@@ -245,13 +243,13 @@ files) tags can be supplied as an argument (space separated), for example:
 $ python3 bang_to_json.py -o ~/json -r ~/tmp/debian/root debian debian11
 ```
 
-As the next step run the `yara_from_bang.py` for each of the generated JSON
-files.
+To create the actual YARA files run the `yara_from_bang.py` for each of the
+generated JSON files.
 
-The script has two mandatory arguments: a configuration file (in YAML format)
-and path to the JSON result file. An example configuration file
-`yara-config.yaml` is provided in this directory and should be adapted to
-your local settings.
+The `yara_from_bang.py` script has two mandatory arguments: a configuration
+file (in YAML format) and path to the JSON result file created in the previous
+step. An example configuration file `yara-config.yaml` is provided in this
+directory and should be adapted to your local settings.
 
 For example:
 
@@ -275,10 +273,10 @@ Examples are:
 * identifiers that are a substring of other identifiers as these could lead to
   false positives in YARA (somewhat prevented by using `fullword` in YARA
   rules.
-* identifiers that occur in many packages. A good example: weak ELF symbols
-  <https://en.wikipedia.org/wiki/Weak_symbol> or identifiers that occur in
-  packages that have been copied (cloned) and are included as "third party
-  code" such as `zlib`, `libpng`, `sqlite` and so on.
+* identifiers that occur in many packages. A good example: [weak ELF
+  symbols][elf_weak_symbol] or identifiers that occur in packages that
+  have been copied (cloned) and are included as "third party code" such as
+  `zlib`, `libpng`, `sqlite` and so on.
 
 A prefab list of low quality ELF identifiers can be found in the files
 `low_quality_elf_funcs` and `low_quality_elf_vars`. These were collected by
@@ -312,3 +310,5 @@ found in (nearly) all ELF files in Debian 11.
 
 [package_url]:https://github.com/package-url
 [bang_data_files]:https://github.com/armijnhemel/bang_data_files
+[android_studio]:https://developer.android.com/studio/build/shrink-code
+[elf_weak_symbol]:https://en.wikipedia.org/wiki/Weak_symbol
