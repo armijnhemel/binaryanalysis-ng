@@ -89,7 +89,7 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
                         strings.append(s)
 
             # process symbols
-            if bang_data['metadata']['symbols'] != []:
+            if bang_data['metadata'].get('symbols', []) != []:
                 for s in bang_data['metadata']['symbols']:
                     if s['section_index'] == 0:
                         continue
