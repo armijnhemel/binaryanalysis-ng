@@ -125,13 +125,13 @@ In the metadata file `package`, `packageurl` and `releases` are mandatory.
 The script is invoked as follows:
 
 ```console
-    $ python3 bang_extract_identifiers.py -c /path/to/config -s /path/to/sources -m /path/to/metadata
+$ python3 bang_extract_identifiers.py -c /path/to/config -s /path/to/sources -m /path/to/metadata
 ```
 
 for example:
 
 ```console
-    $ python3 bang_extract_identifiers.py -c yara-config.yaml -s ~/busybox -m data/busybox.yaml
+$ python3 bang_extract_identifiers.py -c yara-config.yaml -s ~/busybox -m data/busybox.yaml
 ```
 
 The files mentioned in the metadata file should exist in the source code
@@ -252,6 +252,11 @@ For example:
 ```console
 $ python3 yara_from_bang.py binary -c yara-config.yaml -j ~/json/classes.dex-1c632fc98e0a19d657ac5cdab83a9433668fa97e1142ead29de1e34effede149.json
 ```
+
+Optionally parameters `--no-functions`, `--no-variables` and `--no-strings` can
+be passed to the script to ignore functions/methods, variables/fields and
+strings respectively. This makes it possible to create specialized YARA files
+that only use one type of identifier.
 
 # Low quality identifiers
 
