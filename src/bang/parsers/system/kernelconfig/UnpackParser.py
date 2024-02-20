@@ -47,7 +47,7 @@ class LinuxKernelConfigUnpackParser(UnpackParser):
     header_compiler_re = re.compile(r'# Compiler: ([\w\d\.\-() ]+)$')
 
     # regular expression for the configuration header lines
-    config_header_re = re.compile(r'# [\w\d/\-;:\. ,()&+\']+$')
+    config_header_re = re.compile(r'# [\w\d/\-;:\. ,()&+\'>]+$')
 
     # regular expressions for the lines with configuration
     commented_config_re = re.compile(r'# CONFIG_[\w\d_]+ is not set$')

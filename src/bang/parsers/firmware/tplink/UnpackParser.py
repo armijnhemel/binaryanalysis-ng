@@ -26,6 +26,60 @@ from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import tplink_tx6610v4
+from . import tplink
+
+
+class TplinkkUnpackParser(UnpackParser):
+    extensions = []
+    signatures = [
+        (4, b'TP-LINK Technologies')
+    ]
+    pretty_name = 'tplink'
+
+    def parse(self):
+        try:
+            self.data = tplink.Tplink.from_io(self.infile)
+        except (Exception, ValidationFailedError) as e:
+            raise UnpackParserException(e.args)
+
+    def calculate_unpacked_size(self):
+        self.unpacked_size = self.data.header.len_image
+
+    def unpack(self, meta_directory):
+        if self.data.bootloader:
+            file_path = pathlib.Path('bootloader')
+
+            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                outfile.write(self.data.bootloader)
+                yield unpacked_md
+
+        if self.data.image2:
+            file_path = pathlib.Path('image2')
+
+            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                outfile.write(self.data.image2)
+                yield unpacked_md
+
+        if self.data.kernel:
+            file_path = pathlib.Path('kernel')
+
+            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                outfile.write(self.data.kernel)
+                yield unpacked_md
+
+        if self.data.rootfs:
+            file_path = pathlib.Path('rootfs')
+
+            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                outfile.write(self.data.rootfs)
+                yield unpacked_md
+
+    labels = ['tplink', 'firmware']
+
+    @property
+    def metadata(self):
+        metadata = {}
+        return metadata
 
 
 class TplinkTx6610v4kUnpackParser(UnpackParser):

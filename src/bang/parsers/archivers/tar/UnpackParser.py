@@ -54,7 +54,7 @@ class TarUnpackParser(UnpackParser):
             # TODO: rename files properly with minimum chance of clashes
             if tarinfo.name in tar_filenames:
                 pass
-            if tarinfo.name == '':
+            if tarinfo.name in ['', ',', '..', '/']:
                 pass
             if '\x00' in str(tarinfo.name):
                 pass
@@ -99,6 +99,8 @@ class TarUnpackParser(UnpackParser):
                 if tarinfo.name == '':
                     # empty name, TODO
                     # test file pax-global-records.tar from golang-1.15-src_1.15.9-6_amd64.deb
+                    continue
+                if tarinfo.name in ['.', '..', '/']:
                     continue
 
                 try:

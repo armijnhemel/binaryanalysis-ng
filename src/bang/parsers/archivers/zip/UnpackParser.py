@@ -44,10 +44,12 @@ is using the ZIP format for its firmware updates, but has changed the first
 two characters of the file from PK to DH.
 '''
 
+import bz2
 import os
 import pathlib
 import tempfile
 import zipfile
+import zlib
 
 import pyaxmlparser
 
@@ -58,7 +60,7 @@ from kaitaistruct import ValidationFailedError
 from . import zip as kaitai_zip
 
 MIN_VERSION = 0
-MAX_VERSION = 90
+MAX_VERSION = 63
 
 # all known ZIP headers
 ARCHIVE_EXTRA_DATA = b'PK\x06\x08'
@@ -72,7 +74,7 @@ LOCAL_FILE_HEADER = b'PK\x03\x04'
 ZIP64_END_OF_CENTRAL_DIRECTORY = b'PK\x06\x06'
 ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR = b'PK\x06\x07'
 DAHUA_LOCAL_FILE_HEADER = b'DH\x03\x04'
-INSTAR_LOCAL_FILE_HEADER = b'DH\x03\x07'
+INSTAR_LOCAL_FILE_HEADER = b'PK\x03\x07'
 
 ALL_HEADERS = [ARCHIVE_EXTRA_DATA, CENTRAL_DIRECTORY, DATA_DESCRIPTOR,
                DIGITAL_SIGNATURE, END_OF_CENTRAL_DIRECTORY,
@@ -92,6 +94,10 @@ class ZipUnpackParser(UnpackParser):
     ]
     pretty_name = 'zip'
 
+    # set the priority high so this one will be tried first, before
+    # the parser for individual ZIP entries (see bottom of this file)
+    priority = 1000
+
     def parse(self):
         self.encrypted = False
         self.zip64 = False
@@ -103,37 +109,50 @@ class ZipUnpackParser(UnpackParser):
         # https://source.android.com/security/apksigning/
         self.android_signing = False
 
-        # In a ZIP file there are file entries, followed by a central
-        # directory, possibly with other headers following/preceding
-        # store the local file names to check if they appear in the
-        # central directory in the same order (optional)
+        # For every local file header in the ZIP file there should
+        # be a corresponding entry in the central directory.
+        # Store the file names plus the CRC32 from the local file
+        # headers as well # as the central directory to see if these
+        # correspond. Note: this won't necessarily work if data
+        # descriptors are used (section 4.4.4) as then the CRC32
+        # field might be set to 0 in the local file header (but not
+        # the central directory).
         local_files = []
         central_directory_files = []
+
+        # store the order in which headers appear. This is to be
+        # able to check the order in which all the different headers
+        # appear in the file as the specification mandates a certain
+        # ordering.
+        order_for_headers = []
 
         # first do a simple sanity check for the most common case
         # where the file is a single ZIP archive that can be parsed
         # with the Kaitai Struct grammar. This means that sizes in
         # the local file headers are known and correct, and so on.
         # This is the most basic ZIP file format without any of the
-        # countless exceptions.
+        # countless exceptions that exist.
         try:
             self.data = kaitai_zip.Zip.from_io(self.infile)
 
             # store file names and CRC32 to see if they match in the local
             # file headers and in the end of central directory
-            for s in self.data.sections:
-                if s.section_type == kaitai_zip.Zip.SectionTypes.dahua_local_file:
+            # TODO: extra sanity checks to see if the order in which
+            # the different records/sections appear, see section 4.3.6.
+            for file_header in self.data.sections:
+                order_for_headers.append(file_header.section_type)
+                if file_header.section_type == kaitai_zip.Zip.SectionTypes.dahua_local_file:
                     self.dahua = True
-                if s.section_type == kaitai_zip.Zip.SectionTypes.instar_local_file:
+                if file_header.section_type == kaitai_zip.Zip.SectionTypes.instar_local_file:
                     self.instar = True
-                if s.section_type == kaitai_zip.Zip.SectionTypes.local_file or s.section_type == kaitai_zip.Zip.SectionTypes.dahua_local_file:
-                    local_files.append((s.body.header.file_name, s.body.header.crc32))
-                    if s.body.header.flags.file_encrypted:
+                if file_header.section_type in [kaitai_zip.Zip.SectionTypes.local_file, kaitai_zip.Zip.SectionTypes.dahua_local_file]:
+                    local_files.append((file_header.body.header.file_name, file_header.body.header.crc32))
+                    if file_header.body.header.flags.file_encrypted:
                         self.encrypted = True
-                elif s.section_type == kaitai_zip.Zip.SectionTypes.central_dir_entry:
-                    central_directory_files.append((s.body.file_name, s.body.crc32))
-                elif s.section_type == kaitai_zip.Zip.SectionTypes.end_of_central_dir:
-                    self.zip_comment = s.body.comment
+                elif file_header.section_type == kaitai_zip.Zip.SectionTypes.central_dir_entry:
+                    central_directory_files.append((file_header.body.file_name, file_header.body.crc32))
+                elif file_header.section_type == kaitai_zip.Zip.SectionTypes.end_of_central_dir:
+                    self.zip_comment = file_header.body.comment
 
             # some more sanity checks here: verify if the local files
             # and the central directory (including CRC32 values) match
@@ -149,8 +168,17 @@ class ZipUnpackParser(UnpackParser):
         # Kaitai Struct there is only the hard way left: parse from
         # the start of the file and keep track of everything manually.
         if not kaitai_success:
+            # store if the previous header is a local file header.
+            # Local file headers can only be interleaved by data
+            # descriptors. All other headers should set this variable
+            #  to False.
+            previous_header_local = True
+
+            # reset the order_for_headers list to get rid of any
+            # possible old data.
+            order_for_headers = []
+
             seen_end_of_central_directory = False
-            in_local_entry = True
             seen_zip64_end_of_central_dir = False
             possible_android = False
 
@@ -179,22 +207,24 @@ class ZipUnpackParser(UnpackParser):
                         except (UnpackParserException, ValidationFailedError, UnicodeDecodeError, EOFError) as e:
                             raise UnpackParserException(e.args)
 
+                        order_for_headers.append(file_header.section_type)
+
                         if file_header.section_type == kaitai_zip.Zip.SectionTypes.central_dir_entry:
                             # store the file name (as byte string)
                             central_directory_files.append(file_header.body.file_name)
-                            in_local_entry = False
-                        elif buf == ZIP64_END_OF_CENTRAL_DIRECTORY:
+                            previous_header_local = False
+                        elif file_header.section_type == kaitai_zip.Zip.SectionTypes.zip64_end_of_central_dir:
                             # first read the size of the ZIP64 end of
                             # central directory (section 4.3.14.1)
                             seen_zip64_end_of_central_dir = True
-                            in_local_entry = False
-                        elif buf == ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR:
+                            previous_header_local = False
+                        elif file_header.section_type == kaitai_zip.Zip.SectionTypes.zip64_end_of_central_dir_locator:
                             # check for ZIP64 end of central directory locator
                             # (section 4.3.15)
-                            in_local_entry = False
-                        elif buf == END_OF_CENTRAL_DIRECTORY:
+                            previous_header_local = False
+                        elif file_header.section_type == kaitai_zip.Zip.SectionTypes.end_of_central_dir:
                             # check for end of central directory (section 4.3.16)
-                            in_local_entry = False
+                            previous_header_local = False
 
                             # read the ZIP comment length
                             self.zip_comment = file_header.body.comment
@@ -203,13 +233,13 @@ class ZipUnpackParser(UnpackParser):
 
                             # end of ZIP file reached, so break out of the loop
                             break
-                        elif buf == DATA_DESCRIPTOR:
+                        elif file_header.section_type == kaitai_zip.Zip.SectionTypes.data_descriptor:
                             # challenge: this could be both a 32 bit and 64 bit
                             # data descriptor and it is not always easy to find
                             # which one is used possibly only until after it has
                             # been read.
                             # A hint is the ZIP version: if it is 4.5 or higher
-                            # then it is very likely that it is the ZIP64
+                            # then it is very likely that it is the ZIP64 variant
                             if zip_version >= 45:
                                 self.infile.seek(start_of_entry)
                                 try:
@@ -302,7 +332,7 @@ class ZipUnpackParser(UnpackParser):
                     continue
 
                 # continue with the local file headers
-                if buf == LOCAL_FILE_HEADER and not in_local_entry:
+                if buf == LOCAL_FILE_HEADER and not previous_header_local:
                     # this should not happen in a valid ZIP file:
                     # local file headers should not be interleaved
                     # with other headers, except data descriptors.
@@ -315,23 +345,17 @@ class ZipUnpackParser(UnpackParser):
                 except (UnpackParserException, ValidationFailedError, UnicodeDecodeError, EOFError) as e:
                     raise UnpackParserException(e.args)
 
+                order_for_headers.append(file_header.section_type)
                 compressed_size = file_header.body.header.len_body_compressed
                 uncompressed_size = file_header.body.header.len_body_uncompressed
 
-                broken_zip_version = False
+                zip_version = file_header.body.header.version.version
 
-                # some files observed in the wild have a weird version
-                if file_header.body.header.version in [0x30a, 0x314]:
-                    broken_zip_version = True
+                check_condition(zip_version >= MIN_VERSION,
+                                "invalid ZIP version %d" % zip_version)
 
-                check_condition(file_header.body.header.version >= MIN_VERSION,
-                                "invalid ZIP version %d" % file_header.body.header.version)
-
-                if not broken_zip_version:
-                    check_condition(file_header.body.header.version <= MAX_VERSION,
-                                    "invalid ZIP version %d" % file_header.body.header.version)
-
-                zip_version = file_header.body.header.version
+                check_condition(zip_version <= MAX_VERSION,
+                                "invalid ZIP version %d" % zip_version)
 
                 if file_header.body.header.flags.file_encrypted:
                     self.encrypted = True
@@ -360,7 +384,7 @@ class ZipUnpackParser(UnpackParser):
                             # ZIP64, section 4.5.3
                             # according to 4.4.3.2 PKZIP 4.5 or later is
                             # needed to unpack ZIP64 files.
-                            check_condition(file_header.body.header.version >= 45, "wrong minimal needed version for ZIP64")
+                            check_condition(zip_version >= 45, "wrong minimal needed version for ZIP64")
 
                             # according to the official ZIP specifications the length of the
                             # header should be 28, but there are files where this field is
@@ -624,8 +648,18 @@ class ZipUnpackParser(UnpackParser):
                     break
                 if z.file_size == 0 and not z.is_dir() and z.external_attr & 0x10 == 0x10:
                     self.faulty_files.append(z)
+                file_path = pathlib.Path(z.filename)
 
-        except (OSError, zipfile.BadZipFile, NotImplementedError) as e:
+                # Although absolute paths are not permitted according
+                # to the ZIP specification these files exist or can easily
+                # be created.
+                if file_path.is_absolute():
+                    try:
+                        file_path = file_path.relative_to('/')
+                    except ValueError:
+                        file_path = file_path.relative_to('//')
+
+        except (OSError, zipfile.BadZipFile, NotImplementedError, ValueError) as e:
             if self.carved:
                 # cleanup
                 os.unlink(self.temporary_file[1])
@@ -644,6 +678,14 @@ class ZipUnpackParser(UnpackParser):
                 # cleanup
                 os.unlink(self.temporary_file[1])
             return
+
+        if self.zip_comment != b'':
+            file_path = pathlib.Path(pathlib.Path(self.infile.name).name)
+            suffix = file_path.suffix + '.comment'
+            file_path = file_path.with_suffix(suffix)
+            with meta_directory.unpack_regular_file(file_path, is_extradata=True) as (unpacked_md, outfile):
+                outfile.write(self.zip_comment)
+                yield unpacked_md
 
         if not self.carved:
             unpackzipfile = zipfile.ZipFile(self.infile)
@@ -664,6 +706,32 @@ class ZipUnpackParser(UnpackParser):
         # Test data can be found in the Apktool repository
         for z in self.zipinfolist:
             file_path = pathlib.Path(z.filename)
+            file_path_parts = file_path.parts
+
+            # mimic behaviour of unzip and p7zip
+            # that remove '..' from paths.
+            clean_file_path_parts = []
+            for part in file_path_parts:
+                if part == '..':
+                    continue
+                clean_file_path_parts.append(part)
+
+            check_condition(clean_file_path_parts != [],
+                            'invalid file name in ZIP file')
+
+            file_path = pathlib.Path(*clean_file_path_parts)
+
+            # Absolute paths are not permitted according to the ZIP
+            # specification so rework to relative paths. This
+            # means that the files will be unpacked in the "rel"
+            # directory instead of the "abs" directory. This is
+            # intended behaviour and consistent with how other tools
+            # unpack data.
+            if file_path.is_absolute():
+                try:
+                    file_path = file_path.relative_to('/')
+                except ValueError:
+                    file_path = file_path.relative_to('//')
 
             if z in self.faulty_files:
                 # create the directory
@@ -674,6 +742,12 @@ class ZipUnpackParser(UnpackParser):
                         with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                             outfile.write(unpackzipfile.read(z))
                             yield unpacked_md
+                        if z.comment != b'':
+                            suffix = file_path.suffix + '.file_comment'
+                            file_path = file_path.with_suffix(suffix)
+                            with meta_directory.unpack_regular_file(file_path, is_extradata=True) as (unpacked_md, outfile):
+                                outfile.write(z.comment)
+                                yield unpacked_md
                     else:
                         meta_directory.unpack_directory(file_path)
                 except NotADirectoryError:
@@ -759,6 +833,119 @@ class ZipUnpackParser(UnpackParser):
                 pass
 
         metadata = {}
-        metadata['comment'] = self.zip_comment
         metadata['zip type'] = labels
         return metadata
+
+
+class ZipEntryUnpackParser(UnpackParser):
+    extensions = []
+    signatures = [
+        (0, b'PK\x03\04'),
+        #(0, b'PK\x03\07'),
+        # http://web.archive.org/web/20190709133846/https://ipcamtalk.com/threads/dahua-ipc-easy-unbricking-recovery-over-tftp.17189/page-2
+        (0, b'DH\x03\04')
+    ]
+    pretty_name = 'zip_entry'
+
+    def parse(self):
+        self.encrypted = False
+        self.zip64 = False
+
+        self.dahua = False
+        self.instar = False
+
+        try:
+            self.file_header = kaitai_zip.Zip.PkSection.from_io(self.infile)
+        except (UnpackParserException, ValidationFailedError, UnicodeDecodeError, EOFError) as e:
+            raise UnpackParserException(e.args)
+
+        if self.file_header.section_type == kaitai_zip.Zip.SectionTypes.dahua_local_file:
+            self.dahua = True
+        elif self.file_header.section_type == kaitai_zip.Zip.SectionTypes.instar_local_file:
+            self.instar = True
+
+        if self.file_header.body.header.flags.file_encrypted:
+            self.encrypted = True
+
+        # only support regular ZIP entries for now, not ZIP64
+        compressed_size = self.file_header.body.header.len_body_compressed
+        uncompressed_size = self.file_header.body.header.len_body_uncompressed
+        check_condition(compressed_size != 0xffffffff, 'ZIP64 not supported')
+        check_condition(uncompressed_size != 0xffffffff, 'ZIP64 not supported')
+
+        # then check if the file is a regular file or a directory (TODO)
+        check_condition(compressed_size > 0, 'only regular files supported for now')
+        check_condition(uncompressed_size > 0, 'only regular files supported for now')
+
+        if not self.encrypted:
+            if self.file_header.body.header.compression_method == kaitai_zip.Zip.Compression.deflated:
+                try:
+                    self.decompressed_data = zlib.decompress(self.file_header.body.body, -15)
+                except Exception as e:
+                    raise UnpackParserException(e.args)
+            elif self.file_header.body.header.compression_method == kaitai_zip.Zip.Compression.bzip2:
+                try:
+                    self.decompressed_data = bz2.decompress(self.file_header.body.body)
+                except Exception as e:
+                    raise UnpackParserException(e.args)
+            elif self.file_header.body.header.compression_method == kaitai_zip.Zip.Compression.lzma:
+                try:
+                    decompressor = zipfile.LZMADecompressor()
+                    self.decompressed_data = decompressor.decompress(self.file_header.body.body)
+                except Exception as e:
+                    raise UnpackParserException(e.args)
+            elif self.file_header.body.header.compression_method == kaitai_zip.Zip.Compression.none:
+                self.decompressed_data = self.file_header.body.body
+            else:
+                raise UnpackParserException("unsupported compression")
+
+            check_condition(len(self.decompressed_data) == uncompressed_size,
+                            "wrong declared uncompresed size or incomplete decompression")
+
+        file_path = pathlib.Path(self.file_header.body.header.file_name)
+        file_path_parts = file_path.parts
+
+        # mimic behaviour of unzip and p7zip
+        # that remove '..' from paths.
+        clean_file_path_parts = []
+        for part in file_path_parts:
+            if part == '..':
+                continue
+            clean_file_path_parts.append(part)
+
+        check_condition(clean_file_path_parts != [],
+                        'invalid file name in ZIP file')
+
+        self.file_path = pathlib.Path(*clean_file_path_parts)
+
+        # Absolute paths are not permitted according to the ZIP
+        # specification so rework to relative paths. This
+        # means that the files will be unpacked in the "rel"
+        # directory instead of the "abs" directory. This is
+        # intended behaviour and consistent with how other tools
+        # unpack data.
+        if self.file_path.is_absolute():
+            try:
+                self.file_path = self.file_path.relative_to('/')
+            except ValueError:
+                self.file_path = self.file_path.relative_to('//')
+
+    def unpack(self, meta_directory):
+        if not self.encrypted:
+            with meta_directory.unpack_regular_file(self.file_path) as (unpacked_md, outfile):
+                outfile.write(self.decompressed_data)
+                yield unpacked_md
+
+    @property
+    def labels(self):
+        labels = ['zip_entry', 'compressed']
+        if self.encrypted:
+            labels.append('encrypted')
+        if self.dahua:
+            labels.append('dahua')
+        if self.instar:
+            labels.append('instar zip')
+
+        return labels
+
+    metadata = {}

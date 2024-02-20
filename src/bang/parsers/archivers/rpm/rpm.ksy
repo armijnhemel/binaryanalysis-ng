@@ -1481,6 +1481,12 @@ enums:
     5109:
       id: sys_users
       -orig-id: RPMTAG_SYSUSERS
+    5110:
+      id: build_system
+      -orig-id: RPMTAG_BUILDSYSTEM
+    5111:
+      id: build_option
+      -orig-id: RPMTAG_BUILDOPTION
   record_types:
     # from LSB
     0: not_implemented

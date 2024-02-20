@@ -19,8 +19,8 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import multiprocessing
 import os
+import os.path
 import pathlib
 import pickle
 import stat
@@ -42,9 +42,10 @@ class MetaDirectoryException(Exception):
 
 class MetaDirectory:
     ABS_UNPACK_DIR = 'abs'
-    BLOCK_UNPACK_DIR = 'block'
+    EXTRA_UNPACK_DIR = 'extra'
     REL_UNPACK_DIR = 'rel'
     ROOT_PATH = 'root'
+    PATH_NAME = 'pathname'
     PKL_NAME = 'info.pkl'
 
     def __init__(self, meta_root, name, is_root):
@@ -92,7 +93,7 @@ class MetaDirectory:
     def file_path(self):
         '''The path of the file that this MetaDirectory refers to, relative to the MetaDirectory.'''
         if self._file_path is None:
-            p = self.abs_md_path / 'pathname'
+            p = self.abs_md_path / self.PATH_NAME
             try:
                 with p.open('r') as f:
                     self._file_path = pathlib.Path(f.read())
@@ -104,7 +105,7 @@ class MetaDirectory:
     def file_path(self, path):
         self._file_path = path
         # persist this
-        p = self.abs_md_path / 'pathname'
+        p = self.abs_md_path / self.PATH_NAME
         p.parent.mkdir(parents=True, exist_ok=True)
         with p.open('w') as f:
             f.write(str(path))
@@ -151,7 +152,6 @@ class MetaDirectory:
         If info_write is False, the info will only be read.
         '''
         self._info_write = self._info_write or info_write
-        #open_file = open_file or (self._open_file is None)
         open_file = open_file
         if self._open_file is not None:
             open_file = False
@@ -218,13 +218,38 @@ class MetaDirectory:
     def unpacked_rel_root(self):
         return self.md_path / self.REL_UNPACK_DIR
 
-    def unpacked_path(self, path_name):
+    @property
+    def unpacked_extradata_root(self):
+        return self.md_path / self.EXTRA_UNPACK_DIR
+
+    def sanitize_path(self, path_name):
+        # (somewhat) sanitize the file name, more cleanups are needed
+        normalized_path = os.path.normpath(path_name)
+        if normalized_path in ['/', '//', '.', '..']:
+            raise MetaDirectoryException("invalid path name")
+
+        path_name = pathlib.Path(normalized_path)
+        is_absolute = False
+
+        if path_name.is_absolute():
+            try:
+                path_name = path_name.relative_to('/')
+            except ValueError:
+                path_name = path_name.relative_to('//')
+            is_absolute = True
+
+        return (path_name, is_absolute)
+
+    def unpacked_path(self, path_name, is_extradata=False):
         '''Gives a path in the MetaDirectory for an unpacked file with name path_name.
         '''
-        if path_name.is_absolute():
-            unpacked_path = self.md_path / self.ABS_UNPACK_DIR / path_name.relative_to('/')
+        if is_extradata:
+            unpacked_path = self.unpacked_extradata_root / path_name
         else:
-            unpacked_path = self.md_path / self.REL_UNPACK_DIR / path_name
+            if path_name.is_absolute():
+                unpacked_path = self.unpacked_abs_root / path_name
+            else:
+                unpacked_path = self.unpacked_rel_root / path_name
         return unpacked_path
 
     def md_for_unpacked_path(self, unpacked_path):
@@ -238,7 +263,9 @@ class MetaDirectory:
         '''Given a path, return the MetaDirectory for its corresponding unpacked file.
         path is a relative or absolute path, not the unpacked_path.
         '''
-        unpacked_path = self.unpacked_path(path)
+        sanitized_path, is_absolute = self.sanitize_path(path)
+
+        unpacked_path = self.unpacked_path(sanitized_path)
         return self.md_for_unpacked_path(unpacked_path)
 
     def make_new_md_for_file(self, path):
@@ -253,11 +280,13 @@ class MetaDirectory:
         return md, f
 
     @contextmanager
-    def unpack_regular_file_no_open(self, path):
+    def unpack_regular_file_no_open(self, path, is_extradata=False):
         '''Context manager for unpacking a file with path path into the MetaDirectory,
         yields a file name, that can be used to write data to.
         '''
-        unpacked_path = self.unpacked_path(path)
+        sanitized_path, is_absolute = self.sanitize_path(path)
+
+        unpacked_path = self.unpacked_path(sanitized_path, is_extradata)
         unpacked_md, unpacked_file = self.make_new_md_for_file(unpacked_path)
         unpacked_file.close()
 
@@ -267,18 +296,24 @@ class MetaDirectory:
         yield unpacked_md, unpacked_file.name
 
         # update info
-        if path.is_absolute():
-            self.info.setdefault('unpacked_absolute_files', {})[unpacked_path] = unpacked_md.md_path
+        if is_extradata:
+            self.info.setdefault('unpacked_extradata_files', {})[unpacked_path] = unpacked_md.md_path
         else:
-            self.info.setdefault('unpacked_relative_files', {})[unpacked_path] = unpacked_md.md_path
+            if is_absolute:
+                self.info.setdefault('unpacked_absolute_files', {})[unpacked_path] = unpacked_md.md_path
+            else:
+                self.info.setdefault('unpacked_relative_files', {})[unpacked_path] = unpacked_md.md_path
         log.debug(f'[{self.md_path}]unpack_regular_file: update info to {self.info}')
 
     @contextmanager
-    def unpack_regular_file(self, path):
+    def unpack_regular_file(self, path, is_extradata=False):
         '''Context manager for unpacking a file with path path into the MetaDirectory,
         yields a file object, that you can write to, directly or via sendfile().
         '''
-        unpacked_path = self.unpacked_path(path)
+
+        sanitized_path, is_absolute = self.sanitize_path(path)
+
+        unpacked_path = self.unpacked_path(sanitized_path, is_extradata)
         unpacked_md, unpacked_file = self.make_new_md_for_file(unpacked_path)
         try:
             yield unpacked_md, unpacked_file
@@ -290,17 +325,22 @@ class MetaDirectory:
             unpacked_md.size = unpacked_path.stat().st_size
 
         # update info
-        if path.is_absolute():
-            self.info.setdefault('unpacked_absolute_files', {})[unpacked_path] = unpacked_md.md_path
+        if is_extradata:
+            self.info.setdefault('unpacked_extradata_files', {})[unpacked_path] = unpacked_md.md_path
         else:
-            self.info.setdefault('unpacked_relative_files', {})[unpacked_path] = unpacked_md.md_path
+            if is_absolute:
+                self.info.setdefault('unpacked_absolute_files', {})[unpacked_path] = unpacked_md.md_path
+            else:
+                self.info.setdefault('unpacked_relative_files', {})[unpacked_path] = unpacked_md.md_path
         log.debug(f'[{self.md_path}]unpack_regular_file: update info to {self.info}')
 
     def unpack_directory(self, path):
-        '''Unpack a directory with path path into the MetaDirectory.
+        '''Unpack a directory with path 'path' into the MetaDirectory.
         Returns the path relative to the MetaDirectory.
         '''
-        unpacked_path = self.unpacked_path(path)
+        sanitized_path, is_absolute = self.sanitize_path(path)
+
+        unpacked_path = self.unpacked_path(sanitized_path)
         full_path = self._meta_root / unpacked_path
         full_path.mkdir(parents=True, exist_ok=True)
         return unpacked_path
@@ -310,11 +350,13 @@ class MetaDirectory:
         or rewritten.
         Returns the source path relative to the MetaDirectory.
         '''
-        unpacked_path = self.unpacked_path(source)
+        sanitized_source, is_absolute_source = self.sanitize_path(source)
+        unpacked_path = self.unpacked_path(sanitized_source)
         full_path = self._meta_root / unpacked_path
         full_path.parent.mkdir(parents=True, exist_ok=True)
 
-        target_path = self.unpacked_path(target)
+        sanitized_target, is_absolute_target = self.sanitize_path(target)
+        target_path = self.unpacked_path(sanitized_target)
         target_full_path = self._meta_root / target_path
         full_path.hardlink_to(target_full_path)
         self.info.setdefault('unpacked_hardlinks', {})[unpacked_path] = target
@@ -330,7 +372,8 @@ class MetaDirectory:
         or rewritten.
         Returns the source path relative to the MetaDirectory.
         '''
-        unpacked_path = self.unpacked_path(source)
+        sanitized_source, is_absolute_source = self.sanitize_path(source)
+        unpacked_path = self.unpacked_path(sanitized_source)
         full_path = self._meta_root / unpacked_path
         full_path.parent.mkdir(parents=True, exist_ok=True)
         full_path.symlink_to(target)
@@ -344,7 +387,7 @@ class MetaDirectory:
 
     @property
     def unpacked_files(self):
-        return self.unpacked_relative_files | self.unpacked_absolute_files
+        return self.unpacked_relative_files | self.unpacked_absolute_files | self.unpacked_extradata_files
 
     @property
     def unpacked_relative_files(self):
@@ -356,6 +399,12 @@ class MetaDirectory:
     def unpacked_absolute_files(self):
         files =  self.info.get('unpacked_absolute_files',{})
         log.debug(f'[{self.md_path}]unpacked_absolute_files: got {files}')
+        return files
+
+    @property
+    def unpacked_extradata_files(self):
+        files =  self.info.get('unpacked_extradata_files',{})
+        log.debug(f'[{self.md_path}]unpacked_extradata_files: got {files}')
         return files
 
     @contextmanager

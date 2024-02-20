@@ -13,8 +13,8 @@ doc: |
   manifest. Parsing currently has to be done outside of Kaitai Struct.
 
 doc-ref:
-  - https://android.googlesource.com/platform/system/update_engine/+/refs/heads/master/README.md#Update-Payload-File-Specification
-  - https://android.googlesource.com/platform/system/update_engine/+/refs/heads/master/update_metadata.proto
+  - https://android.googlesource.com/platform/system/update_engine/+/refs/heads/main/README.md#Update-Payload-File-Specification
+  - https://android.googlesource.com/platform/system/update_engine/+/refs/heads/main/update_metadata.proto
 seq:
   - id: magic
     contents: "CrAU"

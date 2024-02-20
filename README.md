@@ -101,7 +101,7 @@ larger file, unless stated otherwise.
 8. tar
 9. Apple Double encoded files
 10. ICC (colour profile)
-11. ZIP (store, deflate, bzip2, but lzma needs some more testing), also JAR, APK (possible with extra Android signing bytes) and other ZIP-based formats
+11. ZIP (store, deflate, bzip2, but lzma needs some more testing), also JAR, APK (possible with extra Android signing bytes) and other ZIP-based formats, dangling entries without a valid central directory
 12. U-Boot image
 13. XAR (no compression, gzip, bzip2, XZ, LZMA)
 14. ISO9660 (including RockRidge and zisofs)
@@ -162,8 +162,8 @@ larger file, unless stated otherwise.
 65. lzop
 66. PNG/APNG (needs PIL)
 67. ar/deb (needs binutils)
-68. squashfs (needs squashfs-tools), only regular squashfs, vendor
-    specific exotic variants need sasquatch
+68. squashfs (using squashfs-tools), vendor specific exotic variants
+    (using sasquatch)
 69. BMP (needs PIL)
 70. PDF (simple verification, no object streams, incremental updates
     at end of the file)
@@ -279,7 +279,7 @@ larger file, unless stated otherwise.
 179. FLS firmware files (IP cameras)
 180. TP-Link TX6610v4 firmware
 181. Granite Devices firmware v300
-182. erofs ('inline' data layout only)
+182. erofs
 183. bzip3
 184. PX4 autopilot firmware files
 185. SSH known hosts files (whole file)
@@ -295,15 +295,20 @@ larger file, unless stated otherwise.
 195. Windows INI files (text only)
 196. Linux Software Map files
 197. exFAT ("no FAT chains" only)
-
-The following text formats can be recognized:
-
-(NOTE: currently broken)
-
-1. Subversion hash files (wcprops, all-wcprops, etc.)
-2. Dockerfile files (whole file)
-3. Python PKG-INFO files (whole file)
-4. TRANS.TBL files
+198. Subversion hash files (wcprops, all-wcprops, etc.)
+199. Python PKG-INFO files (whole file)
+200. Dockerfile files (whole file)
+201. TRANS.TBL files
+202. BTF and BTF.ext sections (BPF related)
+203. NibArchive
+204. EDID
+205. ld.so.conf files (subset, no include statements)
+206. old TP-Link firmware files
+207. certain VxWorks memfs file systems
+208. Realtek bootloader (subset of files)
+209. Linux kernel x86 images
+210. TP-Link minifs
+211. ANJVision IP camera firmware files
 
 ## Getting started
 
@@ -315,13 +320,21 @@ This section assumes that you are using Nix to install all dependencies.
 4. run `make` to build all the Kaitai Struct parsers. Please note: this might take
    a while!
 
-To unpack a file run:
+To unpack a file run (from the `src` directory):
 
     $ python3 -m bang.cli scan -u /path/to/unpack/directory /path/to/binary
 
 This will output a directory with inside a number of files and directories.
 The output directory can serve as input to the analysis scripts (and some
 knowledgebase scripts).
+
+To process each file in a directory run (from the `src` directory):
+
+    $ python3 -m bang.cli scan-directory -u /path/to/unpack/directory /path/to/directory/with/binaries
+
+This will create a directory with search results for each file that is scanned,
+with the same name as the file that is scanned, using the same structure as if
+the file was scanned in regular mode, not directory mode.
 
 ## License
 
