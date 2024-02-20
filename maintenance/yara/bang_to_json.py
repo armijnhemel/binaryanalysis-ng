@@ -100,6 +100,9 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
             meta_info['strings'] = strings
             meta_info['symbols'] = symbols
             meta_info['labels'] = bang_data['labels']
+            if 'static' in bang_data['metadata']['elf_type']:
+                if 'Linux kernel module' not in bang_data['metadata']['elf_type']:
+                    meta_info['labels'].append('static')
             meta_info['tags'] = tags + ['elf']
         elif exec_type == 'dex':
             dex_classes = []
@@ -148,9 +151,12 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
 
 
 @click.command(short_help='process BANG result files and output JSON')
-@click.option('--result-directory', '-r', help='BANG result directories', type=click.Path(exists=True), required=True)
-@click.option('--output-directory', '-o', help='JSON output directory', type=click.Path(exists=True, path_type=pathlib.Path), required=True)
-@click.option('-j', '--jobs', default=1, type=click.IntRange(min=1), help='Number of jobs running simultaneously')
+@click.option('--result-directory', '-r', help='BANG result directories',
+              type=click.Path(exists=True), required=True)
+@click.option('--output-directory', '-o', help='JSON output directory',
+              type=click.Path(exists=True, path_type=pathlib.Path), required=True)
+@click.option('-j', '--jobs', default=1, type=click.IntRange(min=1),
+              help='Number of jobs running simultaneously')
 def main(result_directory, output_directory, jobs):
 
     # store the result directory as a pathlib Path instead of str
