@@ -289,7 +289,8 @@ Third party code is not yet labeled as such.
 Similar to the function names and variable names there are also low quality
 strings. Some examples are:
 
-* very short identifiers (a single character)
+* empty strings
+* very short identifiers (a single character, or a few characters)
 * identifiers that are a substring of other identifiers as these could lead to
   false positives in YARA (somewhat prevented by using `fullword` in YARA
   rules.
@@ -301,12 +302,9 @@ strings. Some examples are:
 * strings from frameworks (example: Boost)
 * strings from embedded interpreters or runtimes (example: OCaml)
 
-
 A prefab list of low quality strings from ELF files can be found in the file
 `low_quality_elf_strings`. These were collected by looking at all strings
 found in (nearly) all ELF files in Debian 11.
-
-# References
 
 [package_url]:https://github.com/package-url
 [bang_data_files]:https://github.com/armijnhemel/bang_data_files
