@@ -136,24 +136,24 @@ def generate_yara(yara_directory, metadata, functions, variables, strings,
                 p.write(f'       {num_strings} of ($string*)')
             else:
                 p.write('       any of ($string*)')
-            if not (functions == set() and variables == set()):
+            if not (functions == [] and variables == []):
                 p.write(f' {yara_operator}\n')
             else:
                 p.write('\n')
         if functions != []:
             if len(functions) >= heuristics['functions_minimum_present']:
                 num_funcs = max(len(functions)//heuristics['functions_percentage'], heuristics['functions_matched'])
-                p.write(f'       {num_funcs} of ($string*)')
+                p.write(f'       {num_funcs} of ($function*)')
             else:
                 p.write('       any of ($function*)')
-            if variables != set():
+            if variables != []:
                 p.write(' %s\n' % yara_operator)
             else:
                 p.write('\n')
         if variables != []:
             if len(variables) >= heuristics['variables_minimum_present']:
                 num_vars = max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched'])
-                p.write(f'       {num_vars} of ($string*)')
+                p.write(f'       {num_vars} of ($function*)')
             else:
                 p.write('       any of ($variable*)\n')
         p.write('\n}')
@@ -170,7 +170,10 @@ def app():
               type=click.File('r'), required=True)
 @click.option('--identifiers', '-i', help='pickle with low quality identifiers',
               required=True, type=click.File('rb'))
-def binary(config_file, result_json, identifiers):
+@click.option('--no-functions', is_flag=True, default=False, help="do not use functions")
+@click.option('--no-variables', is_flag=True, default=False, help="do not use variables")
+@click.option('--no-strings', is_flag=True, default=False, help="do not use strings")
+def binary(config_file, result_json, identifiers, no_functions, no_variables, no_strings):
     bang_type = 'binary'
 
     # define a data structure with low quality
@@ -257,7 +260,7 @@ def binary(config_file, result_json, identifiers):
             metadata['telfhash'] = bang_data['metadata']['telfhash']
 
         # process strings
-        if bang_data['strings'] != []:
+        if bang_data['strings'] != [] and not no_strings:
             for s in bang_data['strings']:
                 if len(s) < yara_env['string_min_cutoff']:
                     continue
@@ -285,11 +288,11 @@ def binary(config_file, result_json, identifiers):
                     identifier_name = s['name'].rsplit('@', 1)[0]
                 else:
                     identifier_name = s['name']
-                if s['type'] == 'func':
+                if s['type'] == 'func' and not no_functions:
                     if identifier_name in yara_env['lq_identifiers']['elf']['functions']:
                         continue
                     functions.add(identifier_name)
-                elif s['type'] == 'object':
+                elif s['type'] == 'object' and not no_variables:
                     if identifier_name in yara_env['lq_identifiers']['elf']['variables']:
                         continue
                     variables.add(identifier_name)
@@ -319,39 +322,46 @@ def binary(config_file, result_json, identifiers):
         variables = set()
 
         for c in bang_data['classes']:
-            for method in c['methods']:
-                # ignore whitespace-only methods
-                if len(method['name']) < yara_env['identifier_cutoff']:
-                    continue
-                if re.match(r'^\s+$', method['name']) is not None:
-                    continue
-                if method['name'] in ['<init>', '<clinit>']:
-                    continue
-                if method['name'].startswith('access$'):
-                    continue
-                if method['name'] in yara_env['lq_identifiers']['dex']['functions']:
-                    continue
-                functions.add(method['name'])
-            for method in c['methods']:
-                for s in method['strings']:
-                    if len(s) < yara_env['string_min_cutoff']:
+            # process methods/functions
+            if not no_functions:
+                for method in c['methods']:
+                    # ignore whitespace-only methods
+                    if len(method['name']) < yara_env['identifier_cutoff']:
                         continue
-                    if len(s) > yara_env['string_max_cutoff']:
+                    if re.match(r'^\s+$', method['name']) is not None:
                         continue
-                    # ignore whitespace-only strings
-                    if re.match(r'^\s+$', s) is None:
-                        strings.add(s.translate(ESCAPE))
+                    if method['name'] in ['<init>', '<clinit>']:
+                        continue
+                    if method['name'].startswith('access$'):
+                        continue
+                    if method['name'] in yara_env['lq_identifiers']['dex']['functions']:
+                        continue
+                    functions.add(method['name'])
 
-            for field in c['fields']:
-                # ignore whitespace-only methods
-                if len(field['name']) < yara_env['identifier_cutoff']:
-                    continue
-                if re.match(r'^\s+$', field['name']) is not None:
-                    continue
+            # process strings
+            if not no_strings:
+                for method in c['methods']:
+                    for s in method['strings']:
+                        if len(s) < yara_env['string_min_cutoff']:
+                            continue
+                        if len(s) > yara_env['string_max_cutoff']:
+                            continue
+                        # ignore whitespace-only strings
+                        if re.match(r'^\s+$', s) is None:
+                            strings.add(s.translate(ESCAPE))
 
-                if field['name'] in yara_env['lq_identifiers']['dex']['variables']:
-                    continue
-                variables.add(field['name'])
+            # process fields/variables
+            if not no_variables:
+                for field in c['fields']:
+                    # ignore whitespace-only methods
+                    if len(field['name']) < yara_env['identifier_cutoff']:
+                        continue
+                    if re.match(r'^\s+$', field['name']) is not None:
+                        continue
+
+                    if field['name'] in yara_env['lq_identifiers']['dex']['variables']:
+                        continue
+                    variables.add(field['name'])
 
         # do not generate a YARA file if there is no data
         if strings == set() and variables == set() and functions == set():
@@ -443,7 +453,10 @@ def process_identifiers(process_queue, result_queue, json_directory,
               type=click.File('rb'))
 @click.option('--meta', '-m', required=True, help='file with meta information about a package',
               type=click.File('r'))
-def source(config_file, json_directory, identifiers, meta):
+@click.option('--no-functions', is_flag=True, default=False, help="do not use functions")
+@click.option('--no-variables', is_flag=True, default=False, help="do not use variables")
+@click.option('--no-strings', is_flag=True, default=False, help="do not use strings")
+def source(config_file, json_directory, identifiers, meta, no_functions, no_variables, no_strings):
     bang_type = "source"
     json_directory = pathlib.Path(json_directory)
 
