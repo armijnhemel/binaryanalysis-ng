@@ -72,11 +72,10 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
         if 'tlsh' in bang_data['metadata']['hashes']:
             metadata['tlsh'] = bang_data['metadata']['hashes']['tlsh']
 
-        strings = []
-
         meta_info = {}
 
         if exec_type == 'elf':
+            strings = []
             symbols = []
 
             if 'telfhash' in bang_data['metadata']:
@@ -103,10 +102,12 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
                     meta_info['labels'].append('static')
             meta_info['tags'] = sorted(set(tags + ['elf']))
         elif exec_type == 'dex':
-            dex_classes = []
+            meta_info['classes'] = []
 
+            # process data for each class found in the Dex file
             for c in bang_data['metadata']['classes']:
-                # filter useless data
+                # store methods and fields, with associated data
+                # such as strings (stored with methods)
                 methods = []
                 fields = []
                 for method in c['methods']:
@@ -132,10 +133,9 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
                         class_info['classname'] = c['classname']
                     class_info['methods'] = methods
                     class_info['fields'] = fields
-                    dex_classes.append(class_info)
+                    meta_info['classes'].append(class_info)
 
             meta_info['tags'] = sorted(set(tags + ['dex']))
-            meta_info['classes'] = dex_classes
 
         meta_info['labels'] = bang_data['labels']
         meta_info['metadata'] = metadata
