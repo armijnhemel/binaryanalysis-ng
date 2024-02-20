@@ -1,17 +1,13 @@
 # YARA rule generation scripts
 
-This directory contains scripts to generate YARA rules. There are various scripts:
+This directory contains scripts to generate YARA rules. There are various
+scripts to take input (source code archive or results from a BANG scan) and
+write results to JSON.
 
-1. script to generate JSON from BANG results (binary files), plus a separate
-   script to generate YARA files from the JSON results, possibly doing some
-   extra filtering such as low quality identifiers.
-2. script to extract identifiers (functions, strings, etc.) from source code
-   and write to JSON, plus a script to generate YARA rules from the JSON
-   results, possibly doing some extra filtering such as low quality
-   identifiers.
-
-The script to generate JSON files from binaries currently only supports ELF
-and Android Dex. More formats will be added soon.
+Then there is a separate script to generate YARA files from the JSON results,
+optionally doing extra filtering such as removing low quality identifiers. The
+script to generate JSON files from binaries currently only supports ELF and
+Android Dex. More formats will be added soon.
 
 ## When to use which processor
 
@@ -97,7 +93,7 @@ The source code processor is split into two scripts:
 
 1. `bang_extract_identifiers.py` - extracts identifiers from source code files and
    writes these identifiers, with associated metadata, to output files as JSON.
-2. `yara_from_source.py` - takes JSON output files from step 1 and generates
+2. `yara_from_bang.py` - takes JSON output files from step 1 and generates
    YARA rule files.
 
 ### `bang_extract_identifiers.py`
@@ -160,9 +156,9 @@ The script extracts _all_ identifiers from the source code, except empty
 strings and strings containing only whitespace characters, as these are useless
 for fingerprinting. All other identifiers are extracted.
 
-### `yara_from_source.py`
+### `yara_from_bang.py`
 
-The script `yara_from_source.py` takes the JSON output and generates YARA
+The script `yara_from_bang.py` takes the JSON output and generates YARA
 files.
 
 The script takes a few parameters: a configuration file, a directory with JSON
@@ -172,13 +168,13 @@ files, a pickle with low quality identifiers and a file with meta information
 It can be invoked as follows:
 
 ```console
-$ python3 yara_from_source.py -c yara-config.yaml -j /path/to/json/directory -i /path/to/pickle -m /path/to/metadata
+$ python3 yara_from_bang.py source -c yara-config.yaml -j /path/to/json/directory -i /path/to/pickle -m /path/to/metadata
 ```
 
 for example:
 
 ```console
-$ python3 yara_from_source.py -c yara-config.yaml -j ~/yara/json -i low_quality_identifiers.pickle -m data/busybox.yaml
+$ python3 yara_from_bang.py source -c yara-config.yaml -j ~/yara/json -i low_quality_identifiers.pickle -m data/busybox.yaml
 ```
 
 The top level directory to store YARA files can be set in the configuration file
@@ -254,7 +250,7 @@ directory and should be adapted to your local settings.
 For example:
 
 ```console
-$ python3 yara_from_bang.py -c yara-config.yaml -j ~/json/classes.dex-1c632fc98e0a19d657ac5cdab83a9433668fa97e1142ead29de1e34effede149.json
+$ python3 yara_from_bang.py binary -c yara-config.yaml -j ~/json/classes.dex-1c632fc98e0a19d657ac5cdab83a9433668fa97e1142ead29de1e34effede149.json
 ```
 
 # Low quality identifiers
