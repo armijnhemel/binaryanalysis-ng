@@ -238,6 +238,13 @@ $ python3 bang_to_json.py -o ~/json -r ~/tmp/debian/root -i low_quality_identifi
 Another optional parameter is the number of jobs to run in parallel. This can
 be useful if the number of result directories is large.
 
+To supply extra tags (which will be passed on to the script generating YARA
+files) tags can be supplied as an argument (space separated), for example:
+
+```console
+$ python3 bang_to_json.py -o ~/json -r ~/tmp/debian/root debian debian11
+```
+
 As the next step run the `yara_from_bang.py` for each of the generated JSON
 files.
 

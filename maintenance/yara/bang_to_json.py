@@ -103,7 +103,7 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
             if 'static' in bang_data['metadata']['elf_type']:
                 if 'Linux kernel module' not in bang_data['metadata']['elf_type']:
                     meta_info['labels'].append('static')
-            meta_info['tags'] = tags + ['elf']
+            meta_info['tags'] = list(tags) + ['elf']
         elif exec_type == 'dex':
             dex_classes = []
 
@@ -157,7 +157,8 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
               type=click.Path(exists=True, path_type=pathlib.Path), required=True)
 @click.option('-j', '--jobs', default=1, type=click.IntRange(min=1),
               help='Number of jobs running simultaneously')
-def main(result_directory, output_directory, jobs):
+@click.argument('tags', nargs=-1, type=str)
+def main(result_directory, output_directory, jobs, tags):
 
     # store the result directory as a pathlib Path instead of str
     result_directory = pathlib.Path(result_directory)
@@ -230,9 +231,6 @@ def main(result_directory, output_directory, jobs):
                 file_meta_directory = bang_data['extracted_files'][unpacked_file]
                 file_pickle = result_directory.parent / file_meta_directory / 'info.pkl'
                 file_deque.append(file_pickle)
-
-    # tags = ['debian', 'debian11']
-    tags = []
 
     # create processes for unpacking archives
     processes = [ multiprocessing.Process(target=process_bang, args=(scan_queue,
