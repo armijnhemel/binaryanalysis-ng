@@ -106,8 +106,9 @@ them and extracts data using `ctags` and `xgettext`. These identifiers are
 written to JSON files together with associated metadata. The metadata is
 defined in YAML files.
 
-An example metadata file can be found in the directory `data`. A simplified
-version of this file can be found below:
+An example metadata file can be found in a separate
+[Git repository][bang_data_files]. A simplified version of this file can be
+found below:
 
 ```
 ---
@@ -299,4 +300,5 @@ found in (nearly) all ELF files in Debian 11.
 
 # References
 
-[1] https://github.com/package-url
+[package_url]:https://github.com/package-url
+[bang_data_files]:https://github.com/armijnhemel/bang_data_files
