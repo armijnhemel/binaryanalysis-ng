@@ -40,8 +40,13 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
         # store the type of executable
         if 'elf' in bang_data['labels']:
             exec_type = 'elf'
-        else:
+        elif 'dex' in bang_data['labels']:
             exec_type = 'dex'
+        elif 'java class' in bang_data['labels']:
+            exec_type = 'java class'
+        else:
+            scan_queue.task_done()
+            continue
 
         # there is a bug where sometimes no hashes are computed
         if 'hashes' not in bang_data['metadata']:
@@ -118,6 +123,8 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
                         continue
                     if method['name'].startswith('access$'):
                         continue
+
+                    # TODO: ignore empty strings and whitespace only strings
                     methods.append(method)
 
                 for field in c['fields']:
@@ -136,6 +143,29 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
                     meta_info['classes'].append(class_info)
 
             meta_info['tags'] = sorted(set(tags + ['dex']))
+        elif exec_type == 'java class':
+            strings = []
+
+            # process strings
+            if 'strings' in bang_data['metadata']:
+                for s in bang_data['metadata']['strings']:
+                    # ignore whitespace-only strings
+                    if re.match(r'^\s+$', s) is None:
+                        strings.append(s)
+
+            # process data for each method found in the Java class file
+            for method in bang_data['metadata']['methods']:
+                if method in ['<init>', '<clinit>']:
+                    continue
+                if method.startswith('access$'):
+                    continue
+
+            for field in bang_data['metadata']['fields']:
+                # ignore whitespace-only fields
+                if re.match(r'^\s+$', field) is not None:
+                    continue
+                if field in ['this$0']:
+                    continue
 
         meta_info['labels'] = bang_data['labels']
         meta_info['metadata'] = metadata
@@ -207,13 +237,16 @@ def main(result_directory, output_directory, jobs, tags):
         except:
             continue
 
-        if 'labels' in bang_data:
-            if 'elf' in bang_data['labels']:
-                scan_queue.put(bang_pickle)
-            elif 'dex' in bang_data['labels']:
-                scan_queue.put(bang_pickle)
+        # add interesting files to the scan queue
+        labels = bang_data.get('labels', [])
+        if 'elf' in labels:
+            scan_queue.put(bang_pickle)
+        elif 'dex' in labels:
+            scan_queue.put(bang_pickle)
+        #elif 'java class' in labels:
+        #    scan_queue.put(bang_pickle)
 
-        # add the unpacked/extracted files to the deque
+        # add any unpacked/extracted files to the deque
         if 'unpacked_relative_files' in bang_data:
             for unpacked_file in bang_data['unpacked_relative_files']:
                 file_meta_directory = bang_data['unpacked_relative_files'][unpacked_file]
