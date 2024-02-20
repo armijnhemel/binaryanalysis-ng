@@ -135,7 +135,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings,
                 num_strings = max(len(strings)//heuristics['strings_percentage'], heuristics['strings_matched'])
                 p.write(f'       {num_strings} of ($string*)')
             else:
-                p.write('        any of ($string*)')
+                p.write('       any of ($string*)')
             if not (functions == set() and variables == set()):
                 p.write(f' {yara_operator}\n')
             else:
@@ -145,7 +145,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings,
                 num_funcs = max(len(functions)//heuristics['functions_percentage'], heuristics['functions_matched'])
                 p.write(f'       {num_funcs} of ($string*)')
             else:
-                p.write('        any of ($function*)')
+                p.write('       any of ($function*)')
             if variables != set():
                 p.write(' %s\n' % yara_operator)
             else:
@@ -155,7 +155,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings,
                 num_vars = max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched'])
                 p.write(f'       {num_vars} of ($string*)')
             else:
-                p.write('        any of ($variable*)\n')
+                p.write('       any of ($variable*)\n')
         p.write('\n}')
     return yara_file.name
 
@@ -225,11 +225,9 @@ def binary(config_file, result_json, identifiers):
         print("Cannot generate YARA file for empty file, exiting", file=sys.stderr)
         sys.exit(1)
 
-    # tags = ['debian', 'debian11']
-    tags = []
+    tags = bang_data.get('tags', [])
 
     # expand yara_env with binary scanning specific values
-    yara_env['tags'] = tags
     yara_env['lq_identifiers'] = lq_identifiers
 
     # store the type of executable
@@ -312,7 +310,7 @@ def binary(config_file, result_json, identifiers):
         if total_identifiers > yara_env['max_identifiers']:
             pass
 
-        yara_tags = yara_env['tags'] + ['elf']
+        yara_tags = sorted(set(tags + ['elf']))
         generate_yara(yara_binary_directory, metadata, sorted(functions), sorted(variables),
                       sorted(strings), yara_tags, heuristics, yara_env['fullword'],
                       yara_env['operator'], bang_type)
@@ -364,7 +362,7 @@ def binary(config_file, result_json, identifiers):
         if total_identifiers > yara_env['max_identifiers']:
             pass
 
-        yara_tags = yara_env['tags'] + ['dex']
+        yara_tags = sorted(set(tags + ['dex']))
         generate_yara(yara_binary_directory, metadata, sorted(functions), sorted(variables),
                       sorted(strings), yara_tags, heuristics, yara_env['fullword'],
                       yara_env['operator'], bang_type)
@@ -420,7 +418,7 @@ def process_identifiers(process_queue, result_queue, json_directory,
             functions = sorted(identifiers_per_language[language]['functions'])
 
             if not (strings == [] and variables == [] and functions == []):
-                yara_tags = yara_env['tags'] + [language]
+                yara_tags = sorted(set(tags + [language]))
                 yara_name = generate_yara(yara_output_directory, metadata, functions,
                                           variables, strings, yara_tags, heuristics,
                                           yara_env['fullword'], yara_env['operator'], bang_type)
@@ -436,7 +434,7 @@ def process_identifiers(process_queue, result_queue, json_directory,
         process_queue.task_done()
 
 
-@app.command(short_help='process JSON files with identifiers and output YARA rules')
+@app.command(short_help='process JSON files with identifiers extracted from source code and output YARA rules')
 @click.option('--config-file', '-c', required=True, help='configuration file',
               type=click.File('r'))
 @click.option('--json-directory', '-j', required=True, help='JSON file directory',
@@ -544,7 +542,6 @@ def source(config_file, json_directory, identifiers, meta):
     tags = ['source']
 
     # expand yara_env with source scanning specific values
-    yara_env['tags'] = tags
     yara_env['lq_identifiers'] = lq_identifiers
 
     process_manager = multiprocessing.Manager()
@@ -702,7 +699,7 @@ def source(config_file, json_directory, identifiers, meta):
                     'website': website, 'cpe': cpe, 'cpe23': cpe23}
 
         if not (strings == set() and variables == set() and functions == set()):
-            yara_tags = yara_env['tags'] + [language]
+            yara_tags = sorted(set(tags + [language]))
             yara_name = generate_yara(yara_output_directory, metadata, functions, variables,
                                       strings, yara_tags, heuristics, yara_env['fullword'],
                                       yara_env['operator'], bang_type)
@@ -720,7 +717,7 @@ def source(config_file, json_directory, identifiers, meta):
                     'website': website, 'cpe': cpe, 'cpe23': cpe23}
 
         if not (strings == [] and variables == [] and functions == []):
-            yara_tags = yara_env['tags'] + [language]
+            yara_tags = sorted(set(tags + [language]))
             yara_name = generate_yara(yara_output_directory, metadata, functions,
                                       variables, strings, yara_tags, heuristics,
                                       yara_env['fullword'], yara_env['operator'], bang_type)
