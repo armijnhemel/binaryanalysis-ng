@@ -74,8 +74,9 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
 
         strings = []
 
+        meta_info = {}
+
         if exec_type == 'elf':
-            meta_info = {}
             symbols = []
 
             if 'telfhash' in bang_data['metadata']:
@@ -95,15 +96,12 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
                         continue
                     symbols.append(s)
 
-            # dump JSON
-            meta_info['metadata'] = metadata
             meta_info['strings'] = strings
             meta_info['symbols'] = symbols
-            meta_info['labels'] = bang_data['labels']
             if 'static' in bang_data['metadata']['elf_type']:
                 if 'Linux kernel module' not in bang_data['metadata']['elf_type']:
                     meta_info['labels'].append('static')
-            meta_info['tags'] = list(tags) + ['elf']
+            meta_info['tags'] = sorted(set(tags + ['elf']))
         elif exec_type == 'dex':
             dex_classes = []
 
@@ -122,7 +120,7 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
                     methods.append(method)
 
                 for field in c['fields']:
-                    # ignore whitespace-only methods
+                    # ignore whitespace-only fields
                     if re.match(r'^\s+$', field['name']) is not None:
                         continue
 
@@ -136,13 +134,13 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
                     class_info['fields'] = fields
                     dex_classes.append(class_info)
 
-            # dump JSON
-            meta_info = {}
-            meta_info['tags'] = tags + ['dex']
+            meta_info['tags'] = sorted(set(tags + ['dex']))
             meta_info['classes'] = dex_classes
-            meta_info['labels'] = bang_data['labels']
-            meta_info['metadata'] = metadata
 
+        meta_info['labels'] = bang_data['labels']
+        meta_info['metadata'] = metadata
+
+        # dump JSON
         json_file = output_directory / (f"{metadata['name']}-{metadata['sha256']}.json")
         with open(json_file, 'w') as json_dump:
             json.dump(meta_info, json_dump, indent=4)
@@ -235,7 +233,7 @@ def main(result_directory, output_directory, jobs, tags):
     # create processes for unpacking archives
     processes = [ multiprocessing.Process(target=process_bang, args=(scan_queue,
                                                 output_directory, process_lock,
-                                                processed_files, tags)) for i in range(jobs)]
+                                                processed_files, list(tags))) for i in range(jobs)]
 
     # start all the processes
     for process in processes:
