@@ -49,7 +49,8 @@ NAME_ESCAPE = str.maketrans({'.': '_',
 
 def generate_yara(yara_file, metadata, functions, variables, strings,
                   tags, heuristics, fullword, yara_operator, bang_type):
-    '''Generate YARA rules from identifiers and heuristics'''
+    '''Generate YARA rules from identifiers and heuristics.
+       Returns a UUID for a rule.'''
     generate_date = datetime.datetime.utcnow().isoformat()
     rule_uuid = uuid.uuid4()
     total_identifiers = len(functions) + len(variables) + len(strings)
@@ -66,12 +67,14 @@ def generate_yara(yara_file, metadata, functions, variables, strings,
     for m in sorted(metadata):
         meta += f'        {m} = "{metadata[m]}"\n'
 
+    # create a tags string for the rule if there are any tags.
+    # These can be used by YARA to only run specific rules.
+    tags_string = ''
+    if tags != []:
+        tags_string = ": " + " ".join(tags)
+
     rule = str(rule_uuid).translate(NAME_ESCAPE)
-    if tags == []:
-        rule_name = f'rule rule_{rule}\n'
-    else:
-        tags_name = " ".join(tags)
-        rule_name = f'rule rule_{rule}: {tags_name}\n'
+    rule_name = f'rule rule_{rule}{tags_string}\n'
 
     with yara_file.open(mode='w') as p:
         p.write(rule_name)
@@ -93,10 +96,7 @@ def generate_yara(yara_file, metadata, functions, variables, strings,
             for s in strings:
                 try:
                     s_translated = s.translate(ESCAPE)
-                    if fullword:
-                        p.write(f"        $string{counter} = \"{s_translated}\" fullword\n")
-                    else:
-                        p.write(f"        $string{counter} = \"{s_translated}\"\n")
+                    p.write(f"        $string{counter} = \"{s_translated}\"{fullword}\n")
                     counter += 1
                 except:
                     pass
@@ -106,10 +106,7 @@ def generate_yara(yara_file, metadata, functions, variables, strings,
             p.write("\n        // Extracted functions\n\n")
             counter = 1
             for s in sorted(functions):
-                if fullword:
-                    p.write(f"        $function{counter} = \"{s}\" fullword\n")
-                else:
-                    p.write(f"        $function{counter} = \"{s}\"\n")
+                p.write(f"        $function{counter} = \"{s}\"{fullword}\n")
                 counter += 1
 
         if variables != []:
@@ -117,10 +114,7 @@ def generate_yara(yara_file, metadata, functions, variables, strings,
             p.write("\n        // Extracted variables\n\n")
             counter = 1
             for s in sorted(variables):
-                if fullword:
-                    p.write(f"        $variable{counter} = \"{s}\" fullword\n")
-                else:
-                    p.write(f"        $variable{counter} = \"{s}\"\n")
+                p.write(f"        $variable{counter} = \"{s}\"{fullword}\n")
                 counter += 1
 
         p.write('\n    condition:\n')
@@ -367,8 +361,12 @@ def binary(config_file, result_json, identifiers, no_functions, no_variables, no
 
     yara_file = yara_directory / (f"{metadata['name']}-{metadata['sha256']}.yara")
 
+    fullword = ''
+    if yara_env['fullword']:
+        fullword = ' fullword'
+
     rule_uuid = generate_yara(yara_file, metadata, sorted(functions), sorted(variables),
-                              sorted(strings), yara_tags, heuristics, yara_env['fullword'],
+                              sorted(strings), yara_tags, heuristics, fullword,
                               yara_env['operator'], bang_type)
 
 def process_identifiers(process_queue, result_queue, json_directory,
@@ -376,6 +374,11 @@ def process_identifiers(process_queue, result_queue, json_directory,
     '''Read a JSON result file with identifiers extracted from source code,
        clean up and generate YARA rules'''
     heuristics = yara_env['heuristics']
+
+    fullword = ''
+    if yara_env['fullword']:
+        fullword = ' fullword'
+
     while True:
         json_file = process_queue.get()
 
@@ -425,7 +428,7 @@ def process_identifiers(process_queue, result_queue, json_directory,
                 yara_tags = sorted(set(tags + [language]))
                 yara_file = yara_directory / (f"{metadata['archive']}-{metadata['language']}.yara")
                 rule_uuid = generate_yara(yara_file, metadata, functions, variables, strings,
-                                          yara_tags, heuristics, yara_env['fullword'],
+                                          yara_tags, heuristics, fullword,
                                           yara_env['operator'], bang_type)
 
         result_meta = {}
@@ -602,6 +605,10 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
     # block until the result queue is empty
     result_queue.join()
 
+    fullword = ''
+    if yara_env['fullword']:
+        fullword = ' fullword'
+
     # Now generate the top level YARA file. This requires a new yara directory
     yara_directory = yara_env['yara_directory'] / 'src' / top_purl.type
 
@@ -710,7 +717,7 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
             yara_file = yara_directory / (f"{metadata['archive']}-{metadata['language']}.yara")
             yara_tags = sorted(set(tags + [language]))
             rule_uuid = generate_yara(yara_file, metadata, functions, variables, strings,
-                                      yara_tags, heuristics, yara_env['fullword'],
+                                      yara_tags, heuristics, fullword,
                                       yara_env['operator'], bang_type)
 
         strings = sorted(all_strings_intersection)
@@ -730,7 +737,7 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
 
             yara_tags = sorted(set(tags + [language]))
             rule_uuid = generate_yara(yara_file, metadata, functions, variables, strings,
-                                      yara_tags, heuristics, yara_env['fullword'],
+                                      yara_tags, heuristics, fullword,
                                       yara_env['operator'], bang_type)
 
 
