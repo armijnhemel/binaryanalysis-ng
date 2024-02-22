@@ -47,7 +47,7 @@ NAME_ESCAPE = str.maketrans({'.': '_',
                              '-': '_'})
 
 
-def generate_yara(yara_directory, metadata, functions, variables, strings,
+def generate_yara(yara_file, metadata, functions, variables, strings,
                   tags, heuristics, fullword, yara_operator, bang_type):
     '''Generate YARA rules from identifiers and heuristics'''
     generate_date = datetime.datetime.utcnow().isoformat()
@@ -65,12 +65,6 @@ def generate_yara(yara_directory, metadata, functions, variables, strings,
 
     for m in sorted(metadata):
         meta += f'        {m} = "{metadata[m]}"\n'
-
-    # TODO: origin and package?
-    if bang_type == 'binary':
-        yara_file = yara_directory / (f"{metadata['name']}-{metadata['sha256']}.yara")
-    elif bang_type == 'source':
-        yara_file = yara_directory / (f"{metadata['archive']}-{metadata['language']}.yara")
 
     rule = str(rule_uuid).translate(NAME_ESCAPE)
     if tags == []:
@@ -157,7 +151,7 @@ def generate_yara(yara_directory, metadata, functions, variables, strings,
             else:
                 p.write('       any of ($variable*)\n')
         p.write('\n}')
-    return yara_file.name
+    return rule_uuid
 
 @click.group()
 def app():
@@ -192,9 +186,9 @@ def binary(config_file, result_json, identifiers, no_functions, no_variables, no
     yara_config = YaraConfig(config_file)
     yara_env = yara_config.parse()
 
-    yara_binary_directory = yara_env['yara_directory'] / 'binary'
+    yara_directory = yara_env['yara_directory'] / 'binary'
 
-    yara_binary_directory.mkdir(exist_ok=True)
+    yara_directory.mkdir(exist_ok=True)
 
     # ignore object files (regular and GHC specific)
     ignored_elf_suffixes = ['.o', '.p_o']
@@ -314,9 +308,6 @@ def binary(config_file, result_json, identifiers, no_functions, no_variables, no
             pass
 
         yara_tags = sorted(set(tags + ['elf']))
-        generate_yara(yara_binary_directory, metadata, sorted(functions), sorted(variables),
-                      sorted(strings), yara_tags, heuristics, yara_env['fullword'],
-                      yara_env['operator'], bang_type)
     elif exec_type == 'dex':
         functions = set()
         variables = set()
@@ -373,12 +364,15 @@ def binary(config_file, result_json, identifiers, no_functions, no_variables, no
             pass
 
         yara_tags = sorted(set(tags + ['dex']))
-        generate_yara(yara_binary_directory, metadata, sorted(functions), sorted(variables),
-                      sorted(strings), yara_tags, heuristics, yara_env['fullword'],
-                      yara_env['operator'], bang_type)
+
+    yara_file = yara_directory / (f"{metadata['name']}-{metadata['sha256']}.yara")
+
+    rule_uuid = generate_yara(yara_file, metadata, sorted(functions), sorted(variables),
+                              sorted(strings), yara_tags, heuristics, yara_env['fullword'],
+                              yara_env['operator'], bang_type)
 
 def process_identifiers(process_queue, result_queue, json_directory,
-                        yara_output_directory, yara_env, bang_type):
+                        yara_directory, yara_env, tags, bang_type):
     '''Read a JSON result file with identifiers extracted from source code,
        clean up and generate YARA rules'''
     heuristics = yara_env['heuristics']
@@ -429,9 +423,10 @@ def process_identifiers(process_queue, result_queue, json_directory,
 
             if not (strings == [] and variables == [] and functions == []):
                 yara_tags = sorted(set(tags + [language]))
-                yara_name = generate_yara(yara_output_directory, metadata, functions,
-                                          variables, strings, yara_tags, heuristics,
-                                          yara_env['fullword'], yara_env['operator'], bang_type)
+                yara_file = yara_directory / (f"{metadata['archive']}-{metadata['language']}.yara")
+                rule_uuid = generate_yara(yara_file, metadata, functions, variables, strings,
+                                          yara_tags, heuristics, yara_env['fullword'],
+                                          yara_env['operator'], bang_type)
 
         result_meta = {}
         for language in identifiers_per_language:
@@ -548,9 +543,9 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
         except pickle.UnpicklingError:
             pass
 
-    yara_output_directory = yara_env['yara_directory'] / 'src' / top_purl.type / top_purl.name
+    yara_directory = yara_env['yara_directory'] / 'src' / top_purl.type / top_purl.name
 
-    yara_output_directory.mkdir(parents=True, exist_ok=True)
+    yara_directory.mkdir(parents=True, exist_ok=True)
 
     tags = ['source']
 
@@ -573,7 +568,7 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
     for i in range(0, yara_env['threads']):
         process = multiprocessing.Process(target=process_identifiers,
                                           args=(process_queue, result_queue, json_directory,
-                                                yara_output_directory, yara_env, bang_type))
+                                                yara_directory, yara_env, tags, bang_type))
         processes.append(process)
 
     # start all the processes
@@ -607,8 +602,8 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
     # block until the result queue is empty
     result_queue.join()
 
-    # Now generate the top level YARA file
-    yara_output_directory = yara_env['yara_directory'] / 'src' / top_purl.type
+    # Now generate the top level YARA file. This requires a new yara directory
+    yara_directory = yara_env['yara_directory'] / 'src' / top_purl.type
 
     # TODO: sort the packages based on version number
     for language in languages:
@@ -711,10 +706,11 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
                     'package': top_purl.name, 'packageurl': top_purl,
                     'website': website, 'cpe': cpe, 'cpe23': cpe23}
 
-        if not (strings == set() and variables == set() and functions == set()):
+        if not (strings == [] and variables == [] and functions == []):
+            yara_file = yara_directory / (f"{metadata['archive']}-{metadata['language']}.yara")
             yara_tags = sorted(set(tags + [language]))
-            yara_name = generate_yara(yara_output_directory, metadata, functions, variables,
-                                      strings, yara_tags, heuristics, yara_env['fullword'],
+            rule_uuid = generate_yara(yara_file, metadata, functions, variables, strings,
+                                      yara_tags, heuristics, yara_env['fullword'],
                                       yara_env['operator'], bang_type)
 
         strings = sorted(all_strings_intersection)
@@ -730,10 +726,12 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
                     'website': website, 'cpe': cpe, 'cpe23': cpe23}
 
         if not (strings == [] and variables == [] and functions == []):
+            yara_file = yara_directory / (f"{metadata['archive']}-{metadata['language']}.yara")
+
             yara_tags = sorted(set(tags + [language]))
-            yara_name = generate_yara(yara_output_directory, metadata, functions,
-                                      variables, strings, yara_tags, heuristics,
-                                      yara_env['fullword'], yara_env['operator'], bang_type)
+            rule_uuid = generate_yara(yara_file, metadata, functions, variables, strings,
+                                      yara_tags, heuristics, yara_env['fullword'],
+                                      yara_env['operator'], bang_type)
 
 
 if __name__ == "__main__":
