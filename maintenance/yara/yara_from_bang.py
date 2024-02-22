@@ -141,7 +141,7 @@ def generate_yara(yara_file, metadata, functions, variables, strings,
         if variables != []:
             if len(variables) >= heuristics['variables_minimum_present']:
                 num_vars = max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched'])
-                p.write(f'       {num_vars} of ($function*)')
+                p.write(f'       {num_vars} of ($variable*)')
             else:
                 p.write('       any of ($variable*)\n')
         p.write('\n}')
