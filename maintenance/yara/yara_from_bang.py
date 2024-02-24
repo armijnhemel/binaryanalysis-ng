@@ -86,11 +86,8 @@ def generate_yara(yara_file, metadata, functions, variables, strings,
         num_functions = 0
         num_variables = 0
 
+        # First write all strings
         if strings != []:
-            if len(strings) >= heuristics['strings_minimum_present']:
-                num_strings = int(max(len(strings) / 100 * heuristics['strings_percentage'], heuristics['strings_matched']))
-
-            # write all strings
             p.write("\n        // Extracted strings\n\n")
             counter = 1
             for s in strings:
@@ -101,50 +98,58 @@ def generate_yara(yara_file, metadata, functions, variables, strings,
                 except:
                     pass
 
+        # Then write the functions
         if functions != []:
-            # write the functions
             p.write("\n        // Extracted functions\n\n")
             counter = 1
             for s in sorted(functions):
                 p.write(f"        $function{counter} = \"{s}\"{fullword}\n")
                 counter += 1
 
+        # Then the variable names
         if variables != []:
-            # write the variable names
             p.write("\n        // Extracted variables\n\n")
             counter = 1
             for s in sorted(variables):
                 p.write(f"        $variable{counter} = \"{s}\"{fullword}\n")
                 counter += 1
 
+        # Finally write the conditions
+        if len(strings) >= heuristics['strings_minimum_present']:
+            num_strings = max(len(strings)//heuristics['strings_percentage'], heuristics['strings_matched'])
+        else:
+            num_strings = 'any'
+
+        if len(functions) >= heuristics['functions_minimum_present']:
+            num_funcs = max(len(functions)//heuristics['functions_percentage'], heuristics['functions_matched'])
+        else:
+            num_funcs = 'any'
+
+        if len(variables) >= heuristics['variables_minimum_present']:
+            num_vars = max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched'])
+        else:
+            num_vars = "any"
+
         p.write('\n    condition:\n')
         if strings != []:
-            if len(strings) >= heuristics['strings_minimum_present']:
-                num_strings = max(len(strings)//heuristics['strings_percentage'], heuristics['strings_matched'])
-                p.write(f'       {num_strings} of ($string*)')
-            else:
-                p.write('       any of ($string*)')
+            p.write(f'        {num_strings} of ($string*)')
+
             if not (functions == [] and variables == []):
                 p.write(f' {yara_operator}\n')
             else:
                 p.write('\n')
         if functions != []:
-            if len(functions) >= heuristics['functions_minimum_present']:
-                num_funcs = max(len(functions)//heuristics['functions_percentage'], heuristics['functions_matched'])
-                p.write(f'       {num_funcs} of ($function*)')
-            else:
-                p.write('       any of ($function*)')
+            p.write(f'        {num_funcs} of ($function*)')
+
             if variables != []:
                 p.write(' %s\n' % yara_operator)
             else:
                 p.write('\n')
         if variables != []:
-            if len(variables) >= heuristics['variables_minimum_present']:
-                num_vars = max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched'])
-                p.write(f'       {num_vars} of ($variable*)')
-            else:
-                p.write('       any of ($variable*)\n')
+            p.write(f'        {num_vars} of ($variable*)')
         p.write('\n}')
+
+    # return the UUID for the rule so it can be recorded
     return rule_uuid
 
 @click.group()
@@ -285,21 +290,14 @@ def binary(config_file, result_json, identifiers, no_functions, no_variables, no
                         continue
                     variables.add(identifier_name)
 
+        # check if the number of identifiers passes a threshold.
+        # If not assume that there are no identifiers.
         if len(strings) < heuristics['strings_extracted']:
             strings = set()
         if len(functions) < heuristics['functions_extracted']:
             functions = set()
         if len(variables) < heuristics['variables_extracted']:
             variables = set()
-
-        # do not generate a YARA file if there is no data
-        if strings == set() and variables == set() and functions == set():
-            return
-
-        total_identifiers = len(functions) + len(variables) + len(strings)
-
-        if total_identifiers > yara_env['max_identifiers']:
-            pass
 
         yara_tags = sorted(set(tags + ['elf']))
     elif exec_type == 'dex':
@@ -348,16 +346,18 @@ def binary(config_file, result_json, identifiers, no_functions, no_variables, no
                         continue
                     variables.add(field['name'])
 
-        # do not generate a YARA file if there is no data
-        if strings == set() and variables == set() and functions == set():
-            return
-
-        total_identifiers = len(functions) + len(variables) + len(strings)
-
-        if total_identifiers > yara_env['max_identifiers']:
-            pass
-
         yara_tags = sorted(set(tags + ['dex']))
+
+    # do not generate a YARA file if there is no data
+    if strings == set() and variables == set() and functions == set():
+        return
+
+    total_identifiers = len(functions) + len(variables) + len(strings)
+
+    # by default YARA has a limit of 10,000 identifiers
+    # TODO: see which ones can be ignored.
+    if total_identifiers > yara_env['max_identifiers']:
+        pass
 
     yara_file = yara_directory / (f"{metadata['name']}-{metadata['sha256']}.yara")
 
