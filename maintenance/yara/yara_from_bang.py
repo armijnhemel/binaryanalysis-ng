@@ -242,13 +242,12 @@ def binary(config_file, result_json, identifiers, no_functions, no_variables, no
     metadata = bang_data['metadata']
 
     strings = set()
+    functions = set()
+    variables = set()
 
     heuristics = yara_env['heuristics']
 
     if exec_type == 'elf':
-        functions = set()
-        variables = set()
-
         if 'telfhash' in bang_data['metadata']:
             metadata['telfhash'] = bang_data['metadata']['telfhash']
 
@@ -299,11 +298,7 @@ def binary(config_file, result_json, identifiers, no_functions, no_variables, no
         if len(variables) < heuristics['variables_extracted']:
             variables = set()
 
-        yara_tags = sorted(set(tags + ['elf']))
     elif exec_type == 'dex':
-        functions = set()
-        variables = set()
-
         for c in bang_data['classes']:
             # process methods/functions
             if not no_functions:
@@ -346,11 +341,11 @@ def binary(config_file, result_json, identifiers, no_functions, no_variables, no
                         continue
                     variables.add(field['name'])
 
-        yara_tags = sorted(set(tags + ['dex']))
-
     # do not generate a YARA file if there is no data
     if strings == set() and variables == set() and functions == set():
         return
+
+    yara_tags = sorted(set(tags + [exec_type]))
 
     total_identifiers = len(functions) + len(variables) + len(strings)
 
