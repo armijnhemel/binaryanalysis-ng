@@ -48,9 +48,9 @@ NAME_ESCAPE = str.maketrans({'.': '_',
 
 
 def generate_yara(yara_file, metadata, functions, variables, strings,
-                  tags, heuristics, fullword, yara_operator, bang_type):
-    '''Generate YARA rules from identifiers and heuristics.
-       Returns a UUID for a rule.'''
+                  tags, num_strings, num_funcs, num_vars, fullword,
+                  yara_operator, bang_type):
+    '''Generate YARA rules from identifiers. Returns a UUID for a rule.'''
     generate_date = datetime.datetime.utcnow().isoformat()
     rule_uuid = uuid.uuid4()
     total_identifiers = len(functions) + len(variables) + len(strings)
@@ -82,10 +82,6 @@ def generate_yara(yara_file, metadata, functions, variables, strings,
         p.write(meta)
         p.write('\n    strings:\n')
 
-        num_strings = 0
-        num_functions = 0
-        num_variables = 0
-
         # First write all strings
         if strings != []:
             p.write("\n        // Extracted strings\n\n")
@@ -115,21 +111,6 @@ def generate_yara(yara_file, metadata, functions, variables, strings,
                 counter += 1
 
         # Finally write the conditions
-        if len(strings) >= heuristics['strings_minimum_present']:
-            num_strings = max(len(strings)//heuristics['strings_percentage'], heuristics['strings_matched'])
-        else:
-            num_strings = 'any'
-
-        if len(functions) >= heuristics['functions_minimum_present']:
-            num_funcs = max(len(functions)//heuristics['functions_percentage'], heuristics['functions_matched'])
-        else:
-            num_funcs = 'any'
-
-        if len(variables) >= heuristics['variables_minimum_present']:
-            num_vars = max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched'])
-        else:
-            num_vars = "any"
-
         p.write('\n    condition:\n')
         if strings != []:
             p.write(f'        {num_strings} of ($string*)')
@@ -360,9 +341,20 @@ def binary(config_file, result_json, identifiers, no_functions, no_variables, no
     if yara_env['fullword']:
         fullword = ' fullword'
 
+    num_strings = num_funcs = num_vars = 'any'
+
+    if len(strings) >= heuristics['strings_minimum_present']:
+        num_strings = int(max(len(strings)//heuristics['strings_percentage'], heuristics['strings_matched']))
+
+    if len(functions) >= heuristics['functions_minimum_present']:
+        num_funcs = int(max(len(functions)//heuristics['functions_percentage'], heuristics['functions_matched']))
+
+    if len(variables) >= heuristics['variables_minimum_present']:
+        num_vars = int(max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched']))
+
     rule_uuid = generate_yara(yara_file, metadata, sorted(functions), sorted(variables),
-                              sorted(strings), yara_tags, heuristics, fullword,
-                              yara_env['operator'], bang_type)
+                              sorted(strings), yara_tags, num_strings, num_funcs, num_vars,
+                              fullword, yara_env['operator'], bang_type)
 
 def process_identifiers(process_queue, result_queue, json_directory,
                         yara_directory, yara_env, tags, bang_type):
@@ -419,12 +411,23 @@ def process_identifiers(process_queue, result_queue, json_directory,
             variables = sorted(identifiers_per_language[language]['variables'])
             functions = sorted(identifiers_per_language[language]['functions'])
 
+            num_strings = num_funcs = num_vars = 'any'
+
+            if len(strings) >= heuristics['strings_minimum_present']:
+                num_strings = int(max(len(strings)//heuristics['strings_percentage'], heuristics['strings_matched']))
+
+            if len(functions) >= heuristics['functions_minimum_present']:
+                num_funcs = int(max(len(functions)//heuristics['functions_percentage'], heuristics['functions_matched']))
+
+            if len(variables) >= heuristics['variables_minimum_present']:
+                num_vars = int(max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched']))
+
             if not (strings == [] and variables == [] and functions == []):
                 yara_tags = sorted(set(tags + [language]))
                 yara_file = yara_directory / (f"{metadata['archive']}-{metadata['language']}.yara")
                 rule_uuid = generate_yara(yara_file, metadata, functions, variables, strings,
-                                          yara_tags, heuristics, fullword,
-                                          yara_env['operator'], bang_type)
+                                          yara_tags, num_strings, num_funcs, num_vars,
+                                          fullword, yara_env['operator'], bang_type)
 
         result_meta = {}
         for language in identifiers_per_language:
@@ -709,11 +712,22 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
                     'website': website, 'cpe': cpe, 'cpe23': cpe23}
 
         if not (strings == [] and variables == [] and functions == []):
+            num_strings = num_funcs = num_vars = 'any'
+
+            if len(strings) >= heuristics['strings_minimum_present']:
+                num_strings = int(max(len(strings)//heuristics['strings_percentage'], heuristics['strings_matched']))
+
+            if len(functions) >= heuristics['functions_minimum_present']:
+                num_funcs = int(max(len(functions)//heuristics['functions_percentage'], heuristics['functions_matched']))
+
+            if len(variables) >= heuristics['variables_minimum_present']:
+                num_vars = int(max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched']))
+
             yara_file = yara_directory / (f"{metadata['archive']}-{metadata['language']}.yara")
             yara_tags = sorted(set(tags + [language]))
             rule_uuid = generate_yara(yara_file, metadata, functions, variables, strings,
-                                      yara_tags, heuristics, fullword,
-                                      yara_env['operator'], bang_type)
+                                      yara_tags, num_strings, num_funcs, num_vars,
+                                      fullword, yara_env['operator'], bang_type)
 
         strings = sorted(all_strings_intersection)
         variables = sorted(all_variables_intersection)
@@ -728,12 +742,23 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
                     'website': website, 'cpe': cpe, 'cpe23': cpe23}
 
         if not (strings == [] and variables == [] and functions == []):
+            num_strings = num_funcs = num_vars = 'any'
+
+            if len(strings) >= heuristics['strings_minimum_present']:
+                num_strings = int(max(len(strings)//heuristics['strings_percentage'], heuristics['strings_matched']))
+
+            if len(functions) >= heuristics['functions_minimum_present']:
+                num_funcs = int(max(len(functions)//heuristics['functions_percentage'], heuristics['functions_matched']))
+
+            if len(variables) >= heuristics['variables_minimum_present']:
+                num_vars = int(max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched']))
+
             yara_file = yara_directory / (f"{metadata['archive']}-{metadata['language']}.yara")
 
             yara_tags = sorted(set(tags + [language]))
             rule_uuid = generate_yara(yara_file, metadata, functions, variables, strings,
-                                      yara_tags, heuristics, fullword,
-                                      yara_env['operator'], bang_type)
+                                      yara_tags, num_strings, num_funcs, num_vars,
+                                      fullword, yara_env['operator'], bang_type)
 
 
 if __name__ == "__main__":
