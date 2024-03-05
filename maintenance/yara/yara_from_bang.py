@@ -344,13 +344,13 @@ def binary(config_file, result_json, identifiers, no_functions, no_variables, no
     num_strings = num_funcs = num_vars = 'any'
 
     if len(strings) >= heuristics['strings_minimum_present']:
-        num_strings = int(max(len(strings)//heuristics['strings_percentage'], heuristics['strings_matched']))
+        num_strings = str(int(max(len(strings)//heuristics['strings_percentage'], heuristics['strings_matched'])))
 
     if len(functions) >= heuristics['functions_minimum_present']:
-        num_funcs = int(max(len(functions)//heuristics['functions_percentage'], heuristics['functions_matched']))
+        num_funcs = str(int(max(len(functions)//heuristics['functions_percentage'], heuristics['functions_matched'])))
 
     if len(variables) >= heuristics['variables_minimum_present']:
-        num_vars = int(max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched']))
+        num_vars = str(int(max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched'])))
 
     rule_uuid = generate_yara(yara_file, metadata, sorted(functions), sorted(variables),
                               sorted(strings), yara_tags, num_strings, num_funcs, num_vars,
@@ -414,13 +414,13 @@ def process_identifiers(process_queue, result_queue, json_directory,
             num_strings = num_funcs = num_vars = 'any'
 
             if len(strings) >= heuristics['strings_minimum_present']:
-                num_strings = int(max(len(strings)//heuristics['strings_percentage'], heuristics['strings_matched']))
+                num_strings = str(int(max(len(strings)//heuristics['strings_percentage'], heuristics['strings_matched'])))
 
             if len(functions) >= heuristics['functions_minimum_present']:
-                num_funcs = int(max(len(functions)//heuristics['functions_percentage'], heuristics['functions_matched']))
+                num_funcs = str(int(max(len(functions)//heuristics['functions_percentage'], heuristics['functions_matched'])))
 
             if len(variables) >= heuristics['variables_minimum_present']:
-                num_vars = int(max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched']))
+                num_vars = str(int(max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched'])))
 
             if not (strings == [] and variables == [] and functions == []):
                 yara_tags = sorted(set(tags + [language]))
@@ -714,13 +714,13 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
             num_strings = num_funcs = num_vars = 'any'
 
             if len(strings) >= heuristics['strings_minimum_present']:
-                num_strings = int(max(len(strings)//heuristics['strings_percentage'], heuristics['strings_matched']))
+                num_strings = str(int(max(len(strings)//heuristics['strings_percentage'], heuristics['strings_matched'])))
 
             if len(functions) >= heuristics['functions_minimum_present']:
-                num_funcs = int(max(len(functions)//heuristics['functions_percentage'], heuristics['functions_matched']))
+                num_funcs = str(int(max(len(functions)//heuristics['functions_percentage'], heuristics['functions_matched'])))
 
             if len(variables) >= heuristics['variables_minimum_present']:
-                num_vars = int(max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched']))
+                num_vars = str(int(max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched'])))
 
             yara_file = yara_directory / (f"{metadata['archive']}-{metadata['language']}.yara")
             yara_tags = sorted(set(tags + [language]))
@@ -744,13 +744,13 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
             num_strings = num_funcs = num_vars = 'any'
 
             if len(strings) >= heuristics['strings_minimum_present']:
-                num_strings = int(max(len(strings)//heuristics['strings_percentage'], heuristics['strings_matched']))
+                num_strings = str(int(max(len(strings)//heuristics['strings_percentage'], heuristics['strings_matched'])))
 
             if len(functions) >= heuristics['functions_minimum_present']:
-                num_funcs = int(max(len(functions)//heuristics['functions_percentage'], heuristics['functions_matched']))
+                num_funcs = str(int(max(len(functions)//heuristics['functions_percentage'], heuristics['functions_matched'])))
 
             if len(variables) >= heuristics['variables_minimum_present']:
-                num_vars = int(max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched']))
+                num_vars = str(int(max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched'])))
 
             yara_file = yara_directory / (f"{metadata['archive']}-{metadata['language']}.yara")
 
