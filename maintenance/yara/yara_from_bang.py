@@ -444,7 +444,7 @@ def process_identifiers(process_queue, result_queue, json_directory,
 @click.option('--config-file', '-c', required=True, help='configuration file',
               type=click.File('r'))
 @click.option('--json-directory', '-j', required=True, help='JSON file directory',
-              type=click.Path(exists=True))
+              type=click.Path(exists=True, path_type=pathlib.Path))
 @click.option('--identifiers', '-i', required=True, help='pickle with low quality identifiers',
               type=click.File('rb'))
 @click.option('--meta', '-m', required=True, help='file with meta information about a package',
@@ -454,7 +454,6 @@ def process_identifiers(process_queue, result_queue, json_directory,
 @click.option('--no-strings', is_flag=True, default=False, help="do not use strings")
 def source(config_file, json_directory, identifiers, meta, no_functions, no_variables, no_strings):
     bang_type = "source"
-    json_directory = pathlib.Path(json_directory)
 
     # should be a real directory
     if not json_directory.is_dir():
