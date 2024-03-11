@@ -37,6 +37,9 @@ except ImportError:
 
 from yara_config import YaraConfig, YaraConfigException
 
+# ignore object files (regular and GHC specific)
+IGNORED_ELF_SUFFIXES = ['.o', '.p_o']
+
 # YARA escape sequences
 ESCAPE = str.maketrans({'"': '\\"',
                         '\\': '\\\\',
@@ -150,6 +153,10 @@ def app():
 def binary(config_file, result_json, identifiers, no_functions, no_variables, no_strings):
     bang_type = 'binary'
 
+    # parse the configuration
+    yara_config = YaraConfig(config_file)
+    yara_env = yara_config.parse()
+
     # define a data structure with low quality
     # identifiers for ELF and Dex
     lq_identifiers = {'elf': {'functions': [], 'variables': [], 'strings': []},
@@ -162,22 +169,23 @@ def binary(config_file, result_json, identifiers, no_functions, no_variables, no
         except pickle.UnpicklingError:
             pass
 
-    # parse the configuration
-    yara_config = YaraConfig(config_file)
-    yara_env = yara_config.parse()
+    # expand yara_env with binary scanning specific values
+    yara_env['lq_identifiers'] = lq_identifiers
 
     yara_directory = yara_env['yara_directory'] / 'binary'
 
     yara_directory.mkdir(exist_ok=True)
-
-    # ignore object files (regular and GHC specific)
-    ignored_elf_suffixes = ['.o', '.p_o']
 
     # load the JSON
     try:
         bang_data = json.load(result_json)
     except:
         print("Could not open JSON, exiting", file=sys.stderr)
+        sys.exit(1)
+
+    # no need to generate any YARA files for empty files
+    if bang_data['metadata']['sha256'] == 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855':
+        print("Cannot generate YARA file for empty file, exiting", file=sys.stderr)
         sys.exit(1)
 
     if 'labels' in bang_data:
@@ -188,7 +196,7 @@ def binary(config_file, result_json, identifiers, no_functions, no_variables, no
         if 'elf' in bang_data['labels']:
             suffix = pathlib.Path(bang_data['metadata']['name']).suffix
 
-            if suffix in ignored_elf_suffixes:
+            if suffix in IGNORED_ELF_SUFFIXES:
                 print("Ignored suffix, exiting", file=sys.stderr)
                 sys.exit()
 
@@ -198,14 +206,7 @@ def binary(config_file, result_json, identifiers, no_functions, no_variables, no
                     print("Static ELF binary not supported yet, exiting", file=sys.stderr)
                     sys.exit()
 
-    if bang_data['metadata']['sha256'] == 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855':
-        print("Cannot generate YARA file for empty file, exiting", file=sys.stderr)
-        sys.exit(1)
-
     tags = bang_data.get('tags', [])
-
-    # expand yara_env with binary scanning specific values
-    yara_env['lq_identifiers'] = lq_identifiers
 
     # store the type of executable
     if 'elf' in bang_data['labels']:
@@ -642,31 +643,34 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
 
                 strings = set()
 
-                for string in json_results['strings']:
-                    if len(string) >= yara_env['string_min_cutoff'] and len(string) <= yara_env['string_max_cutoff']:
-                        if language == 'c':
-                            if string in yara_env['lq_identifiers']['elf']['strings']:
-                                continue
-                        strings.add(string)
+                if not no_strings:
+                    for string in json_results['strings']:
+                        if len(string) >= yara_env['string_min_cutoff'] and len(string) <= yara_env['string_max_cutoff']:
+                            if language == 'c':
+                                if string in yara_env['lq_identifiers']['elf']['strings']:
+                                    continue
+                            strings.add(string)
 
                 functions = set()
 
-                for function in json_results['functions']:
-                    if len(function) < yara_env['identifier_cutoff']:
-                        continue
-                    if language == 'c':
-                        if function in yara_env['lq_identifiers']['elf']['functions']:
+                if not no_functions::
+                    for function in json_results['functions']:
+                        if len(function) < yara_env['identifier_cutoff']:
                             continue
-                    functions.add(function)
+                        if language == 'c':
+                            if function in yara_env['lq_identifiers']['elf']['functions']:
+                                continue
+                        functions.add(function)
 
-                variables = set()
-                for variable in json_results['variables']:
-                    if len(variable) < yara_env['identifier_cutoff']:
-                        continue
-                    if language == 'c':
-                        if variable in yara_env['lq_identifiers']['elf']['variables']:
+                if not no_variables::
+                    variables = set()
+                    for variable in json_results['variables']:
+                        if len(variable) < yara_env['identifier_cutoff']:
                             continue
-                    variables.add(variable)
+                        if language == 'c':
+                            if variable in yara_env['lq_identifiers']['elf']['variables']:
+                                continue
+                        variables.add(variable)
 
                 all_strings_union.update(strings)
                 all_functions_union.update(functions)
