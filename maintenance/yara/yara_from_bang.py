@@ -532,6 +532,11 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
         except Exception as e:
             continue
 
+    # exit if there are no valid packages
+    if packages == []:
+        print("No packages for processing found", file=sys.stderr)
+        sys.exit(1)
+
     # mapping for low quality identifiers. C is mapped to ELF,
     # Java is mapped to Dex. TODO: use something a bit more sensible.
     lq_identifiers = {'elf': {'functions': [], 'variables': [], 'strings': []},
@@ -544,14 +549,14 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
         except pickle.UnpicklingError:
             pass
 
+    # expand yara_env with source scanning specific values
+    yara_env['lq_identifiers'] = lq_identifiers
+
     yara_directory = yara_env['yara_directory'] / 'src' / top_purl.type / top_purl.name
 
     yara_directory.mkdir(parents=True, exist_ok=True)
 
     tags = ['source']
-
-    # expand yara_env with source scanning specific values
-    yara_env['lq_identifiers'] = lq_identifiers
 
     process_manager = multiprocessing.Manager()
 
@@ -565,7 +570,7 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
         json_results = json_directory / json_file
         process_queue.put(json_results)
 
-    # create processes for unpacking archives
+    # create processes for processing result files
     for i in range(0, yara_env['threads']):
         process = multiprocessing.Process(target=process_identifiers,
                                           args=(process_queue, result_queue, json_directory,
