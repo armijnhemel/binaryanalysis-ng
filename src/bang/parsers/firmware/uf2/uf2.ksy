@@ -212,3 +212,9 @@ enums:
     0x6f752678:
       id: nrf52832xxab
       doc: "Nordic NRF52832xxAB"
+    0xf71c0343:
+      id: esp32c5
+      doc: "ESP32-C5"
+    0x77d850c4:
+      id: esp32c61
+      doc: "ESP32-C61"
