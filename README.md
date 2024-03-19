@@ -309,6 +309,7 @@ larger file, unless stated otherwise.
 209. Linux kernel x86 images
 210. TP-Link minifs
 211. ANJVision IP camera firmware files
+212. Linux `securetty` files (whole file)
 
 ## Getting started
 
