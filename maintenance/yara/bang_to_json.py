@@ -78,6 +78,7 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
             metadata['tlsh'] = bang_data['metadata']['hashes']['tlsh']
 
         meta_info = {}
+        meta_info['labels'] = []
 
         if exec_type == 'elf':
             strings = []
@@ -167,7 +168,7 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
                 if field in ['this$0']:
                     continue
 
-        meta_info['labels'] = bang_data['labels']
+        meta_info['labels'] += bang_data['labels']
         meta_info['metadata'] = metadata
 
         # dump JSON
