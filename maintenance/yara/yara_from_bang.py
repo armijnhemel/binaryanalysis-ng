@@ -658,7 +658,7 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
 
                 functions = set()
 
-                if not no_functions::
+                if not no_functions:
                     for function in json_results['functions']:
                         if len(function) < yara_env['identifier_cutoff']:
                             continue
@@ -667,7 +667,7 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
                                 continue
                         functions.add(function)
 
-                if not no_variables::
+                if not no_variables:
                     variables = set()
                     for variable in json_results['variables']:
                         if len(variable) < yara_env['identifier_cutoff']:
