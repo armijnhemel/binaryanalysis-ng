@@ -16,10 +16,8 @@ Use bang_to_json.py to generate the JSON file.
 import copy
 import datetime
 import json
-import multiprocessing
 import pathlib
 import pickle
-import queue
 import re
 import sys
 import uuid
@@ -354,90 +352,6 @@ def binary(config_file, result_json, identifiers, no_functions, no_variables, no
                               sorted(strings), yara_tags, num_strings, num_funcs, num_vars,
                               fullword, yara_env['operator'], bang_type)
 
-def process_identifiers(process_queue, result_queue, json_directory,
-                        yara_directory, yara_env, tags, bang_type):
-    '''Read a JSON result file with identifiers extracted from source code,
-       clean up and generate YARA rules'''
-    heuristics = yara_env['heuristics']
-
-    fullword = ''
-    if yara_env['fullword']:
-        fullword = ' fullword'
-
-    while True:
-        json_file = process_queue.get()
-
-        with open(json_file, 'r') as json_archive:
-            identifiers = json.load(json_archive)
-
-        identifiers_per_language = {}
-        language = identifiers['metadata']['language']
-
-        identifiers_per_language[language] = {}
-        identifiers_per_language[language]['strings'] = set()
-        identifiers_per_language[language]['functions'] = set()
-        identifiers_per_language[language]['variables'] = set()
-
-        for string in identifiers['strings']:
-            if len(string) >= yara_env['string_min_cutoff'] and len(string) <= yara_env['string_max_cutoff']:
-                if language == 'c':
-                    if string in yara_env['lq_identifiers']['elf']['strings']:
-                        continue
-                identifiers_per_language[language]['strings'].add(string)
-
-        for function in identifiers['functions']:
-            if len(function) < yara_env['identifier_cutoff']:
-                continue
-            if language == 'c':
-                if function in yara_env['lq_identifiers']['elf']['functions']:
-                    continue
-            identifiers_per_language[language]['functions'].add(function)
-
-        for variable in identifiers['variables']:
-            if len(variable) < yara_env['identifier_cutoff']:
-                continue
-            if language == 'c':
-                if variable in yara_env['lq_identifiers']['elf']['variables']:
-                    continue
-            identifiers_per_language[language]['variables'].add(variable)
-
-        for language in identifiers_per_language:
-            metadata = identifiers['metadata']
-            metadata['name'] = metadata['archive']
-
-            strings = sorted(identifiers_per_language[language]['strings'])
-            variables = sorted(identifiers_per_language[language]['variables'])
-            functions = sorted(identifiers_per_language[language]['functions'])
-
-            num_strings = num_funcs = num_vars = 'any'
-
-            if len(strings) >= heuristics['strings_minimum_present']:
-                num_strings = str(int(max(len(strings)//heuristics['strings_percentage'], heuristics['strings_matched'])))
-
-            if len(functions) >= heuristics['functions_minimum_present']:
-                num_funcs = str(int(max(len(functions)//heuristics['functions_percentage'], heuristics['functions_matched'])))
-
-            if len(variables) >= heuristics['variables_minimum_present']:
-                num_vars = str(int(max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched'])))
-
-            if not (strings == [] and variables == [] and functions == []):
-                yara_tags = sorted(set(tags + [language]))
-                yara_file = yara_directory / (f"{metadata['archive']}-{metadata['language']}.yara")
-                rule_uuid = generate_yara(yara_file, metadata, functions, variables, strings,
-                                          yara_tags, num_strings, num_funcs, num_vars,
-                                          fullword, yara_env['operator'], bang_type)
-
-        result_meta = {}
-        for language in identifiers_per_language:
-            result_meta[language] = {}
-            result_meta[language]['strings'] = len(identifiers_per_language[language]['strings'])
-            result_meta[language]['variables'] = len(identifiers_per_language[language]['variables'])
-            result_meta[language]['functions'] = len(identifiers_per_language[language]['functions'])
-
-        result_queue.put(result_meta)
-        process_queue.task_done()
-
-
 @app.command(short_help='process JSON files with identifiers extracted from source code and output YARA rules')
 @click.option('--config-file', '-c', required=True, help='configuration file',
               type=click.File('r'))
@@ -511,29 +425,6 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
                 continue
             versions.add(version)
 
-    # store the languages
-    languages = set()
-
-    # process all the JSON files in the directory
-    for result_file in json_directory.glob('**/*'):
-        # sanity check for the package
-        try:
-            with open(result_file, 'r') as json_archive:
-                json_results = json.load(json_archive)
-
-            languages.add(json_results['metadata']['language'])
-
-            if json_results['metadata']['package'] == package:
-                if json_results['metadata'].get('packageurl') in versions:
-                    packages.append(result_file)
-        except Exception as e:
-            continue
-
-    # exit if there are no valid packages
-    if packages == []:
-        print("No packages for processing found", file=sys.stderr)
-        sys.exit(1)
-
     # mapping for low quality identifiers. C is mapped to ELF,
     # Java is mapped to Dex. TODO: use something a bit more sensible.
     lq_identifiers = {'elf': {'functions': [], 'variables': [], 'strings': []},
@@ -551,59 +442,110 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
 
     yara_directory = yara_env['yara_directory'] / 'src' / top_purl.type / top_purl.name
 
-    yara_directory.mkdir(parents=True, exist_ok=True)
+    # store the languages and store the minimum per
+    # language, relevant for heuristics
+    languages = set()
+    min_per_language = {}
+
+    # keep track of all the identifiers for a package
+    all_identifiers_per_language = {}
 
     tags = ['source']
 
-    process_manager = multiprocessing.Manager()
+    # first instantiate the heuristics
+    heuristics = copy.deepcopy(yara_env['heuristics'])
 
-    # create a queue for scanning files
-    process_queue = process_manager.JoinableQueue(maxsize=0)
-    result_queue = process_manager.JoinableQueue(maxsize=0)
-    processes = []
+    fullword = ''
+    if yara_env['fullword']:
+        fullword = ' fullword'
 
-    # walk the archives directory
-    for json_file in packages:
-        json_results = json_directory / json_file
-        process_queue.put(json_results)
-
-    # create processes for processing result files
-    for i in range(0, yara_env['threads']):
-        process = multiprocessing.Process(target=process_identifiers,
-                                          args=(process_queue, result_queue, json_directory,
-                                                yara_directory, yara_env, tags, bang_type))
-        processes.append(process)
-
-    # start all the processes
-    for process in processes:
-        process.start()
-
-    process_queue.join()
-
-    # Done processing, terminate processes
-    for process in processes:
-        process.terminate()
-
-    # store the minimum per language, relevant for heuristics
-    min_per_language = {}
-    for language in languages:
-        min_per_language[language] = {}
-        min_per_language[language]['strings'] = sys.maxsize
-        min_per_language[language]['variables'] = sys.maxsize
-        min_per_language[language]['functions'] = sys.maxsize
-
-    while True:
+    # process all the JSON files in the directory
+    for result_file in json_directory.glob('**/*'):
+        # sanity check for the package
         try:
-            result = result_queue.get_nowait()
-            for language in result:
-                for identifier in ['strings', 'functions', 'variables']:
-                    min_per_language[language][identifier] = min(min_per_language[language][identifier], result[language][identifier])
-                result_queue.task_done()
-        except queue.Empty:
-            break
+            with open(result_file, 'r') as json_archive:
+                json_results = json.load(json_archive)
 
-    # block until the result queue is empty
-    result_queue.join()
+                if json_results['metadata']['package'] == package:
+                    if json_results['metadata'].get('packageurl') in versions:
+                        yara_directory.mkdir(parents=True, exist_ok=True)
+                        strings = set()
+                        functions = set()
+                        variables = set()
+
+                        metadata = json_results['metadata']
+                        metadata['name'] = metadata['archive']
+
+                        packages.append(result_file)
+                        language = json_results['metadata']['language']
+                        languages.add(language)
+
+                        if language not in min_per_language:
+                            min_per_language[language] = {}
+                            min_per_language[language]['strings'] = sys.maxsize
+                            min_per_language[language]['variables'] = sys.maxsize
+                            min_per_language[language]['functions'] = sys.maxsize
+
+                            all_identifiers_per_language[language] = {}
+                            all_identifiers_per_language[language]['strings'] = set()
+                            all_identifiers_per_language[language]['functions'] = set()
+                            all_identifiers_per_language[language]['variables'] = set()
+
+                        for string in json_results['strings']:
+                            if len(string) >= yara_env['string_min_cutoff'] and len(string) <= yara_env['string_max_cutoff']:
+                                if language == 'c':
+                                    if string in lq_identifiers['elf']['strings']:
+                                        continue
+                                all_identifiers_per_language[language]['strings'].add(string)
+                                strings.add(string)
+
+                        for function in json_results['functions']:
+                            if len(function) < yara_env['identifier_cutoff']:
+                                continue
+                            if language == 'c':
+                                if function in lq_identifiers['elf']['functions']:
+                                    continue
+                            all_identifiers_per_language[language]['functions'].add(function)
+                            functions.add(function)
+
+                        for variable in json_results['variables']:
+                            if len(variable) < yara_env['identifier_cutoff']:
+                                continue
+                            if language == 'c':
+                                if variable in lq_identifiers['elf']['variables']:
+                                    continue
+                            all_identifiers_per_language[language]['variables'].add(variable)
+                            variables.add(variable)
+
+                        strings = sorted(strings)
+                        variables = sorted(variables)
+                        functions = sorted(functions)
+
+                        num_strings = num_funcs = num_vars = 'any'
+
+                        if len(strings) >= heuristics['strings_minimum_present']:
+                            num_strings = str(int(max(len(strings)//heuristics['strings_percentage'], heuristics['strings_matched'])))
+
+                        if len(functions) >= heuristics['functions_minimum_present']:
+                            num_funcs = str(int(max(len(functions)//heuristics['functions_percentage'], heuristics['functions_matched'])))
+
+                        if len(variables) >= heuristics['variables_minimum_present']:
+                            num_vars = str(int(max(len(variables)//heuristics['variables_percentage'], heuristics['variables_matched'])))
+
+                        if not (strings == [] and variables == [] and functions == []):
+                            yara_tags = sorted(set(tags + [language]))
+                            yara_file = yara_directory / (f"{metadata['archive']}-{metadata['language']}.yara")
+                            rule_uuid = generate_yara(yara_file, metadata, functions, variables, strings,
+                                                      yara_tags, num_strings, num_funcs, num_vars,
+                                                      fullword, yara_env['operator'], bang_type)
+
+        except Exception as e:
+            continue
+
+    # exit if there are no valid packages
+    if packages == []:
+        print("No packages for processing found", file=sys.stderr)
+        sys.exit(1)
 
     fullword = ''
     if yara_env['fullword']:
@@ -615,13 +557,8 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
     # TODO: sort the packages based on version number
     for language in languages:
         # read the JSON again, this time aggregate the data
-        all_strings_union = set()
         all_strings_intersection = set()
-
-        all_functions_union = set()
         all_functions_intersection = set()
-
-        all_variables_union = set()
         all_variables_intersection = set()
 
         website = ''
@@ -649,7 +586,7 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
                     for string in json_results['strings']:
                         if len(string) >= yara_env['string_min_cutoff'] and len(string) <= yara_env['string_max_cutoff']:
                             if language == 'c':
-                                if string in yara_env['lq_identifiers']['elf']['strings']:
+                                if string in lq_identifiers['elf']['strings']:
                                     continue
                             strings.add(string)
 
@@ -660,7 +597,7 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
                         if len(function) < yara_env['identifier_cutoff']:
                             continue
                         if language == 'c':
-                            if function in yara_env['lq_identifiers']['elf']['functions']:
+                            if function in lq_identifiers['elf']['functions']:
                                 continue
                         functions.add(function)
 
@@ -670,13 +607,9 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
                         if len(variable) < yara_env['identifier_cutoff']:
                             continue
                         if language == 'c':
-                            if variable in yara_env['lq_identifiers']['elf']['variables']:
+                            if variable in lq_identifiers['elf']['variables']:
                                 continue
                         variables.add(variable)
-
-                all_strings_union.update(strings)
-                all_functions_union.update(functions)
-                all_variables_union.update(variables)
 
                 if is_start:
                     all_strings_intersection.update(strings)
@@ -690,9 +623,9 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
 
         # sort the identifiers so they are printed in
         # sorted order in the YARA rule as well
-        strings = sorted(all_strings_union)
-        variables = sorted(all_variables_union)
-        functions = sorted(all_functions_union)
+        strings = sorted(all_identifiers_per_language[language]['strings'])
+        variables = sorted(all_identifiers_per_language[language]['variables'])
+        functions = sorted(all_identifiers_per_language[language]['functions'])
 
         # adapt the heuristics based on the minimum amount of strings
         # found in a package.
