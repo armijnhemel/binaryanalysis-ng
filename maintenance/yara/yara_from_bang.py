@@ -391,7 +391,7 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
 
     package = package_meta_information['package']
 
-    # first verify that the top level package url is valid
+    # first verify that the top level package url in the metadata is valid
     try:
         top_purl = packageurl.PackageURL.from_string(package_meta_information['packageurl'])
     except ValueError:
