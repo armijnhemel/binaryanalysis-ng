@@ -169,9 +169,6 @@ def binary(config_file, result_json, identifiers, no_functions, no_variables, no
         except pickle.UnpicklingError:
             pass
 
-    # expand yara_env with binary scanning specific values
-    yara_env['lq_identifiers'] = lq_identifiers
-
     yara_directory = yara_env['yara_directory'] / 'binary'
 
     yara_directory.mkdir(exist_ok=True)
@@ -242,7 +239,7 @@ def binary(config_file, result_json, identifiers, no_functions, no_variables, no
                     continue
                 # ignore whitespace-only strings
                 if re.match(r'^\s+$', s) is None:
-                    if s in yara_env['lq_identifiers']['elf']['strings']:
+                    if s in lq_identifiers['elf']['strings']:
                         continue
                     strings.add(s.translate(ESCAPE))
 
@@ -263,11 +260,11 @@ def binary(config_file, result_json, identifiers, no_functions, no_variables, no
                 else:
                     identifier_name = s['name']
                 if s['type'] == 'func' and not no_functions:
-                    if identifier_name in yara_env['lq_identifiers']['elf']['functions']:
+                    if identifier_name in lq_identifiers['elf']['functions']:
                         continue
                     functions.add(identifier_name)
                 elif s['type'] == 'object' and not no_variables:
-                    if identifier_name in yara_env['lq_identifiers']['elf']['variables']:
+                    if identifier_name in lq_identifiers['elf']['variables']:
                         continue
                     variables.add(identifier_name)
 
@@ -294,7 +291,7 @@ def binary(config_file, result_json, identifiers, no_functions, no_variables, no
                         continue
                     if method['name'].startswith('access$'):
                         continue
-                    if method['name'] in yara_env['lq_identifiers']['dex']['functions']:
+                    if method['name'] in lq_identifiers['dex']['functions']:
                         continue
                     functions.add(method['name'])
 
@@ -319,7 +316,7 @@ def binary(config_file, result_json, identifiers, no_functions, no_variables, no
                     if re.match(r'^\s+$', field['name']) is not None:
                         continue
 
-                    if field['name'] in yara_env['lq_identifiers']['dex']['variables']:
+                    if field['name'] in lq_identifiers['dex']['variables']:
                         continue
                     variables.add(field['name'])
 
