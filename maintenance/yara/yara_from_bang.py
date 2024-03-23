@@ -359,12 +359,16 @@ def binary(config_file, result_json, identifiers, no_functions, no_variables, no
               type=click.Path(exists=True, path_type=pathlib.Path))
 @click.option('--identifiers', '-i', required=True, help='pickle with low quality identifiers',
               type=click.File('rb'))
-@click.option('--meta', '-m', required=True, help='file with meta information about a package',
+@click.option('--meta', '-m', required=True, help='file with meta information about versions of a package',
               type=click.File('r'))
 @click.option('--no-functions', is_flag=True, default=False, help="do not use functions")
 @click.option('--no-variables', is_flag=True, default=False, help="do not use variables")
 @click.option('--no-strings', is_flag=True, default=False, help="do not use strings")
-def source(config_file, json_directory, identifiers, meta, no_functions, no_variables, no_strings):
+@click.argument('versions', nargs=-1)
+def source(config_file, json_directory, identifiers, meta, no_functions, no_variables, no_strings, versions):
+    '''Generate YARA files from identifiers extracted from source code.
+
+       Optionally specify VERSIONS to only generate YARA files for a subset of package versions.'''
     bang_type = "source"
 
     # should be a real directory
@@ -398,7 +402,7 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
         print(f"{package_meta_information['packageurl']} not a valid packageurl", file=sys.stderr)
         sys.exit(1)
 
-    versions = set()
+    package_versions = set()
 
     for release in package_meta_information['releases']:
         for version in release:
@@ -423,7 +427,11 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
                 if yara_env['error_fatal']:
                     sys.exit(1)
                 continue
-            versions.add(version)
+            if versions != ():
+                if purl.version in versions:
+                    package_versions.add(version)
+            else:
+                package_versions.add(version)
 
     # mapping for low quality identifiers. C is mapped to ELF,
     # Java is mapped to Dex. TODO: use something a bit more sensible.
@@ -467,7 +475,7 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
                 json_results = json.load(json_archive)
 
                 if json_results['metadata']['package'] == package:
-                    if json_results['metadata'].get('packageurl') in versions:
+                    if json_results['metadata'].get('packageurl') in package_versions:
                         yara_directory.mkdir(parents=True, exist_ok=True)
                         strings = set()
                         functions = set()

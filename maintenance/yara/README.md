@@ -189,6 +189,21 @@ For each package there is a subdirectory (for example: `busybox`) with YARA
 files per programming language category for each individual version of the
 package.
 
+Optionally a list of package versions can be provided as arguments to the
+script and only for those versions YARA files will be generated.
+
+```console
+$ python3 yara_from_bang.py source -c yara-config.yaml -j /path/to/json/directory -i /path/to/pickle -m /path/to/metadata 1 2 3
+```
+
+for example:
+
+```console
+$ python3 yara_from_bang.py source -c yara-config.yaml -j ~/yara/json -i low_quality_identifiers.pickle -m data/busybox.yaml 1.9.0 1.9.2 1.35.0
+```
+
+which will only generate YARA files for three particular versions of BusyBox.
+
 ## Binary processor
 
 The script takes result files of BANG scans (for example: Debian archive
