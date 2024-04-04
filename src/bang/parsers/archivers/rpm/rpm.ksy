@@ -1487,6 +1487,15 @@ enums:
     5111:
       id: build_option
       -orig-id: RPMTAG_BUILDOPTION
+    5112:
+      id: payload_size
+      -orig-id: RPMTAG_PAYLOADSIZE
+    5113:
+      id: payload_size_alt
+      -orig-id: RPMTAG_PAYLOADSIZEALT
+    5114:
+      id: rpm_format
+      -orig-id: RPMTAG_RPMFORMAT
   record_types:
     # from LSB
     0: not_implemented
