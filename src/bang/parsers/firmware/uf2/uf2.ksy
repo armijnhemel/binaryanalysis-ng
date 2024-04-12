@@ -218,3 +218,6 @@ enums:
     0x77d850c4:
       id: esp32c61
       doc: "ESP32-C61"
+    0xa0c97b8e:
+      id: at32f415
+      doc: "ArteryTek AT32F415"
