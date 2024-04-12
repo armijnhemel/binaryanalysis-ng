@@ -26,10 +26,10 @@ yara:
     operator: and
 
     # minimal length of strings, recommended to not go below 5
-    # string_min_cutoff: 8
+    # string_minimum_length: 8
 
     # maximal length of strings, recommended to not go above 200
-    # string_max_cutoff: 200
+    # string_maximum_length: 200
 
     # minimal length of functions/variable names, recommended
     # to not go below 2

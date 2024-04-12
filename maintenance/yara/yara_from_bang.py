@@ -231,9 +231,9 @@ def binary(config_file, result_json, identifiers, no_functions, no_variables, no
         # process strings
         if bang_data['strings'] != [] and not no_strings:
             for s in bang_data['strings']:
-                if len(s) < yara_env['string_min_cutoff']:
+                if len(s) < yara_env['string_minimum_length']:
                     continue
-                if len(s) > yara_env['string_max_cutoff']:
+                if len(s) > yara_env['string_maximum_length']:
                     continue
                 # ignore whitespace-only strings
                 if re.match(r'^\s+$', s) is None:
@@ -297,9 +297,9 @@ def binary(config_file, result_json, identifiers, no_functions, no_variables, no
             if not no_strings:
                 for method in c['methods']:
                     for s in method['strings']:
-                        if len(s) < yara_env['string_min_cutoff']:
+                        if len(s) < yara_env['string_minimum_length']:
                             continue
-                        if len(s) > yara_env['string_max_cutoff']:
+                        if len(s) > yara_env['string_maximum_length']:
                             continue
                         # ignore whitespace-only strings
                         if re.match(r'^\s+$', s) is None:
@@ -500,7 +500,7 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
                             all_identifiers_per_language[language]['variables'] = set()
 
                         for string in json_results['strings']:
-                            if len(string) >= yara_env['string_min_cutoff'] and len(string) <= yara_env['string_max_cutoff']:
+                            if len(string) >= yara_env['string_minimum_length'] and len(string) <= yara_env['string_maximum_length']:
                                 if language == 'c':
                                     if string in lq_identifiers['elf']['strings']:
                                         continue
@@ -592,7 +592,7 @@ def source(config_file, json_directory, identifiers, meta, no_functions, no_vari
 
                 if not no_strings:
                     for string in json_results['strings']:
-                        if len(string) >= yara_env['string_min_cutoff'] and len(string) <= yara_env['string_max_cutoff']:
+                        if len(string) >= yara_env['string_minimum_length'] and len(string) <= yara_env['string_maximum_length']:
                             if language == 'c':
                                 if string in lq_identifiers['elf']['strings']:
                                     continue
