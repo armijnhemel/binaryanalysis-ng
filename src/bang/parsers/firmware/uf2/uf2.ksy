@@ -221,3 +221,6 @@ enums:
     0xa0c97b8e:
       id: at32f415
       doc: "ArteryTek AT32F415"
+    0x699b62ec:
+      id: ch32v
+      doc: "WCH CH32V2xx and CH32V3xx"
