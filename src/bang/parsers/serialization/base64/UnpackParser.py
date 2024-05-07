@@ -30,8 +30,8 @@ from bang.UnpackParserException import UnpackParserException
 
 
 KNOWN_DIRECTORIES = [b'/bin/', b'/boot/', b'/etc/', b'/home/', b'/lib/',
-                     b'/lib64', b'/opt/', b'/root/', b'/sbin', b'/sys/',
-                     b'/usr/', b'/var/']
+                     b'/lib64', b'/linuxrc', b'/opt/', b'/root/', b'/sbin',
+                     b'/sys/', b'/usr/', b'/var/']
 
 class Base64UnpackParser(UnpackParser):
     extensions = []
