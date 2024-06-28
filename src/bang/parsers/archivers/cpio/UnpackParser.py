@@ -81,6 +81,9 @@ class CpioBaseUnpackParser(UnpackParser):
         pos = 0
         for e in self.data.entries:
             log.debug(f'unpack: got entry {e.filename}')
+            if e.filename in ['.', '..', '/']:
+                pos += e.header.bsize
+                continue
             if e.filename != self.data.trailing_filename:
                 file_path = pathlib.Path(e.filename)
 

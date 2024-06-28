@@ -2,7 +2,7 @@
 
 # Binary Analysis Next Generation (BANG!)
 #
-# Copyright 2021-2022 - Armijn Hemel
+# Copyright 2021-2024 - Armijn Hemel
 # Licensed under the terms of the GNU Affero General Public License version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
@@ -66,7 +66,8 @@ REMOVE_CHARACTERS_TABLE = str.maketrans({'\a': '', '\b': '', '\v': '',
                                         })
 
 
-def extract_identifiers(process_queue, temporary_directory, json_output_directory, extraction_env, package_meta_information):
+def extract_identifiers(process_queue, temporary_directory, json_output_directory,
+                        extraction_env, package_meta_information):
     '''Unpack a tar archive based on extension and extract identifiers'''
 
     while True:
@@ -193,7 +194,7 @@ def extract_identifiers(process_queue, temporary_directory, json_output_director
                         for line in lines:
                             try:
                                 ctags_json = json.loads(line)
-                            except Exception as e:
+                            except json.decoder.JSONDecodeError:
                                 continue
                             try:
                                 ctags_name = ctags_json['name']
@@ -244,8 +245,10 @@ def extract_identifiers(process_queue, temporary_directory, json_output_director
 
 @click.command(short_help='process source code files and output JSON')
 @click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
-@click.option('--source-directory', '-s', required=True, help='source code archive directory', type=click.Path(exists=True, path_type=pathlib.Path))
-@click.option('--meta', '-m', required=True, help='file with meta information about a package', type=click.File('r'))
+@click.option('--source-directory', '-s', required=True, help='source code archive directory',
+              type=click.Path(exists=True, path_type=pathlib.Path))
+@click.option('--meta', '-m', required=True, help='file with meta information about a package',
+              type=click.File('r'))
 def main(config_file, source_directory, meta):
     # check if ctags is available. This should be "universal ctags"
     # not "exuberant ctags"
@@ -306,7 +309,7 @@ def main(config_file, source_directory, meta):
                 print(f"{source_directory / release_filename} does not exist", file=sys.stderr)
                 if extraction_env['error_fatal']:
                     sys.exit(1)
-                    continue
+                continue
             packages.append((release_version, release_filename))
 
     json_output_directory = extraction_env['json_directory'] / package
