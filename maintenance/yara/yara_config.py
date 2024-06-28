@@ -128,15 +128,15 @@ class YaraConfig:
                 operator = self.config['yara']['operator']
 
         # heuristics used for generating YARA rules
-        string_min_cutoff = 8
-        if 'string_min_cutoff' in self.config['yara']:
-            if isinstance(self.config['yara']['string_min_cutoff'], int):
-                string_min_cutoff = self.config['yara']['string_min_cutoff']
+        string_minimum_length = 8
+        if 'string_minimum_length' in self.config['yara']:
+            if isinstance(self.config['yara']['string_minimum_length'], int):
+                string_minimum_length = self.config['yara']['string_minimum_length']
 
-        string_max_cutoff = 200
-        if 'string_max_cutoff' in self.config['yara']:
-            if isinstance(self.config['yara']['string_max_cutoff'], int):
-                string_max_cutoff = self.config['yara']['string_max_cutoff']
+        string_maximum_length = 200
+        if 'string_maximum_length' in self.config['yara']:
+            if isinstance(self.config['yara']['string_maximum_length'], int):
+                string_maximum_length = self.config['yara']['string_maximum_length']
 
         identifier_cutoff = 2
         if 'identifier_cutoff' in self.config['yara']:
@@ -232,8 +232,8 @@ class YaraConfig:
                 ignore_ocaml = self.config['yara']['ignore_ocaml']
 
         yara_env = {'verbose': verbose, 'error_fatal': error_fatal,
-                    'string_min_cutoff': string_min_cutoff,
-                    'string_max_cutoff': string_max_cutoff,
+                    'string_minimum_length': string_minimum_length,
+                    'string_maximum_length': string_maximum_length,
                     'identifier_cutoff': identifier_cutoff,
                     'max_identifiers': max_identifiers,
                     'ignore_weak_symbols': ignore_weak_symbols,

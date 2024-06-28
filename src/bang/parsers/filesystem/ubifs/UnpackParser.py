@@ -104,8 +104,9 @@ class UbifsUnpackParser(UnpackParser):
             if inode_to_type[inode] == ubifs.Ubifs.InodeTypes.directory:
                 meta_directory.unpack_directory(pathlib.Path(inode_to_path[inode]))
             else:
-                # create the directory of the parent
-                meta_directory.unpack_directory(pathlib.Path(inode_to_path[inode]).parent)
+                # create the directory of the parent unless it is empty
+                if inode_to_path[inode].parent.name != '':
+                    meta_directory.unpack_directory(pathlib.Path(inode_to_path[inode]).parent)
 
         # now that there is a mapping of inodes to names of files
         # the nodes can be traversed again to find the extra metadata

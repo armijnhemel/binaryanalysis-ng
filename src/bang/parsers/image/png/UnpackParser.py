@@ -80,6 +80,9 @@ class PngUnpackParser(UnpackParser):
 
         self.chunknames.add('IHDR')
 
+        # The bytes in the IDAT chunks are part of a single zlib compressed
+        # stream. Store the bytes and decompress as an extra sanity check.
+        idata = b''
         for i in self.data.chunks:
             # compute CRC32
             computed_crc = binascii.crc32(i.type.encode('utf-8'))
@@ -92,6 +95,12 @@ class PngUnpackParser(UnpackParser):
             check_condition(computed_crc == int.from_bytes(i.crc, byteorder='big'),
                     "invalid CRC")
             self.chunknames.add(i.type)
+            if i.type == 'IDAT':
+                idata += i.body
+        try:
+            zlib.decompress(idata)
+        except zlib.error as e:
+            raise UnpackParserException(e.args)
 
         check_condition('IDAT' in self.chunknames,
                         "IDAT section missing")
