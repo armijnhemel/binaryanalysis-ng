@@ -71,6 +71,7 @@ types:
             - uimage_os::tee
             - uimage_os::opensbi
             - uimage_os::efi
+            - uimage_os::elf
       - id: architecture
         type: u1
         enum: uimage_arch
@@ -221,6 +222,9 @@ enums:
     28:
       id: efi
       doc: EFI Firmware (e.g. GRUB2)
+    29:
+      id: elf
+      doc: ELF Image ((e.g. seL4)
   uimage_arch:
     0:
       id: invalid
