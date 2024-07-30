@@ -76,10 +76,11 @@ def app():
 @click.option('-i', '--ignore-list', type=click.File('r'))
 @click.option('-j', '--jobs', default=1, type=click.IntRange(min=1), help='Number of jobs running simultaneously')
 @click.option('--job-wait-time', default=1, type=int, help='Time to wait for a new job')
+@click.option('-f', '--force', is_flag=True, help='Ignore warnings about existing unpacking directory')
 @click.argument('path', type=click.Path(path_type=pathlib.Path, exists=True))
 @app.command(short_help='Scan a directory of files')
 @click.pass_context
-def scan_directory(ctx, config_file, verbose, unpack_directory, temporary_directory, ignore_list, jobs, job_wait_time, path):
+def scan_directory(ctx, config_file, verbose, unpack_directory, temporary_directory, ignore_list, jobs, job_wait_time, force, path):
     '''Scans files in PATH and unpacks its files to a sudirectory of UNPACK_DIRECTORY.
     '''
     if config_file is not None:
@@ -98,7 +99,7 @@ def scan_directory(ctx, config_file, verbose, unpack_directory, temporary_direct
         except FileExistsError:
             continue
 
-        ctx.invoke(scan, config_file=config_file, verbose=verbose, unpack_directory=scan_directory, temporary_directory=temporary_directory, ignore_list=ignore_list, jobs=jobs, job_wait_time=job_wait_time, path=scan_archive)
+        ctx.invoke(scan, config_file=config_file, verbose=verbose, unpack_directory=scan_directory, temporary_directory=temporary_directory, ignore_list=ignore_list, jobs=jobs, job_wait_time=job_wait_time, force=force, path=scan_archive)
 
 
 # bang scan <input file>
