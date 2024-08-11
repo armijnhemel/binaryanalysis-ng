@@ -224,3 +224,18 @@ enums:
     0x699b62ec:
       id: ch32v
       doc: "WCH CH32V2xx and CH32V3xx"
+    0xe48bff57:
+      id: rp2xxx_absolute
+      doc: "Raspberry Pi Microcontrollers: Absolute (unpartitioned) download"
+    0xe48bff58:
+      id: rp2xxx_data
+      doc: "Raspberry Pi Microcontrollers: Data partition download"
+    0xe48bff59:
+      id: rp2350_arm_s
+      doc: "Raspberry Pi RP2350, Secure Arm image"
+    0xe48bff5a:
+      id: rp2350_riscv
+      doc: "Raspberry Pi RP2350, RISC-V image"
+    0xe48bff5b:
+      id: rp2350_arm_ns
+      doc: "Raspberry Pi RP2350, Non-secure Arm image"
