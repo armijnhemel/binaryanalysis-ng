@@ -239,3 +239,6 @@ enums:
     0xe48bff5b:
       id: rp2350_arm_ns
       doc: "Raspberry Pi RP2350, Non-secure Arm image"
+    0x7be8976d:
+      id: ra4m1
+      doc: "Renesas RA4M1"
