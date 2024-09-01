@@ -303,6 +303,7 @@ enums:
     327: sda630
     331: msm8905
     333: sdx202
+    336: sdm670
     338: sdm450
     339: sm8150
     341: sda845
@@ -397,6 +398,7 @@ enums:
     603: qcs8550
     604: qcm8550
     624: ipq5300
+    650: ipq5321
   platform_ids:
     1: cdp
     2: ffa
