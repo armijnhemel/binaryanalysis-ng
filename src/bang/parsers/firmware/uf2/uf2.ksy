@@ -242,3 +242,30 @@ enums:
     0x7be8976d:
       id: ra4m1
       doc: "Renesas RA4M1"
+    0x22e0d6fc:
+        id: rtl8710b
+        doc: "Realtek AmebaZ RTL8710B"
+    0x3379CFE2:
+        id: rtl8720d
+        doc: "Realtek AmebaD RTL8720D"
+    0x51e903a8:
+        id: xr809
+        doc: "Xradiotech 809"
+    0x675a40b0:
+        id: bk7231u
+        doc: "Beken 7231U/7231T"
+    0x6a82cc42:
+        id: bk7251
+        doc: "Beken 7251/7252"
+    0x7b3ef230:
+        id: bk7231n
+        doc: "Beken 7231N"
+    0x9fffd543:
+        id: rtl8710a
+        doc: "Realtek Ameba1 RTL8710A"
+    0xde1270b7:
+        id: bl602
+        doc: "Boufallo 602"
+    0xe08f7564:
+        id: rtl8720c
+        doc: "Realtek AmebaZ2 RTL8720C"
