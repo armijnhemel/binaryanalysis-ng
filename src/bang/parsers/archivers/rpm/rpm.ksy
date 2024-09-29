@@ -1496,6 +1496,15 @@ enums:
     5114:
       id: rpm_format
       -orig-id: RPMTAG_RPMFORMAT
+    5115:
+      id: file_mime_index
+      -orig-id: RPMTAG_FILEMIMEINDEX
+    5116:
+      id: mime_dict
+      -orig-id: RPMTAG_MIMEDICT
+    5117:
+      id: file_mimes
+      -orig-id: RPMTAG_FILEMIMES
   record_types:
     # from LSB
     0: not_implemented
