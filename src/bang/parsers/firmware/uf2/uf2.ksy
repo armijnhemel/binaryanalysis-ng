@@ -269,3 +269,6 @@ enums:
     0xe08f7564:
         id: rtl8720c
         doc: "Realtek AmebaZ2 RTL8720C"
+    0x4e8f1c5d:
+        id: stm32h5
+        doc: "ST STM32H5xx"
