@@ -418,6 +418,9 @@ enums:
     277:
       id: verity_signature_algo
       -orig-id: RPMTAG_VERITYSIGNATUREALGO
+    278:
+      id: openpgp
+      -orig-id: RPMTAG_OPENPGP
     1000:
       id: size
       -orig-id: RPMSIGTAG_SIZE
