@@ -858,6 +858,7 @@ class ElfUnpackParser(UnpackParser):
                     elf_types.add('zephyr')
                 elif header.name == 'protodesc_cold':
                     # Protobuf
+                    # example /lib64/libcompizconfig.so.0.0.0
                     elf_types.add('protobuf')
 
             if header.type == elf.Elf.ShType.dynamic:
