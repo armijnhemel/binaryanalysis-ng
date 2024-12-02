@@ -34,11 +34,15 @@ from . import parser_utils
 from rich.console import Group, group
 import rich.table
 
+from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Horizontal, VerticalScroll
-from textual.widgets import Footer, Static, Tree
+from textual.suggester import Suggester
+from textual.validation import ValidationResult, Validator
+from textual.widgets import Footer, Markdown, Static, Tree, TabbedContent, TabPane, Input, Header, DataTable
 from textual.widgets.tree import TreeNode
+
 
 #from textual.logging import TextualHandler
 
@@ -50,7 +54,7 @@ from textual.widgets.tree import TreeNode
 
 class BangShell(App):
     BINDINGS = [
-        Binding(key="q", action="quit", description="Quit"),
+        Binding(key="ctrl+q", action="quit", description="Quit"),
     ]
 
     CSS_PATH = "bang_shell.css"
