@@ -118,7 +118,7 @@ def scan(config_file, verbose, unpack_directory, temporary_directory, ignore_lis
     '''
 
     # record the starting time of the scan
-    start_time = datetime.datetime.utcnow()
+    start_time = datetime.datetime.now(datetime.UTC)
     ignore_parsers = []
     config = None
 
@@ -222,7 +222,7 @@ def scan(config_file, verbose, unpack_directory, temporary_directory, ignore_lis
         p.terminate()
     log.debug(f'cli:scan: done.')
 
-    stop_time = datetime.datetime.utcnow()
+    stop_time = datetime.datetime.now(datetime.UTC)
 
 
 @app.command(short_help='Show bang scan results')
