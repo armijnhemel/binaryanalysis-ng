@@ -28,8 +28,7 @@ from typing import Any
 
 import click
 
-from rich.console import Group, group
-import rich.table
+from rich.console import group
 
 from textual import on
 from textual.app import App, ComposeResult
@@ -43,17 +42,9 @@ from .meta_directory import MetaDirectory, MetaDirectoryException
 from . import parser_utils
 
 
-#from textual.logging import TextualHandler
-
-#logging.basicConfig(
-    #level="NOTSET",
-    #handlers=[TextualHandler()],
-#)
-
-
 class BangShell(App):
     BINDINGS = [
-        Binding(key="ctrl+q", action="quit", description="Quit"),
+        Binding(key="ctrl+q", key_display='ctrl-q', action="quit", description="Quit"),
     ]
 
     CSS_PATH = "bang_shell.css"
