@@ -80,13 +80,23 @@ class BangShell(App):
         with self.md.open(open_file=False, info_write=False):
             self.build_tree(self.md, self.metadir.parent, tree.root)
 
-        table = self.build_meta_table(self.md)
-        self.static_widget = Static(Group(table, self.build_meta_report(self.md)))
+        # create the widgets for the individuale panes
+        self.parser_data_table = Markdown()
+        meta_markdown = self.build_meta_table(self.md)
+        self.parser_data_table.update(meta_markdown)
+
+        self.meta_report = self.build_meta_report(self.md)
+        self.static_widget = Static(self.meta_report)
 
         with Container(id='app-grid'):
             yield tree
-            with VerticalScroll(id='result-area'):
-                yield self.static_widget
+            with TabbedContent():
+                with TabPane('Parser data'):
+                    with VerticalScroll():
+                        yield self.parser_data_table
+                with TabPane('Meta data'):
+                    with VerticalScroll():
+                        yield self.static_widget
         yield Footer()
 
     def on_tree_tree_highlighted(self, event: Tree.NodeHighlighted[None]) -> None:
@@ -96,8 +106,11 @@ class BangShell(App):
         '''Display the reports of a node when it is selected'''
         if event.node.data is not None:
             table = self.build_meta_table(event.node.data)
-            self.static_widget.update(Group(table, self.build_meta_report(event.node.data)))
+            self.parser_data_table.update(table)
+            meta_report = self.build_meta_report(event.node.data)
+            self.static_widget.update(meta_report)
         else:
+            self.parser_data_table.update('')
             self.static_widget.update()
 
     def on_tree_node_collapsed(self, event: Tree.NodeCollapsed[None]) -> None:
@@ -137,6 +150,8 @@ class BangShell(App):
             pretty_node_name = f'{str(node_name)}  \U000024bb'
         elif 'graphics' in labels:
             pretty_node_name = f'{str(node_name)}  \U000024bc'
+        elif 'padding' in labels:
+            pretty_node_name = f'{str(node_name)}  \U000024c5'
         else:
             pretty_node_name = str(node_name)
 
@@ -193,25 +208,29 @@ class BangShell(App):
 
     def build_meta_table(self, md):
         '''Construct a parser meta information table given a meta directory'''
+        new_markdown = ""
         with md.open(open_file=False, info_write=False):
-            meta_table = rich.table.Table('', '', title='Parser data', show_lines=True, show_header=False)
-            meta_table.add_row('Meta directory', f'{md.md_path}')
-            meta_table.add_row('Original file', f'{md.file_path}')
+            new_markdown = "| | |\n|--|--|\n"
+            new_markdown += f"|**Meta directory** | {md.md_path}\n"
+            new_markdown += f"|**Original file** | {md.file_path}\n"
             parser = md.info.get("unpack_parser")
             if parser is None:
-                meta_table.add_row('Parser', f'')
+                new_markdown += f"|**Parser** |\n"
             else:
-                meta_table.add_row('Parser', f'{parser}')
-            meta_table.add_row('Labels', f'{", ".join(md.info.get("labels",[]))}')
+                new_markdown += f"|**Parser** |{parser}\n"
+
+            labels = ", ".join(md.info.get("labels", []))
+            new_markdown += f"|**Labels** | {labels}\n"
+
             if md.info.get('size') is not None:
-                meta_table.add_row('Parsed size', f'{md.info.get("size")}')
+                new_markdown += f"|**Parsed size** | {md.info.get('size')}\n"
             if md.info.get("metadata", []) != []:
                 metadata = md.info.get("metadata", [])
                 if 'hashes' in metadata:
                     for h in metadata['hashes']:
-                        meta_table.add_row(h, f'{metadata["hashes"][h]}')
+                        new_markdown += f"|**{h.upper()}** | {metadata['hashes'][h]}\n"
 
-        return meta_table
+        return new_markdown
 
     @group()
     def build_meta_report(self, md):
