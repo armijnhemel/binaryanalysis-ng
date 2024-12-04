@@ -38,7 +38,6 @@ from textual.containers import Container, Horizontal, VerticalScroll
 from textual.suggester import Suggester
 from textual.validation import ValidationResult, Validator
 from textual.widgets import Footer, Markdown, Static, Tree, TabbedContent, TabPane, Input, Header, DataTable
-from textual.widgets.tree import TreeNode
 
 from .meta_directory import MetaDirectory, MetaDirectoryException
 from . import parser_utils
