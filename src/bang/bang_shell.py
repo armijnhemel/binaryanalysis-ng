@@ -28,9 +28,6 @@ from typing import Any
 
 import click
 
-from .meta_directory import MetaDirectory, MetaDirectoryException
-from . import parser_utils
-
 from rich.console import Group, group
 import rich.table
 
@@ -42,6 +39,9 @@ from textual.suggester import Suggester
 from textual.validation import ValidationResult, Validator
 from textual.widgets import Footer, Markdown, Static, Tree, TabbedContent, TabPane, Input, Header, DataTable
 from textual.widgets.tree import TreeNode
+
+from .meta_directory import MetaDirectory, MetaDirectoryException
+from . import parser_utils
 
 
 #from textual.logging import TextualHandler
@@ -192,7 +192,7 @@ class BangShell(App):
                         self.build_tree(child_md, parent, this_node)
                     else:
                         self.build_tree(child_md, parent, path_to_node[path_name.parent])
-            elif t == 'symlink' or t == 'hardlink':
+            elif t in ['symlink', 'hardlink']:
                 if path_name.parent.name == '':
                     self.build_tree_link(k.name, v, this_node, t)
                 else:
@@ -215,7 +215,7 @@ class BangShell(App):
             new_markdown += f"|**Original file** | {md.file_path}\n"
             parser = md.info.get("unpack_parser")
             if parser is None:
-                new_markdown += f"|**Parser** |\n"
+                new_markdown += "|**Parser** |\n"
             else:
                 new_markdown += f"|**Parser** |{parser}\n"
 
@@ -239,12 +239,13 @@ class BangShell(App):
             for l in labels:
                 if l in r.tags:
                     reporter = r()
-                    title, report_results = reporter.create_report(md)
+                    _, report_results = reporter.create_report(md)
                     for rep in report_results:
                         yield rep
 
 @click.command(short_help='Interactive BANG shell')
-@click.option('--result-directory', '-r', required=True, help='BANG result directory', type=click.Path(path_type=pathlib.Path))
+@click.option('--result-directory', '-r', required=True, help='BANG result directory',
+              type=click.Path(path_type=pathlib.Path))
 def main(result_directory):
     app = BangShell(result_directory)
     app.run()
