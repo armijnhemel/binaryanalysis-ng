@@ -272,3 +272,6 @@ enums:
     0x4e8f1c5d:
         id: stm32h5
         doc: "ST STM32H5xx"
+    0x820d9a5f:
+        id: nrf52820
+        doc: "Nordic NRF52820_xxAA"
