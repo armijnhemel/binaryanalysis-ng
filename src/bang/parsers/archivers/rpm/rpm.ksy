@@ -1508,6 +1508,12 @@ enums:
     5117:
       id: file_mimes
       -orig-id: RPMTAG_FILEMIMES
+    5118:
+      id: package_digests
+      -orig-id: RPMTAG_PACKAGEDIGESTS
+    5119:
+      id: package_digest_algos
+      -orig-id: RPMTAG_PACKAGEDIGESTALGOS
   record_types:
     # from LSB
     0: not_implemented
