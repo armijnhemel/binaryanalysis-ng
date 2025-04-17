@@ -22,9 +22,10 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import pathlib
+import shlex
 import sys
 
-from typing import Any
+from typing import Any, Iterable
 
 import click
 
@@ -41,6 +42,30 @@ from textual.widgets import Footer, Markdown, Static, Tree, TabbedContent, TabPa
 from .meta_directory import MetaDirectory, MetaDirectoryException
 from . import parser_utils
 
+class FilterValidator(Validator):
+    '''Syntax validator for the filtering language.'''
+
+    def __init__(self, **kwargs):
+        # Known values: only these will be regarded as valid.
+        self.labels = kwargs.get('labels', set())
+
+    def validate(self, value: str) -> ValidationResult:
+        try:
+            # split the value into tokens
+            tokens = shlex.split(value.lower())
+            if not tokens:
+                return self.failure("Empty string")
+
+            # verify each token
+            for t in tokens:
+                if '=' not in t:
+                    return self.failure("Invalid identifier")
+                token_identifier, token_value = t.split('=', maxsplit=1)
+
+            return self.success()
+        except ValueError:
+            return self.failure('Incomplete')
+
 
 class BangShell(App):
     BINDINGS = [
@@ -54,6 +79,7 @@ class BangShell(App):
         self.metadir = result_directory
         self.reporters = parser_utils.get_reporters()
 
+
     def compose(self) -> ComposeResult:
         self.md = MetaDirectory.from_md_path(self.metadir.parent, self.metadir.name)
         tree: Tree[dict] = Tree("BANG results")
@@ -62,7 +88,7 @@ class BangShell(App):
 
         try:
             m = f'{self.md.file_path}'
-        except MetaDirectoryException:
+        except MetaDirectoryException as e:
             print(f'directory {self.metadir} not found, exiting', file=sys.stderr)
             sys.exit(1)
 
@@ -78,8 +104,12 @@ class BangShell(App):
         self.meta_report = self.build_meta_report(self.md)
         self.static_widget = Static(self.meta_report)
 
+        tree_filter = Input(placeholder='Filter', validators=[FilterValidator()], valid_empty=True)
+
         with Container(id='app-grid'):
-            yield tree
+            with Container(id='left-grid'):
+               yield tree_filter
+               yield tree
             with TabbedContent():
                 with TabPane('Parser data'):
                     with VerticalScroll():
@@ -89,15 +119,24 @@ class BangShell(App):
                         yield self.static_widget
         yield Footer()
 
+    @on(Input.Submitted)
+    def process_filter(self, event: Input.Submitted) -> None:
+        '''Process the filter, create new tree'''
+        refresh = False
+
+        if event.validation_result is None:
+            refresh = True
+
     def on_tree_tree_highlighted(self, event: Tree.NodeHighlighted[None]) -> None:
         pass
 
     def on_tree_node_selected(self, event: Tree.NodeSelected[None]) -> None:
         '''Display the reports of a node when it is selected'''
         if event.node.data is not None:
-            table = self.build_meta_table(event.node.data)
+            _, event_node_data = event.node.data
+            table = self.build_meta_table(event_node_data)
             self.parser_data_table.update(table)
-            meta_report = self.build_meta_report(event.node.data)
+            meta_report = self.build_meta_report(event_node_data)
             self.static_widget.update(meta_report)
         else:
             self.parser_data_table.update('')
@@ -146,9 +185,9 @@ class BangShell(App):
             pretty_node_name = str(node_name)
 
         if have_subfiles:
-            this_node = parent_node.add(pretty_node_name, data=md, expand=True)
+            this_node = parent_node.add(pretty_node_name, data=(labels, md), expand=True)
         else:
-            this_node = parent_node.add_leaf(pretty_node_name, data=md)
+            this_node = parent_node.add_leaf(pretty_node_name, data=(labels, md))
 
         # first create trees for the individual sub directories
         # which will then be used as parents.
