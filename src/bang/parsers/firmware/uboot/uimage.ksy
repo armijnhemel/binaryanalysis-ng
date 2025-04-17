@@ -465,6 +465,9 @@ enums:
     44:
       id: starfive_spl
       doc: StarFive SPL Image
+    45:
+      id: tfa_bl31
+      doc: TFA BL31 image
   magic_types:
     0x27051956:
       id: uimage
