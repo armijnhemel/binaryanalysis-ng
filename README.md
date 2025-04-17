@@ -339,7 +339,8 @@ the file was scanned in regular mode, not directory mode.
 
 ## License
 
-GNU Affero General Public License, version 3 (AGPL-3.0)
+GNU Affero General Public License, version 3 (AGPL-3.0), except the code in
+`maintenance` which is under GNU General Public License, version 3 (GPL-3.0).
 
 The code for verifying and labeling Android Verified Boot images was heavily
 inspired by code from Android (`avbtool`) found at:
