@@ -458,7 +458,7 @@ def download(config, force):
         logging.basicConfig(filename=pathlib.Path(debian_dirs['log_directory'], 'download.log'),
                             level=logging.INFO, format='%(asctime)s %(message)s')
 
-        download_date = datetime.datetime.utcnow()
+        download_date = datetime.datetime.now(datetime.UTC)
         meta_outname = pathlib.Path(debian_dirs['meta_data_directory'],
                                     "ls-lR.gz-%s" % download_date.strftime("%Y%m%d-%H%M%S"))
 
@@ -614,7 +614,7 @@ def download_single_version(config, force, repository, distribution):
                 if req.status_code != 200:
                     continue
 
-                download_date = datetime.datetime.utcnow()
+                download_date = datetime.datetime.now(datetime.UTC)
                 meta_directory = debian_dirs['meta_data_directory'] / d
                 if not meta_directory.exists():
                     meta_directory.mkdir()

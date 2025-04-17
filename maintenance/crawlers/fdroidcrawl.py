@@ -204,7 +204,7 @@ def main(config_file, force):
     if not os.path.exists(xmldirectory):
         os.mkdir(xmldirectory)
 
-    downloaddate = datetime.datetime.utcnow()
+    downloaddate = datetime.datetime.now(datetime.UTC)
     xmloutname = os.path.join(xmldirectory, "index.xml-%s" % downloaddate.strftime("%Y%m%d-%H%M%S"))
 
     if os.path.exists(xmloutname):
