@@ -275,3 +275,21 @@ enums:
     0x820d9a5f:
         id: nrf52820
         doc: "Nordic NRF52820_xxAA"
+    0xb6dd00af:
+        id: esp32h21
+        doc: "ESP32-H21"
+    0x9e0baa8a:
+        id: esp32h4
+        doc: "ESP32-H4"
+    0x7410520a:
+        id: max32690
+        doc: "Analog Devices MAX32690"
+    0xd63f8632:
+        id: max32650
+        doc: "Analog Devices MAX32650/1/2"
+    0xf0c30d71:
+        id: max32666
+        doc: "Analog Devices MAX32665/6"
+    0x91d3fd18:
+        id: max78002
+        doc: "Analog Devices MAX78002"
