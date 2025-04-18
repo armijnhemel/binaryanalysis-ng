@@ -82,15 +82,10 @@ class BangShell(App):
 
     def compose(self) -> ComposeResult:
         self.md = MetaDirectory.from_md_path(self.metadir.parent, self.metadir.name)
+
         tree: Tree[dict] = Tree("BANG results")
         tree.show_root = False
         tree.root.expand()
-
-        try:
-            f'{self.md.file_path}'
-        except MetaDirectoryException:
-            print(f'directory {self.metadir} not found, exiting', file=sys.stderr)
-            sys.exit(1)
 
         # build the tree (recursively)
         with self.md.open(open_file=False, info_write=False):
@@ -276,6 +271,14 @@ class BangShell(App):
 @click.option('--result-directory', '-r', required=True, help='BANG result directory',
               type=click.Path(path_type=pathlib.Path))
 def main(result_directory):
+    md = MetaDirectory.from_md_path(result_directory.parent, result_directory.name)
+    try:
+        f'{md.file_path}'
+    except MetaDirectoryException:
+        print(f'Directory {result_directory} is not a valid BANG result directory, exiting',
+               file=sys.stderr)
+        sys.exit(1)
+
     app = BangShell(result_directory)
     app.run()
 
