@@ -87,8 +87,8 @@ class BangShell(App):
         tree.root.expand()
 
         try:
-            m = f'{self.md.file_path}'
-        except MetaDirectoryException as e:
+            f'{self.md.file_path}'
+        except MetaDirectoryException:
             print(f'directory {self.metadir} not found, exiting', file=sys.stderr)
             sys.exit(1)
 
@@ -96,7 +96,7 @@ class BangShell(App):
         with self.md.open(open_file=False, info_write=False):
             self.build_tree(self.md, self.metadir.parent, tree.root)
 
-        # create the widgets for the individuale panes
+        # create the widgets for the individual panes
         self.parser_data_table = Markdown()
         meta_markdown = self.build_meta_table(self.md)
         self.parser_data_table.update(meta_markdown)
@@ -108,8 +108,8 @@ class BangShell(App):
 
         with Container(id='app-grid'):
             with Container(id='left-grid'):
-               yield tree_filter
-               yield tree
+                yield tree_filter
+                yield tree
             with TabbedContent():
                 with TabPane('Parser data'):
                     with VerticalScroll():
@@ -151,7 +151,7 @@ class BangShell(App):
 
         have_subfiles = False
         files = []
-        for k,v in sorted(md.info.get('extracted_files', {}).items()):
+        for k, v in sorted(md.info.get('extracted_files', {}).items()):
             have_subfiles = True
             files.append((k,v, 'regular'))
 
