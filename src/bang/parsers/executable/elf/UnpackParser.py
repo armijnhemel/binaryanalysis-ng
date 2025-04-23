@@ -939,14 +939,21 @@ class ElfUnpackParser(UnpackParser):
                         elif entry.type == 0x101:
                             # LINUX_ELFNOTE_LTO_INFO
                             pass
-                    elif entry.name == b'FDO' and entry.type == 0xcafe1a7e:
-                        # https://fedoraproject.org/wiki/Changes/Package_information_on_ELF_objects
-                        # https://systemd.io/COREDUMP_PACKAGE_METADATA/
-                        # extract JSON and store it
-                        try:
-                            metadata['package note'] = json.loads(entry.descriptor.decode().split('\x00')[0].strip())
-                        except:
-                            pass
+                    elif entry.name == b'FDO':
+                        if entry.type == 0xcafe1a7e:
+                            # https://fedoraproject.org/wiki/Changes/Package_information_on_ELF_objects
+                            # https://systemd.io/COREDUMP_PACKAGE_METADATA/
+                            # extract JSON and store it
+                            try:
+                                metadata['package note'] = json.loads(entry.descriptor.decode().split('\x00')[0].strip())
+                            except:
+                                pass
+                        elif entry.type == 0x407c0c0a:
+                            # https://systemd.io/ELF_DLOPEN_METADATA/
+                            try:
+                                metadata['dlopen note'] = json.loads(entry.descriptor.decode().split('\x00')[0].strip())
+                            except:
+                                pass
                     elif entry.name == b'FreeBSD':
                         elf_types.add('freebsd')
                     elif entry.name == b'OpenBSD':
