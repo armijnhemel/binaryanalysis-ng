@@ -3,9 +3,9 @@
 # This script takes a result file from BANG and generates a visual
 # representation of the contents
 #
-# Licensed under the terms of the Affero General Public License version 3
+# Licensed under the terms of the General Public License version 3
 #
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 #
 # Copyright - Armijn Hemel, Tjaldur Software Governance Solutions
 
