@@ -18,7 +18,6 @@ import pickle
 import shutil
 import subprocess
 import sys
-import tempfile
 
 import click
 
@@ -32,7 +31,8 @@ except ImportError:
 
 @click.command(short_help='process BANG result files and output apkid results')
 @click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
-@click.option('--result-directory', '-r', 'bang_result_directory', required=True, help='BANG result directory', type=click.Path(exists=True))
+@click.option('--result-directory', '-r', 'bang_result_directory', required=True,
+              help='BANG result directory', type=click.Path(exists=True))
 def main(config_file, bang_result_directory):
     result_directory = pathlib.Path(bang_result_directory)
 
@@ -110,21 +110,21 @@ def main(config_file, bang_result_directory):
                 file_deque.append(file_pickle)
 
     for apk_file in files:
-       p = subprocess.Popen(['apkid', '-j', apk_file],
+        p = subprocess.Popen(['apkid', '-j', apk_file],
                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-       (standard_out, standard_error) = p.communicate()
+        (standard_out, standard_error) = p.communicate()
 
-       if p.returncode != 0:
-           continue
+        if p.returncode != 0:
+            continue
 
-       try:
-           apk_json = json.loads(standard_out)
-       except:
-           continue
+        try:
+            apk_json = json.loads(standard_out)
+        except:
+            continue
 
-       # TODO: further process results
-       results = json.dumps(apk_json, indent=4)
-       print(results)
+        # TODO: further process results
+        results = json.dumps(apk_json, indent=4)
+        print(results)
 
 if __name__ == "__main__":
     main()
