@@ -250,6 +250,107 @@ def createcypher(outputdir, binaries, linked_libraries,
                     pass
 
 
+def createjsonl(outputdir, binaries, linked_libraries,
+                 filename_to_full_path, elf_to_exported_symbols,
+                 elf_to_imported_symbols, hashes):
+
+    elf_to_placeholder = {}
+    placeholder_to_elf = {}
+    symbol_to_placeholder = {}
+    placeholder_to_symbol = {}
+    all_placeholder_names = set()
+
+    for filename in binaries:
+        while True:
+            placeholdername = ''.join(secrets.choice(string.ascii_letters) for i in range(8))
+            if placeholdername not in placeholder_to_elf and placeholdername not in all_placeholder_names:
+                placeholder_to_elf[placeholdername] = filename
+                break
+        elf_to_placeholder[filename] = placeholdername
+        all_placeholder_names.add(placeholdername)
+
+    with open(outputdir.as_posix() + '/elf.jsonl', 'w') as fileopen:
+        for filename in binaries:
+            # define a node
+            fileopen.write('{ "_key" : "%s", "name" : "%s" }\n' % (elf_to_placeholder[filename], filename))
+
+    with open(outputdir.as_posix() + '/elf.linkswith.jsonl', 'w') as fileopen:
+        # add links between files
+        for filename in binaries:
+            if linked_libraries[filename] == []:
+                continue
+
+            # record the dependencies that are linked
+            for l in linked_libraries[filename]:
+                libfound = False
+                if l in filename_to_full_path:
+                    for fl in filename_to_full_path[l]:
+                        # only record dependencies that
+                        # are in the same collection of of binaries
+                        if fl in binaries:
+                            libfound = True
+                            break
+                if not libfound:
+                    # problem here, ignore for now
+                    continue
+
+                fileopen.write('{ "_from" : "elf/%s", "_to" : "elf/%s" }\n' % (elf_to_placeholder[filename], hashes[fl]))
+
+    with open(outputdir.as_posix() + '/symbol.jsonl', 'w')  as fileopen:
+        # then add all the exported symbols just once
+        tmpexportsymbols = set()
+
+        for filename in binaries:
+            for exp in elf_to_exported_symbols[filename]:
+                # remove a few symbols that are not needed
+                if exp['size'] == 0:
+                    continue
+                if exp['type'] == 'NOTYPE':
+                    continue
+                tmpexportsymbols.add((exp['name'], exp['type'], exp['binding']))
+
+        for exp in tmpexportsymbols:
+            (symbolname, symboltype, symbolbinding) = exp
+            while True:
+                placeholdername = ''.join(secrets.choice(string.ascii_letters) for i in range(8))
+                if placeholdername not in placeholder_to_symbol and placeholdername not in all_placeholder_names:
+                    placeholder_to_symbol[placeholdername] = symbolname
+                    break
+            symbol_to_placeholder[(symbolname, symboltype)] = placeholdername
+            all_placeholder_names.add(placeholdername)
+            fileopen.write('{ "_key" : "%s", "name" : "%s", "type" : "%s"   }\n' % (symbol_to_placeholder[(symbolname, symboltype)], symbolname, symboltype))
+
+    with open(outputdir.as_posix() + '/symbol.exports.jsonl', 'w') as fileopen:
+        # then declare for all the symbols which are exported
+        for filename in binaries:
+            for exp in elf_to_exported_symbols[filename]:
+                # remove a few symbols that are not needed
+                if exp['size'] == 0:
+                    continue
+                if exp['type'] == 'no_type':
+                    continue
+                fileopen.write('{ "_from" : "elf/%s", "_to" : "symbol/%s" }\n' % (elf_to_placeholder[filename], symbol_to_placeholder[(exp['name'], exp['type'])]))
+
+        # store which files use which symbols
+
+    with open(outputdir.as_posix() + '/symbol.uses.jsonl', 'w') as fileopen:
+        for filename in binaries:
+            for imp in elf_to_imported_symbols[filename]:
+                if imp['size'] == 0:
+                    continue
+                if imp['binding'] == 'local':
+                    # skip LOCAL symbols
+                    continue
+                if imp['binding'] == 'weak':
+                    # skip WEAK symbols for now
+                    continue
+                if (imp['name'], imp['type']) in symbol_to_placeholder:
+                    fileopen.write('{ "_from" : "elf/%s", "_to" : "symbol/%s" }\n' % (elf_to_placeholder[filename], symbol_to_placeholder[(imp['name'], imp['type'])]))
+                else:
+                    print('something is horribly wrong here...')
+                    pass
+
+
 @click.command(short_help='process BANG result files and output ELF graphs')
 @click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
 @click.option('--directory', '-d', 'result_directory', required=True, help='BANG result directory', type=click.Path(exists=True))
@@ -263,7 +364,7 @@ def main(config_file, result_directory, output):
         sys.exit(1)
 
     #supported_formats = ['text', 'cypher', 'graphviz']
-    supported_formats = ['cypher', 'dot']
+    supported_formats = ['cypher', 'dot', 'jsonl']
 
     # check the output format. By default it is cypher.
     outputformat = 'cypher'
@@ -324,9 +425,28 @@ def main(config_file, result_directory, output):
                           file=sys.stderr)
                     config_file.close()
                     sys.exit(1)
+        if outputformat == 'jsonl':
+            if section == 'jsonl':
+                try:
+                    outputdir = pathlib.Path(config.get(section, 'outputdir'))
+                except:
+                    print("Directory to write jsonl files not configured",
+                          file=sys.stderr)
+                    config_file.close()
+                    sys.exit(1)
+                if not outputdir.exists():
+                    print("Directory to write jsonl files does not exist",
+                          file=sys.stderr)
+                    config_file.close()
+                    sys.exit(1)
+                if not outputdir.is_dir():
+                    print("Directory to write jsonl files is not a directory",
+                          file=sys.stderr)
+                    config_file.close()
+                    sys.exit(1)
     config_file.close()
 
-    if outputformat == 'cypher':
+    if outputformat == 'cypher' or outputformat == 'jsonl':
         if outputdir is None:
             print("Directory to write output files to not configured",
                   file=sys.stderr)
@@ -562,6 +682,10 @@ def main(config_file, result_directory, output):
                         createdot(outputdir, binaries, linked_libraries,
                                   filename_to_full_path, elf_to_exported_symbols,
                                   elf_to_imported_symbols, hashes)
+                    elif outputformat == 'jsonl':
+                        createjsonl(outputdir, binaries, linked_libraries,
+                                     filename_to_full_path, elf_to_exported_symbols,
+                                     elf_to_imported_symbols, hashes)
 
 if __name__ == "__main__":
     main()
