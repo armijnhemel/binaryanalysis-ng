@@ -29,15 +29,13 @@ from typing import Any, Iterable
 
 import click
 
-from rich.console import group
-
 from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Horizontal, VerticalScroll
 from textual.suggester import Suggester
 from textual.validation import ValidationResult, Validator
-from textual.widgets import Footer, Markdown, Static, Tree, TabbedContent, TabPane, Input, Header, DataTable
+from textual.widgets import Footer, Markdown, Tree, TabbedContent, TabPane, Input, Header, DataTable
 
 from .meta_directory import MetaDirectory, MetaDirectoryException
 from . import parser_utils
@@ -97,7 +95,7 @@ class BangShell(App):
         self.parser_data_table.update(meta_markdown)
 
         self.meta_report = self.build_meta_report(self.md)
-        self.static_widget = Static(self.meta_report)
+        self.static_widget = Markdown('')
 
         tree_filter = Input(placeholder='Filter', validators=[FilterValidator()], valid_empty=True)
 
@@ -135,7 +133,7 @@ class BangShell(App):
             self.static_widget.update(meta_report)
         else:
             self.parser_data_table.update('')
-            self.static_widget.update()
+            self.static_widget.update('')
 
     def on_tree_node_collapsed(self, event: Tree.NodeCollapsed[None]) -> None:
         pass
@@ -256,16 +254,16 @@ class BangShell(App):
 
         return new_markdown
 
-    @group()
     def build_meta_report(self, md):
         labels = md.info.get("labels", [])
+        markdown = ''
         for r in self.reporters:
             for l in labels:
                 if l in r.tags:
                     reporter = r()
-                    _, report_results = reporter.create_report(md)
-                    for rep in report_results:
-                        yield rep
+                    #_, report_results = reporter.create_report(md)
+                    markdown += reporter.create_report(md)
+        return markdown
 
 @click.command(short_help='Interactive BANG shell')
 @click.option('--result-directory', '-r', required=True, help='BANG result directory',

@@ -20,10 +20,6 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import rich
-import rich.markdown
-import rich.table
-
 from bang.Reporter import Reporter
 
 
@@ -32,13 +28,14 @@ class GifReporter(Reporter):
     pretty_name = 'gif'
 
     def create_report(self, md):
-        title = rich.markdown.Markdown("## GIF")
-        metadata = md.info.get('metadata')
-        reports = []
-        with md.open(open_file=False, info_write=False):
-            meta_table = rich.table.Table('', '', title='GIF meta data', show_lines=True, show_header=False)
-            meta_table.add_row('Width', str(metadata['width']))
-            meta_table.add_row('Height', str(metadata['height']))
-            reports.append(meta_table)
+        '''Create markdown for GIF results'''
+        new_markdown = '# GIF metadata\n'
 
-        return title, reports
+        metadata = md.info.get('metadata')
+
+        with md.open(open_file=False, info_write=False):
+            new_markdown += "| | |\n|--|--|\n"
+            new_markdown += f"**Width** | {metadata['width']}|\n"
+            new_markdown += f"**Height** | {metadata['height']}|\n"
+
+        return new_markdown
