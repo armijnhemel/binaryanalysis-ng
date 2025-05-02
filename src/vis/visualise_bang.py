@@ -3,9 +3,9 @@
 # This script takes a result file from BANG and generates a visual
 # representation of the contents
 #
-# Licensed under the terms of the Affero General Public License version 3
+# Licensed under the terms of the General Public License version 3
 #
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 #
 # Copyright - Armijn Hemel, Tjaldur Software Governance Solutions
 
@@ -24,8 +24,10 @@ import pydot
 
 
 @click.command(short_help='process BANG result files and output graphviz files')
-@click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
-@click.option('--directory', '-d', 'result_directory', required=True, help='BANG result directory', type=click.Path(exists=True))
+@click.option('--config-file', '-c', required=True, help='configuration file',
+              type=click.File('r'))
+@click.option('--directory', '-d', 'result_directory', required=True,
+              help='BANG result directory', type=click.Path(exists=True))
 def main(config_file, result_directory):
 
     bang_result_directory = pathlib.Path(result_directory)

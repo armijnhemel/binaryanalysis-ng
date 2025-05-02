@@ -3,8 +3,8 @@
 # Binary Analysis Next Generation (BANG!)
 #
 # Copyright 2021-2022 - Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# Licensed under the terms of the GNU General Public License version 3
+# SPDX-License-Identifier: GPL-3.0-only
 
 '''
 This script processes ELF files extracted/tagged by BANG
@@ -34,7 +34,8 @@ except ImportError:
 
 @click.command(short_help='process BANG result files and output YARA')
 @click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
-@click.option('--result-directory', '-r', 'bang_result_directory', required=True, help='BANG result directories', type=click.Path(exists=True))
+@click.option('--result-directory', '-r', 'bang_result_directory', required=True,
+              help='BANG result directories', type=click.Path(exists=True))
 def main(config_file, bang_result_directory):
     result_directory = pathlib.Path(bang_result_directory)
 

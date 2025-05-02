@@ -1337,8 +1337,8 @@ Both implementations will strip all `..` components and basically rewrite
 the filename from `../../.././tmp/relative` to `tmp/relative`.
 
 Other ZIP implementations might not and this could be used for a path traversal
-attack. This actually a very old attack [dating back to 1991][phrack] although
-it was [rediscovered in 2018 as Zip Slip][zip_slip] with
+attack. This is actually a very old attack [dating back to 1991][phrack]
+although it was [rediscovered in 2018 as Zip Slip][zip_slip] with
 [many implementations affected][zip_slip_2].
 
 #### Multiple entries with the same name

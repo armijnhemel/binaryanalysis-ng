@@ -309,6 +309,7 @@ larger file, unless stated otherwise.
 209. Linux kernel x86 images
 210. TP-Link minifs
 211. ANJVision IP camera firmware files
+212. Linux `securetty` files (whole file)
 
 ## Getting started
 
@@ -338,7 +339,9 @@ the file was scanned in regular mode, not directory mode.
 
 ## License
 
-GNU Affero General Public License, version 3 (AGPL-3.0)
+GNU Affero General Public License, version 3 (AGPL-3.0), except the code in
+`maintenance` which is under GNU General Public License, version 3 (GPL-3.0)
+as well as assorted other files.
 
 The code for verifying and labeling Android Verified Boot images was heavily
 inspired by code from Android (`avbtool`) found at:
