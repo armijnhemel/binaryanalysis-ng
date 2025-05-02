@@ -2,14 +2,13 @@
 
 # Process a result from BANG and look up file hashes in NSRL
 #
-# Licensed under the terms of the Affero General Public License version 3
+# Licensed under the terms of the General Public License version 3
 #
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 #
 # Copyright - Armijn Hemel, Tjaldur Software Governance Solutions
 
 import collections
-import os
 import sys
 import pickle
 import pathlib
@@ -27,15 +26,16 @@ except ImportError:
 import click
 
 @click.command(short_help='query NSRL with results from a BANG result directory')
-@click.option('--config', '-c', required=True, help='path to configuration file', type=click.File('r'))
-@click.option('--result-directory', '-r', required=True, help='path to BANG result directories', type=click.Path(exists=True))
+@click.option('--config', '-c', required=True, help='path to configuration file',
+              type=click.File('r'))
+@click.option('--result-directory', '-r', required=True, help='path to BANG result directories',
+              type=click.Path(exists=True))
 def main(config, result_directory):
     result_directory = pathlib.Path(result_directory)
 
     # ... and should be a real directory
     if not result_directory.is_dir():
-        print("%s is not a directory, exiting." % result_directory, file=sys.stderr)
-        sys.exit(1)
+        raise click.ClickException(f"{result_directory} is not a directory.")
 
     # read the configuration file. This is in YAML format
     try:
@@ -51,7 +51,7 @@ def main(config, result_directory):
 
     for i in ['postgresql_user', 'postgresql_password', 'postgresql_db']:
         if i not in configuration['database']:
-            print("Configuration file malformed: missing database information %s" % i,
+            print(f"Configuration file malformed: missing database information {i}",
                   file=sys.stderr)
             sys.exit(1)
         postgresql_user = configuration['database']['postgresql_user']

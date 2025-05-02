@@ -2,22 +2,20 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 import hashlib
 import os
@@ -134,6 +132,7 @@ class UnpackParser:
         '''
         self.record_parser(to_meta_directory)
         self.record_size(to_meta_directory)
+        self.record_offset(to_meta_directory)
         self.add_labels(to_meta_directory)
         self.update_metadata(to_meta_directory)
 
@@ -142,6 +141,9 @@ class UnpackParser:
 
     def record_size(self, to_meta_directory):
         to_meta_directory.info['size'] = self.parsed_size
+
+    def record_offset(self, to_meta_directory):
+        to_meta_directory.info['offset'] = self.offset
 
     def add_labels(self, to_meta_directory):
         to_meta_directory.info.setdefault('labels',[]).extend(set(self.labels))
