@@ -3,15 +3,15 @@
 # Binary Analysis Next Generation (BANG!)
 #
 # Copyright 2022 - Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# Licensed under the terms of the GNU General Public License version 3
+# SPDX-License-Identifier: GPL-3.0-only
 
 '''
 A simple connector class for VulnerableCode
 '''
 
-import requests
 import urllib.parse
+import requests
 
 import packageurl
 
@@ -41,7 +41,7 @@ class VulnerableCodeConnector():
         except ValueError as e:
             raise VulnerableCodeException(e.args)
 
-        connection_string = "%s/packages/?purl=%s" % ( self.env['url'], purl)
+        connection_string = f"{self.env['url']}/packages/?purl={purl}"
 
         # query VulnerableCode instance
         try:

@@ -3,8 +3,8 @@
 # Binary Analysis Next Generation (BANG!)
 #
 # Copyright - Armijn Hemel, Tjaldur Software Governance Solutions
-# Licensed under the terms of the GNU Affero General Public License version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# Licensed under the terms of the GNU General Public License version 3
+# SPDX-License-Identifier: GPL-3.0-only
 
 '''
 This script processes ELF files extracted/tagged by BANG
@@ -12,10 +12,8 @@ and runs YARA rules to identify what is inside
 '''
 
 import collections
-import os
 import pathlib
 import pickle
-import shutil
 import sys
 import re
 
@@ -31,15 +29,16 @@ except ImportError:
     from yaml import Loader
 
 @click.command(short_help='run YARA rules on a BANG result directory')
-@click.option('--config', '-c', required=True, help='path to configuration file', type=click.File('r'))
-@click.option('--result-directory', '-r', required=True, help='path to BANG result directories', type=click.Path(exists=True))
+@click.option('--config', '-c', required=True, help='path to configuration file',
+              type=click.File('r'))
+@click.option('--result-directory', '-r', required=True, help='path to BANG result directories',
+              type=click.Path(exists=True))
 def main(config, result_directory):
     result_directory = pathlib.Path(result_directory)
 
     # ... and should be a real directory
     if not result_directory.is_dir():
-        print("%s is not a directory, exiting." % result_directory, file=sys.stderr)
-        sys.exit(1)
+        raise click.ClickException(f"{result_directory} is not a directory.")
 
     # read the configuration file. This is in YAML format
     try:
@@ -99,14 +98,12 @@ def main(config, result_directory):
 
     # the result directory should exist ...
     if not rules_directory.exists():
-        print("Rules directory %s does not exist, exiting." % rules_directory,
-              file=sys.stderr)
+        print("Rules directory {rules_directory} does not exist.")
         sys.exit(1)
 
     # ... and should be a real directory
     if not rules_directory.is_dir():
-        print("%s is not a directory, exiting." % rules_directory,
-              file=sys.stderr)
+        print("{rules_directory} is not a directory, exiting.", file=sys.stderr)
         sys.exit(1)
 
     # load the YARA rules found in the directory
@@ -196,7 +193,7 @@ def main(config, result_directory):
                             for match in matches:
                                 print('---')
                                 print(f'Rule {match.rule} matched for {elf_file}')
-                                print('  number of strings matched: %d' % len(match.strings))
+                                print(f'  number of strings matched: {len(match.strings)}')
                                 if verbose:
                                     print('\n  Matched strings:\n')
                                     for s in match.strings:
