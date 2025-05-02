@@ -30,9 +30,9 @@ import pwnlib
 import tlsh
 import telfhash
 
+from kaitaistruct import ValidationFailedError, UndecidedEndiannessError
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationFailedError, UndecidedEndiannessError
 from . import elf
 from . import zdebug
 
@@ -284,7 +284,7 @@ class ElfUnpackParser(UnpackParser):
                                     name = self.dynstr.read().split(b'\x00')[0].decode()
                                     check_condition(name != '', "empty name")
                                 except UnicodeDecodeError as e:
-                                    raise UnpackParserException(e.args)
+                                    raise UnpackParserException(e.args) from e
 
                                 self.dependencies_to_versions[name] = []
 
@@ -295,7 +295,7 @@ class ElfUnpackParser(UnpackParser):
                                         a_name = self.dynstr.read().split(b'\x00')[0].decode()
                                         check_condition(name != '', "empty name")
                                     except UnicodeDecodeError as e:
-                                        raise UnpackParserException(e.args)
+                                        raise UnpackParserException(e.args) from e
                                     self.version_to_name[aux_entry.object_file_version] = a_name
                                     self.dependencies_to_versions[name].append(a_name)
 
@@ -323,7 +323,7 @@ class ElfUnpackParser(UnpackParser):
                                             aux_name = a_name
                                         check_condition(name != '', "empty name")
                                     except UnicodeDecodeError as e:
-                                        raise UnpackParserException(e.args)
+                                        raise UnpackParserException(e.args) from e
 
                                 self.version_to_name[ctr] = aux_name
                                 ctr += 1
@@ -351,7 +351,7 @@ class ElfUnpackParser(UnpackParser):
                 self.elf = pwn.ELF(self.infile.name, checksec=False)
 
         except (Exception, ValidationFailedError, UndecidedEndiannessError, elftools.common.exceptions.ELFError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def calculate_unpacked_size(self):
         pass
@@ -456,7 +456,7 @@ class ElfUnpackParser(UnpackParser):
             self.metadata['type'] = 'processor specific'
 
         # store the machine type, both numerical and pretty printed
-        if type(self.data.header.machine) == int:
+        if isinstance(self.data.header.machine, int):
             self.metadata['machine_name'] = "unknown architecture"
             self.metadata['machine'] = self.data.header.machine
         else:
@@ -614,7 +614,7 @@ class ElfUnpackParser(UnpackParser):
                                 if 'depends' not in linux_kernel_module_info:
                                     linux_kernel_module_info['depends'] = []
                                 linux_kernel_module_info['depends'].append(self.module_name)
-                except Exception as e:
+                except Exception:
                     pass
             elif header.name in ['.oat_patches', '.text.oat_patches', '.dex']:
                 # OAT information has been stored in various sections
@@ -744,7 +744,7 @@ class ElfUnpackParser(UnpackParser):
                             comments.append(comment)
                         except UnicodeDecodeError:
                             pass
-                    if comments != []:
+                    if comments:
                         metadata['comment'] = comments
                 elif header.name == '.gcc_except_table':
                     # debug information from GCC
@@ -766,7 +766,7 @@ class ElfUnpackParser(UnpackParser):
                             gcc_command_line_strings.append(s.decode())
                         except UnicodeDecodeError:
                             pass
-                    if gcc_command_line_strings != []:
+                    if gcc_command_line_strings:
                         metadata['.GCC.command.line'] = gcc_command_line_strings
                 elif header.name in RODATA_SECTIONS:
                     for s in header.body.split(b'\x00'):
@@ -979,26 +979,26 @@ class ElfUnpackParser(UnpackParser):
                         # https://reviews.llvm.org/D65770
                         pass
 
-        if dynamic_symbols != []:
+        if dynamic_symbols:
             metadata['dynamic_symbols'] = dynamic_symbols
 
-        if guile_symbols != []:
+        if guile_symbols:
             metadata['guile_symbols'] = guile_symbols
 
-        if needed != []:
+        if needed:
             metadata['needed'] = needed
 
         metadata['notes'] = notes
 
-        if data_strings != []:
+        if data_strings:
             metadata['strings'] = data_strings
 
-        if symbols != []:
+        if symbols:
             metadata['symbols'] = symbols
 
         metadata['sections'] = sections
 
-        if linux_kernel_module_info != {}:
+        if linux_kernel_module_info:
             metadata['Linux kernel module'] = linux_kernel_module_info
 
         metadata['elf_type'] = sorted(elf_types)
@@ -1018,7 +1018,7 @@ class ZdebugUnpackParser(UnpackParser):
             check_condition(self.data.len_data == len(self.data.data),
                             "declared length does not match length of uncompressed data")
         except (Exception, ValidationFailedError, UndecidedEndiannessError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         file_path = pathlib.Path(pathlib.Path(self.infile.name).name[2:])
