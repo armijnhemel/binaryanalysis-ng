@@ -418,6 +418,9 @@ enums:
     277:
       id: verity_signature_algo
       -orig-id: RPMTAG_VERITYSIGNATUREALGO
+    278:
+      id: openpgp
+      -orig-id: RPMTAG_OPENPGP
     1000:
       id: size
       -orig-id: RPMSIGTAG_SIZE
@@ -1496,6 +1499,21 @@ enums:
     5114:
       id: rpm_format
       -orig-id: RPMTAG_RPMFORMAT
+    5115:
+      id: file_mime_index
+      -orig-id: RPMTAG_FILEMIMEINDEX
+    5116:
+      id: mime_dict
+      -orig-id: RPMTAG_MIMEDICT
+    5117:
+      id: file_mimes
+      -orig-id: RPMTAG_FILEMIMES
+    5118:
+      id: package_digests
+      -orig-id: RPMTAG_PACKAGEDIGESTS
+    5119:
+      id: package_digest_algos
+      -orig-id: RPMTAG_PACKAGEDIGESTALGOS
   record_types:
     # from LSB
     0: not_implemented

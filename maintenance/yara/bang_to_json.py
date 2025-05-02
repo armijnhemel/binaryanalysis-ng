@@ -3,8 +3,8 @@
 # Binary Analysis Next Generation (BANG!)
 #
 # Copyright - Armijn Hemel, Tjaldur Software Governance Solutions
-# Licensed under the terms of the GNU Affero General Public License version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# Licensed under the terms of the GNU General Public License version 3
+# SPDX-License-Identifier: GPL-3.0-only
 
 '''
 This script processes BANG results and generates JSON output that can
@@ -40,8 +40,13 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
         # store the type of executable
         if 'elf' in bang_data['labels']:
             exec_type = 'elf'
-        else:
+        elif 'dex' in bang_data['labels']:
             exec_type = 'dex'
+        elif 'java class' in bang_data['labels']:
+            exec_type = 'java class'
+        else:
+            scan_queue.task_done()
+            continue
 
         # there is a bug where sometimes no hashes are computed
         if 'hashes' not in bang_data['metadata']:
@@ -72,10 +77,11 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
         if 'tlsh' in bang_data['metadata']['hashes']:
             metadata['tlsh'] = bang_data['metadata']['hashes']['tlsh']
 
-        strings = []
+        meta_info = {}
+        meta_info['labels'] = []
 
         if exec_type == 'elf':
-            meta_info = {}
+            strings = []
             symbols = []
 
             if 'telfhash' in bang_data['metadata']:
@@ -89,23 +95,25 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
                         strings.append(s)
 
             # process symbols
-            if bang_data['metadata']['symbols'] != []:
+            if bang_data['metadata'].get('symbols', []) != []:
                 for s in bang_data['metadata']['symbols']:
                     if s['section_index'] == 0:
                         continue
                     symbols.append(s)
 
-            # dump JSON
-            meta_info['metadata'] = metadata
             meta_info['strings'] = strings
             meta_info['symbols'] = symbols
-            meta_info['labels'] = bang_data['labels']
-            meta_info['tags'] = tags + ['elf']
+            if 'static' in bang_data['metadata']['elf_type']:
+                if 'Linux kernel module' not in bang_data['metadata']['elf_type']:
+                    meta_info['labels'].append('static')
+            meta_info['tags'] = sorted(set(tags + ['elf']))
         elif exec_type == 'dex':
-            dex_classes = []
+            meta_info['classes'] = []
 
+            # process data for each class found in the Dex file
             for c in bang_data['metadata']['classes']:
-                # filter useless data
+                # store methods and fields, with associated data
+                # such as strings (stored with methods)
                 methods = []
                 fields = []
                 for method in c['methods']:
@@ -116,10 +124,12 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
                         continue
                     if method['name'].startswith('access$'):
                         continue
+
+                    # TODO: ignore empty strings and whitespace only strings
                     methods.append(method)
 
                 for field in c['fields']:
-                    # ignore whitespace-only methods
+                    # ignore whitespace-only fields
                     if re.match(r'^\s+$', field['name']) is not None:
                         continue
 
@@ -131,15 +141,37 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
                         class_info['classname'] = c['classname']
                     class_info['methods'] = methods
                     class_info['fields'] = fields
-                    dex_classes.append(class_info)
+                    meta_info['classes'].append(class_info)
 
-            # dump JSON
-            meta_info = {}
-            meta_info['tags'] = tags + ['dex']
-            meta_info['classes'] = dex_classes
-            meta_info['labels'] = bang_data['labels']
-            meta_info['metadata'] = metadata
+            meta_info['tags'] = sorted(set(tags + ['dex']))
+        elif exec_type == 'java class':
+            strings = []
 
+            # process strings
+            if 'strings' in bang_data['metadata']:
+                for s in bang_data['metadata']['strings']:
+                    # ignore whitespace-only strings
+                    if re.match(r'^\s+$', s) is None:
+                        strings.append(s)
+
+            # process data for each method found in the Java class file
+            for method in bang_data['metadata']['methods']:
+                if method in ['<init>', '<clinit>']:
+                    continue
+                if method.startswith('access$'):
+                    continue
+
+            for field in bang_data['metadata']['fields']:
+                # ignore whitespace-only fields
+                if re.match(r'^\s+$', field) is not None:
+                    continue
+                if field in ['this$0']:
+                    continue
+
+        meta_info['labels'] += bang_data['labels']
+        meta_info['metadata'] = metadata
+
+        # dump JSON
         json_file = output_directory / (f"{metadata['name']}-{metadata['sha256']}.json")
         with open(json_file, 'w') as json_dump:
             json.dump(meta_info, json_dump, indent=4)
@@ -148,10 +180,14 @@ def process_bang(scan_queue, output_directory, process_lock, processed_files, ta
 
 
 @click.command(short_help='process BANG result files and output JSON')
-@click.option('--result-directory', '-r', help='BANG result directories', type=click.Path(exists=True), required=True)
-@click.option('--output-directory', '-o', help='JSON output directory', type=click.Path(exists=True, path_type=pathlib.Path), required=True)
-@click.option('-j', '--jobs', default=1, type=click.IntRange(min=1), help='Number of jobs running simultaneously')
-def main(result_directory, output_directory, jobs):
+@click.option('--result-directory', '-r', help='BANG result directories',
+              type=click.Path(exists=True), required=True)
+@click.option('--output-directory', '-o', help='JSON output directory',
+              type=click.Path(exists=True, path_type=pathlib.Path), required=True)
+@click.option('-j', '--jobs', default=1, type=click.IntRange(min=1),
+              help='Number of jobs running simultaneously')
+@click.argument('tags', nargs=-1, type=str)
+def main(result_directory, output_directory, jobs, tags):
 
     # store the result directory as a pathlib Path instead of str
     result_directory = pathlib.Path(result_directory)
@@ -202,13 +238,16 @@ def main(result_directory, output_directory, jobs):
         except:
             continue
 
-        if 'labels' in bang_data:
-            if 'elf' in bang_data['labels']:
-                scan_queue.put(bang_pickle)
-            elif 'dex' in bang_data['labels']:
-                scan_queue.put(bang_pickle)
+        # add interesting files to the scan queue
+        labels = bang_data.get('labels', [])
+        if 'elf' in labels:
+            scan_queue.put(bang_pickle)
+        elif 'dex' in labels:
+            scan_queue.put(bang_pickle)
+        #elif 'java class' in labels:
+        #    scan_queue.put(bang_pickle)
 
-        # add the unpacked/extracted files to the deque
+        # add any unpacked/extracted files to the deque
         if 'unpacked_relative_files' in bang_data:
             for unpacked_file in bang_data['unpacked_relative_files']:
                 file_meta_directory = bang_data['unpacked_relative_files'][unpacked_file]
@@ -225,13 +264,10 @@ def main(result_directory, output_directory, jobs):
                 file_pickle = result_directory.parent / file_meta_directory / 'info.pkl'
                 file_deque.append(file_pickle)
 
-    # tags = ['debian', 'debian11']
-    tags = []
-
     # create processes for unpacking archives
     processes = [ multiprocessing.Process(target=process_bang, args=(scan_queue,
                                                 output_directory, process_lock,
-                                                processed_files, tags)) for i in range(jobs)]
+                                                processed_files, list(tags))) for i in range(jobs)]
 
     # start all the processes
     for process in processes:

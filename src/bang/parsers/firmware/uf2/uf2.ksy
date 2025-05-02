@@ -224,3 +224,72 @@ enums:
     0x699b62ec:
       id: ch32v
       doc: "WCH CH32V2xx and CH32V3xx"
+    0xe48bff57:
+      id: rp2xxx_absolute
+      doc: "Raspberry Pi Microcontrollers: Absolute (unpartitioned) download"
+    0xe48bff58:
+      id: rp2xxx_data
+      doc: "Raspberry Pi Microcontrollers: Data partition download"
+    0xe48bff59:
+      id: rp2350_arm_s
+      doc: "Raspberry Pi RP2350, Secure Arm image"
+    0xe48bff5a:
+      id: rp2350_riscv
+      doc: "Raspberry Pi RP2350, RISC-V image"
+    0xe48bff5b:
+      id: rp2350_arm_ns
+      doc: "Raspberry Pi RP2350, Non-secure Arm image"
+    0x7be8976d:
+      id: ra4m1
+      doc: "Renesas RA4M1"
+    0x22e0d6fc:
+        id: rtl8710b
+        doc: "Realtek AmebaZ RTL8710B"
+    0x3379CFE2:
+        id: rtl8720d
+        doc: "Realtek AmebaD RTL8720D"
+    0x51e903a8:
+        id: xr809
+        doc: "Xradiotech 809"
+    0x675a40b0:
+        id: bk7231u
+        doc: "Beken 7231U/7231T"
+    0x6a82cc42:
+        id: bk7251
+        doc: "Beken 7251/7252"
+    0x7b3ef230:
+        id: bk7231n
+        doc: "Beken 7231N"
+    0x9fffd543:
+        id: rtl8710a
+        doc: "Realtek Ameba1 RTL8710A"
+    0xde1270b7:
+        id: bl602
+        doc: "Boufallo 602"
+    0xe08f7564:
+        id: rtl8720c
+        doc: "Realtek AmebaZ2 RTL8720C"
+    0x4e8f1c5d:
+        id: stm32h5
+        doc: "ST STM32H5xx"
+    0x820d9a5f:
+        id: nrf52820
+        doc: "Nordic NRF52820_xxAA"
+    0xb6dd00af:
+        id: esp32h21
+        doc: "ESP32-H21"
+    0x9e0baa8a:
+        id: esp32h4
+        doc: "ESP32-H4"
+    0x7410520a:
+        id: max32690
+        doc: "Analog Devices MAX32690"
+    0xd63f8632:
+        id: max32650
+        doc: "Analog Devices MAX32650/1/2"
+    0xf0c30d71:
+        id: max32666
+        doc: "Analog Devices MAX32665/6"
+    0x91d3fd18:
+        id: max78002
+        doc: "Analog Devices MAX78002"

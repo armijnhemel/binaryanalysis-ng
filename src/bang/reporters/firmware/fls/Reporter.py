@@ -20,10 +20,6 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import rich
-import rich.markdown
-import rich.table
-
 from bang.Reporter import Reporter
 
 
@@ -32,12 +28,12 @@ class FlsReporter(Reporter):
     pretty_name = 'fls'
 
     def create_report(self, md):
-        title = rich.markdown.Markdown("## FLS")
-        metadata = md.info.get('metadata')
-        reports = []
-        with md.open(open_file=False, info_write=False):
-            meta_table = rich.table.Table('', '', title='FLS meta data', show_lines=True, show_header=False)
-            meta_table.add_row('Number of files', str(metadata['files']))
-            reports.append(meta_table)
+        '''Create markdown for FLS results'''
+        new_markdown = '# FLS metadata\n'
 
-        return title, reports
+        metadata = md.info.get('metadata')
+        with md.open(open_file=False, info_write=False):
+            new_markdown += "| | |\n|--|--|\n"
+            new_markdown += f"**Number of files** | {metadata['files']}|\n"
+
+        return new_markdown
