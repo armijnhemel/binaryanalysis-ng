@@ -1,0 +1,18 @@
+diff --git a/firmware/settings.py b/firmware/settings.py
+index 8ff422d..6b08741 100644
+--- a/firmware/settings.py
++++ b/firmware/settings.py
+@@ -1,5 +1,7 @@
+ # Scrapy settings for firmware project
+ 
++import shutil
++
+ BOT_NAME = 'firmware'
+ 
+ SPIDER_MODULES = ['firmware.spiders']
+@@ -33,4 +35,4 @@ ITEM_PIPELINES = {
+ }
+ 
+ # Enable to run with Selenium. Set to the driver executable path
+-SELENIUM_DRIVER_EXECUTABLE_PATH = '/usr/local/bin/geckodriver'
++SELENIUM_DRIVER_EXECUTABLE_PATH = shutil.which('geckodriver')

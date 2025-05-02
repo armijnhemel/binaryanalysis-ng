@@ -1,7 +1,8 @@
 ---
 config:
     threads: 1
-    verbose: false
+    verbose: true
     storedirectory: /home/armijn/fdroid
     # categories: [source, binary]
     categories: [binary]
+    #mirror: http://ftp.lysator.liu.se/pub/fdroid/

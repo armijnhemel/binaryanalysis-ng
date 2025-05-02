@@ -1,0 +1,53 @@
+---
+database:
+    # PostgreSQL connection information
+    # The user as which to use to connect to the database
+    postgresql_user: bang
+
+    # The password to use to connect to the database
+    postgresql_password: bang
+
+    # The name of the database
+    postgresql_db: bang
+
+    # The host for the PostgreSQL server. No need to set this
+    # if you are using localhost as PostgreSQL will then use
+    # a local socket in the file system.
+    # postgresql_host: 127.0.0.1
+
+    # The port for the PostgreSQL server. No need to set this
+    # if you are using the default PostgreSQL setup. If you are
+    # running PostgreSQL on another port you need to
+    # change this
+    # postgresql_port: 5432
+general:
+    # directory for unpacking. By default this is /tmp or
+    # whatever the default set by the system is (for example:
+    # /run/user/$UID/ )
+    # tempdir: /tmp
+
+    # Threads to use. 0 = maximum (dependent on system)
+    # threads: 0
+    verbose: true
+proximity:
+    # directory to store generated JSON files
+    proximity_directory: /home/armijn/proximity
+
+    # minimal length of strings, recommended to not go below 5
+    # string_min_cutoff: 8
+
+    # maximal length of strings, recommended to not go above 200
+    # string_max_cutoff: 200
+
+    # minimal length of functions/variable names, recommended
+    # to not go below 2
+    # identifier_cutoff: 2
+
+    # ignore weak ELF symbols. Recommended to set to 'true'
+    ignore_weak_symbols: true
+
+    # process ELF files. Default: true
+    process_elf: true
+    #
+    # process Dex bytecode. Default: false
+    process_dex: false

@@ -1,1 +1,1 @@
-drop table passwd;
+drop table password;

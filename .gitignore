@@ -1,6 +1,9 @@
 # python
 *.pyc
 
+# yara
+*.yarac
+
 src/test/coverage
 src/test/testdata/download
 
