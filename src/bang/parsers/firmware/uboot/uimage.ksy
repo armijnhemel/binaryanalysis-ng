@@ -7,7 +7,7 @@ doc: |
   The new uImage format allows more flexibility in handling images of various
   types (kernel, ramdisk, etc.), it also enhances integrity protection of images
   with sha1 and md5 checksums.
-doc-ref: https://source.denx.de/u-boot/u-boot/-/raw/e4dba4b/include/image.h
+doc-ref: https://source.denx.de/u-boot/u-boot/-/raw/64fd30d3/include/image.h
 seq:
   - id: header
     type: uheader
@@ -71,6 +71,7 @@ types:
             - uimage_os::tee
             - uimage_os::opensbi
             - uimage_os::efi
+            - uimage_os::elf
       - id: architecture
         type: u1
         enum: uimage_arch
@@ -102,6 +103,7 @@ types:
       - id: name
         encoding: UTF-8
         type: strz
+        size-eos: true
     instances:
       asus_info:
         pos: 0
@@ -220,6 +222,9 @@ enums:
     28:
       id: efi
       doc: EFI Firmware (e.g. GRUB2)
+    29:
+      id: elf
+      doc: ELF Image ((e.g. seL4)
   uimage_arch:
     0:
       id: invalid
@@ -457,6 +462,12 @@ enums:
     43:
       id: renesas_spkg
       doc: Renesas SPKG image
+    44:
+      id: starfive_spl
+      doc: StarFive SPL Image
+    45:
+      id: tfa_bl31
+      doc: TFA BL31 image
   magic_types:
     0x27051956:
       id: uimage

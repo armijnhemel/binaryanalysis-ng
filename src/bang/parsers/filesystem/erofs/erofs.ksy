@@ -97,8 +97,12 @@ types:
         type: u2
       - id: devt_slotoff
         type: u2
-      - id: reserved_1
-        size: 6
+      - id: dir_block_bits
+        type: u1
+      - id: num_xattr_prefix
+        type: u1
+      - id: ofs_xattr_prefix
+        type: u4
       - id: packed_nid
         type: u8
       - id: reserved_2
@@ -149,7 +153,7 @@ types:
           cases:
             layouts::plain: plain
             layouts::inline: inline
-            #layouts::compression: compression
+            layouts::compression: compression
     instances:
       extended:
         value: format & 0x01 == 0x01
@@ -488,6 +492,33 @@ types:
         type: u2
       - id: reserved
         size: 8
+  vle_decompressed_index:
+    seq:
+      - id: advise
+        type: u2
+      - id: ofs_cluster
+        type: u2
+      - id: cluster_union
+        size: 4
+        type: cluster_union
+    types:
+      cluster_union:
+        seq:
+          - id: raw
+            size: 4
+        instances:
+          block_address:
+            pos: 0
+            type: u4
+          delta:
+            pos: 0
+            type: delta
+      delta:
+        seq:
+          - id: head_cluster
+            type: u2
+          - id: tail_cluster
+            type: u2
 enums:
   file_types:
     0: unknown

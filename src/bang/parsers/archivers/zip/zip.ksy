@@ -126,7 +126,7 @@ types:
   local_file_header:
     seq:
       - id: version
-        type: u2
+        type: version
       - id: flags
         type: gp_flags
         size: 2
@@ -217,9 +217,9 @@ types:
     doc-ref: https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT - 4.3.12
     seq:
       - id: version_made_by
-        type: u2
+        type: version
       - id: version_needed_to_extract
-        type: u2
+        type: version
       - id: flags
         type: u2
       - id: compression_method
@@ -260,9 +260,7 @@ types:
             true: empty
             false: extras(section_types::central_dir_entry)
       - id: comment
-        type: str
         size: len_comment
-        encoding: UTF-8
     instances:
       local_header:
         pos: ofs_local_header
@@ -300,9 +298,9 @@ types:
       zip64_end_of_central_dir_body:
         seq:
           - id: version_made_by
-            type: u2
+            type: version
           - id: version_needed_to_extract
-            type: u2
+            type: version
           - id: this_disk
             type: u4
             doc: number of this disk
@@ -361,6 +359,7 @@ types:
           switch-on: code
           cases:
             'extra_codes::ntfs': ntfs
+            'extra_codes::minizip_ng_hash': minizip_ng_hash
             'extra_codes::extended_timestamp': extended_timestamp
             'extra_codes::infozip_unicode_path': infozip_unicode_path
             'extra_codes::infozip_unix_var_size': infozip_unix_var_size
@@ -401,6 +400,26 @@ types:
           - id: disk_start_number
             type: u4
             doc: Number of the disk on which this file starts
+      minizip_ng_hash:
+        doc-ref:
+          - 'https://github.com/zlib-ng/minizip-ng/blob/3da04514/doc/mz_extrafield.md'
+          - 'https://github.com/zlib-ng/minizip-ng/blob/3da04514cd51b75a325565393ba31ff719d7f5f2/mz.h#L124'
+        seq:
+          - id: algorithm
+            type: u2
+            enum: minizip_ng_hash_algorithms
+          - id: len_digest
+            type: u2
+          - id: digest
+            size: len_digest
+        enums:
+          minizip_ng_hash_algorithms:
+            10: md5
+            20: sha1
+            22: sha224
+            23: sha256
+            24: sha384
+            25: sha512
       ntfs:
         doc-ref: 'https://github.com/LuaDist/zip/blob/b710806/proginfo/extrafld.txt#L191'
         seq:
@@ -490,6 +509,38 @@ types:
           - id: gid
             size: len_gid
             doc: GID (Group ID) for a file
+      keyvaluepairs:
+        seq:
+          - id: len_payload
+            type: u2
+          - id: payload
+            size: len_payload
+            type: payload
+        types:
+          payload:
+            seq:
+              - id: signature
+                contents: 'KeyValuePairs'
+              - id: num_keyvaluepairs
+                type: u1
+              - id: keyvaluepairs
+                type: keyvaluepair
+                repeat: expr
+                repeat-expr: num_keyvaluepairs
+          keyvaluepair:
+            seq:
+              - id: len_key
+                type: u2
+              - id: key
+                size: len_key
+                type: str
+                encoding: UTF-8
+              - id: len_value
+                type: u2
+              - id: value
+                size: len_value
+                type: str
+                encoding: UTF-8
       xceed_unicode:
         seq:
           - id: magic
@@ -505,6 +556,35 @@ types:
         seq:
           - id: code_page
             type: u4
+  version:
+    seq:
+      - id: version
+        type: u1
+      - id: host_system
+        type: u1
+        enum: version_mapping
+        valid:
+          any-of:
+            - version_mapping::msdos
+            - version_mapping::amiga
+            - version_mapping::openvms
+            - version_mapping::unix
+            - version_mapping::vm_cms
+            - version_mapping::atari_st
+            - version_mapping::os2_hpfs
+            - version_mapping::macintosh
+            - version_mapping::z_system
+            - version_mapping::cp_m
+            - version_mapping::windows_ntfs
+            - version_mapping::mvs
+            - version_mapping::vse
+            - version_mapping::acorn_risc
+            - version_mapping::vfat
+            - version_mapping::alternate_mvs
+            - version_mapping::beos
+            - version_mapping::tandem
+            - version_mapping::os_400
+            - version_mapping::os_x
 enums:
   compression:
     0: none
@@ -528,6 +608,28 @@ enums:
     97: wavpack
     98: ppmd
     99: aex_encryption_marker
+  version_mapping:
+    # sections 4.4.2 and 4.4.3
+    0: msdos
+    1: amiga
+    2: openvms
+    3: unix
+    4: vm_cms
+    5: atari_st
+    6: os2_hpfs
+    7: macintosh
+    8: z_system
+    9: cp_m
+    10: windows_ntfs
+    11: mvs
+    12: vse
+    13: acorn_risc
+    14: vfat
+    15: alternate_mvs
+    16: beos
+    17: tandem
+    18: os_400
+    19: os_x
   extra_codes:
     # https://github.com/LuaDist/zip/blob/b710806/proginfo/extrafld.txt
     0x0001: zip64
@@ -551,11 +653,15 @@ enums:
     0x0023: smartcrypt_policy_key_data
     0x0065: ibm_s390_uncomp
     0x0066: ibm_s390_comp
+    0x10c5: minizip_ng_sign
     # https://github.com/PixarAnimationStudios/USD/blob/4d8a92af5a26f7f/pxr/usd/usd/zipFile.cpp#L451
     0x1986: usd
+    0x1a51: minizip_ng_hash
     0x4690: poszip_4690
     0x5455: extended_timestamp
     0x554e: xceed_unicode
+    # https://github.com/sozip/keyvaluepairs-spec/blob/master/zip_keyvalue_extra_field_specification.md
+    0x564b: keyvaluepairs
     0x5855: infozip_unix_old
     # https://www.artpol-software.com/ZipArchive/KB/0610242300.aspx
     0x5a4c: ziparchive_unicode
@@ -570,6 +676,7 @@ enums:
     0xa220: microsoft_open_packaging_growth_hint
     # http://hg.openjdk.java.net/jdk7/jdk7/jdk/file/00cd9dc3c2b5/src/share/classes/java/util/jar/JarOutputStream.java#l46
     0xcafe: java_jar
+    0xcdcd: minizip_ng_central_directory
     # https://android.googlesource.com/platform/tools/apksig/+/87d6acee83378201b/src/main/java/com/android/apksig/ApkSigner.java#74
     # https://developer.android.com/studio/command-line/zipalign
     0xd935: zip_align

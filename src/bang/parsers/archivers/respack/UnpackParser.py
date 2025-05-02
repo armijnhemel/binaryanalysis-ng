@@ -55,11 +55,13 @@ class ResPackUnpackParser(UnpackParser):
         self.unpacked_size = self.infile.tell()
 
         check_condition('files' in self.file_metadata, "invalid ResPack JSON")
+
         for f in self.file_metadata['files']:
             check_condition('n' in f, "invalid ResPack JSON")
             check_condition(f['n'] != '', "invalid file name in ResPack JSON")
             check_condition('p' in f, "invalid ResPack JSON")
             check_condition('l' in f, "invalid ResPack JSON")
+
             check_condition(self.end_of_json_offset + f['p'] + f['l'] <= self.infile.size,
                             "data cannot be outside of file")
             self.unpacked_size = max(self.unpacked_size, self.end_of_json_offset + f['p'] + f['l'])

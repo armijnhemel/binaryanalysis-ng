@@ -68,6 +68,40 @@ def app():
     pass
 
 
+# bang scan_directory <input directory>
+@click.option('-c', '--config', 'config_file', type=click.File('r'))
+@click.option('-v', '--verbose', is_flag=True, help='Enable debug logging')
+@click.option('-u', '--unpack-directory', type=click.Path(path_type=pathlib.Path), default=pathlib.Path('/tmp'), help='Directory to unpack to')
+@click.option('-t', '--temporary-directory', type=click.Path(path_type=pathlib.Path, exists=True), default=pathlib.Path('/tmp'), help='Temporary directory')
+@click.option('-i', '--ignore-list', type=click.File('r'))
+@click.option('-j', '--jobs', default=1, type=click.IntRange(min=1), help='Number of jobs running simultaneously')
+@click.option('--job-wait-time', default=1, type=int, help='Time to wait for a new job')
+@click.option('-f', '--force', is_flag=True, help='Ignore warnings about existing unpacking directory')
+@click.argument('path', type=click.Path(path_type=pathlib.Path, exists=True))
+@app.command(short_help='Scan a directory of files')
+@click.pass_context
+def scan_directory(ctx, config_file, verbose, unpack_directory, temporary_directory, ignore_list, jobs, job_wait_time, force, path):
+    '''Scans files in PATH and unpacks its files to a sudirectory of UNPACK_DIRECTORY.
+    '''
+    if config_file is not None:
+        # read the configuration file. This is in YAML format
+        try:
+            config = load(config_file, Loader=Loader)
+        except (YAMLError, PermissionError, UnicodeDecodeError):
+            print("Cannot open configuration file, exiting", file=sys.stderr)
+            sys.exit(1)
+
+    for scan_archive in sorted(path.glob('**/*')):
+        # first create a directory similar as the file name
+        scan_directory = unpack_directory / (scan_archive.name)
+        try:
+            scan_directory.mkdir(parents=True)
+        except FileExistsError:
+            continue
+
+        ctx.invoke(scan, config_file=config_file, verbose=verbose, unpack_directory=scan_directory, temporary_directory=temporary_directory, ignore_list=ignore_list, jobs=jobs, job_wait_time=job_wait_time, force=force, path=scan_archive)
+
+
 # bang scan <input file>
 @app.command(short_help='Scan a file')
 @click.option('-c', '--config', 'config_file', type=click.File('r'))
@@ -77,15 +111,20 @@ def app():
 @click.option('-i', '--ignore-list', type=click.File('r'))
 @click.option('-j', '--jobs', default=1, type=click.IntRange(min=1), help='Number of jobs running simultaneously')
 @click.option('--job-wait-time', default=1, type=int, help='Time to wait for a new job')
-@click.argument('path', type=click.Path(exists=True))
-def scan(config_file, verbose, unpack_directory, temporary_directory, ignore_list, jobs, job_wait_time, path):
+@click.option('-f', '--force', is_flag=True, help='Ignore warnings about existing unpacking directory')
+@click.argument('path', type=click.Path(path_type=pathlib.Path, exists=True))
+def scan(config_file, verbose, unpack_directory, temporary_directory, ignore_list, jobs, job_wait_time, force, path):
     '''Scans PATH and unpacks its files to UNPACK_DIRECTORY.
     '''
 
     # record the starting time of the scan
-    start_time = datetime.datetime.utcnow()
+    start_time = datetime.datetime.now(datetime.UTC)
     ignore_parsers = []
     config = None
+
+    if unpack_directory.exists() and not force:
+        print("Unpacking directory already exists, exiting", file=sys.stderr)
+        sys.exit(1)
 
     if config_file is not None:
         # read the configuration file. This is in YAML format
@@ -111,8 +150,9 @@ def scan(config_file, verbose, unpack_directory, temporary_directory, ignore_lis
 
     # TODO: make configurable
     #tlsh_ignore = set()
-    tlsh_ignore = set(['compressed', 'graphics', 'audio', 'archive',
-            'filesystem', 'srec', 'ihex', 'padding', 'database', 'ignored'])
+    tlsh_ignore = set(['compressed', 'encrypted', 'graphics', 'audio', 'archive',
+            'filesystem', 'srec', 'ihex', 'padding', 'database', 'ignored', 'utmp',
+            'resource', 'rpm', 'stone', 'vim swap', 'pcap', 'pcapng', 'edid'])
 
     # set up the environment
     scan_environment = create_scan_environment_from_config(config)
@@ -160,7 +200,7 @@ def scan(config_file, verbose, unpack_directory, temporary_directory, ignore_lis
 
     # first create a meta directory for the file
     md = MetaDirectory(scan_environment.unpack_directory, None, True)
-    md.file_path = pathlib.Path(path).absolute()
+    md.file_path = path.absolute()
     log.debug(f'cli:scan[{md.md_path}]: queued job [{time.time_ns()}]')
 
     # create a scanjob using the created meta directory
@@ -182,7 +222,7 @@ def scan(config_file, verbose, unpack_directory, temporary_directory, ignore_lis
         p.terminate()
     log.debug(f'cli:scan: done.')
 
-    stop_time = datetime.datetime.utcnow()
+    stop_time = datetime.datetime.now(datetime.UTC)
 
 
 @app.command(short_help='Show bang scan results')

@@ -32,6 +32,7 @@ let
     pefile
     pillow
     protobuf
+    pwntools
     pyahocorasick
     pyaxmlparser
     pytest
@@ -53,6 +54,7 @@ pkgs.mkShell {
     cabextract
     e2fsprogs
     e2tools
+    erofs-utils
     innoextract
     kaitai-struct-compiler
     lrzip

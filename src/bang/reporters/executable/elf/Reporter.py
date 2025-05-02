@@ -20,10 +20,6 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import rich
-import rich.markdown
-import rich.table
-
 from bang.Reporter import Reporter
 
 
@@ -32,91 +28,102 @@ class ElfReporter(Reporter):
     pretty_name = 'elf'
 
     def create_report(self, md):
-        title = rich.markdown.Markdown("## ELF")
+        '''Create markdown for ELF results'''
+        new_markdown = '# ELF metadata\n'
         metadata = md.info.get('metadata')
-        reports = []
         with md.open(open_file=False, info_write=False):
-            meta_table = rich.table.Table('', '', title='ELF meta data', show_lines=True, show_header=False)
             elf_types = ", ".join(metadata['elf_type'])
-            meta_table.add_row('ELF labels', f'{elf_types}')
-            meta_table.add_row('Type', f'{metadata["type"]}')
-            meta_table.add_row('Bits', f'{metadata["bits"]}')
-            meta_table.add_row('Endianness', f'{metadata["endian"]}')
-            meta_table.add_row('Machine name', f'{metadata["machine_name"]}')
+
+            new_markdown += "| | |\n|--|--|\n"
+            new_markdown += f"**ELF labels** | {elf_types}|\n"
+            new_markdown += f"**Type** | {metadata['type']}|\n"
+            new_markdown += f"**Bits** | {metadata['bits']}|\n"
+            new_markdown += f"**Endianness** | {metadata['endian']}|\n"
+            new_markdown += f"**Machine name** | {metadata['machine_name']}|\n"
 
             if 'telfhash' in metadata:
-                meta_table.add_row('telfhash', f'{metadata["telfhash"]}')
+                new_markdown += f"**telfhash** | {metadata['telfhash']}|\n"
 
             if 'security' in metadata:
                 security_features = ", ".join(metadata['security'])
-                meta_table.add_row('Security features', f'{security_features}')
-
-            if 'needed' in metadata:
-                needed = ", ".join(sorted(metadata['needed']))
-                meta_table.add_row('Needed libraries', f'{needed}')
+                new_markdown += f"**Security features** | {security_features}|\n"
 
             # then lots of optional information
             if 'linker' in metadata:
-                meta_table.add_row('Linker', f'{metadata["linker"]}')
+                new_markdown += f"**Linker** | {metadata['linker']}|\n"
             if 'rpath' in metadata:
-                meta_table.add_row('RPATH', f'{metadata["rpath"]}')
+                new_markdown += f"**RPATH** | {metadata['rpath']}|\n"
             if 'runpath' in metadata:
-                meta_table.add_row('RUNPATH', f'{metadata["runpath"]}')
+                new_markdown += f"**RUNPATH** | {metadata['runpath']}|\n"
             if 'soname' in metadata:
-                meta_table.add_row('SONAME', f'{metadata["soname"]}')
+                new_markdown += f"**SONAME** | {metadata['SONAME']}|\n"
             if 'build-id' in metadata:
-                meta_table.add_row('Build id', f'{metadata["build-id"]}')
+                new_markdown += f"**Build id** | {metadata['build-id']}|\n"
             if 'build-id hash' in metadata:
-                meta_table.add_row('Build id hash', f'{metadata["build-id hash"]}')
+                new_markdown += f"**Build id hash** | {metadata['build-id hash']}|\n"
             if 'gnu debuglink' in metadata:
-                meta_table.add_row('GNU debug link', f'{metadata["gnu debuglink"]}')
+                new_markdown += f"**GNU debug link** | {metadata['gnu debuglink']}|\n"
             if 'gnu debuglink crc' in metadata:
-                meta_table.add_row('GNU debug link CRC', f'{metadata["gnu debuglink crc"]}')
+                new_markdown += f"**GNU debug link CRC** | {metadata['gnu debuglink crc']}|\n"
             if 'comment' in metadata:
-                meta_table.add_row('Comment', f'{metadata["comment"]}')
-            if 'package note' in metadata:
-                if 'name' in metadata['package note']:
-                    meta_table.add_row('Package name', f'{metadata["package note"]["name"]}')
-                if 'version' in metadata['package note']:
-                    meta_table.add_row('Package version', f'{metadata["package note"]["version"]}')
-                if 'osCpe' in metadata['package note']:
-                    meta_table.add_row('OS CPE', f'{metadata["package note"]["osCpe"]}')
+                comm = "\n".join(metadata['comment'])
+                new_markdown += f"**Comment** | {comm}|\n"
             if 'strings' in metadata:
                 if metadata['strings'] != []:
-                    meta_table.add_row('Extracted strings', str(len(metadata['strings'])))
+                    new_markdown += f"**Extracted strings** | {len(metadata['strings'])}|\n"
             if 'symbols' in metadata:
                 if metadata['symbols'] != []:
-                    meta_table.add_row('Extracted symbols', str(len(metadata['symbols'])))
+                    new_markdown += f"**Extracted symbols** | {len(metadata['symbols'])}|\n"
 
             if 'Linux kernel module' in metadata['elf_type']:
                 if 'Linux kernel module' in metadata:
-                    if 'name' in metadata['Linux kernel module']:
-                        meta_table.add_row('Module name', metadata['Linux kernel module']['name'])
-                    if 'license' in metadata['Linux kernel module']:
-                        meta_table.add_row('Module license', metadata['Linux kernel module']['license'])
-                    if 'author' in metadata['Linux kernel module']:
-                        meta_table.add_row('Module author', metadata['Linux kernel module']['author'])
-                    if 'description' in metadata['Linux kernel module']:
-                        meta_table.add_row('Module description', metadata['Linux kernel module']['description'])
-                    if 'vermagic' in metadata['Linux kernel module']:
-                        meta_table.add_row('Module version magic', metadata['Linux kernel module']['vermagic'])
-                    if 'depends' in metadata['Linux kernel module']:
-                        meta_table.add_row('Module depends on', ", ".join(metadata['Linux kernel module']['depends']))
+                    field_to_label = {'name': 'Module name',
+                                      'license': 'Module license',
+                                      'author': 'Module author',
+                                      'description': 'Module description',
+                                      'vermagic': 'Module version magic',
+                                      'depends': 'Module depends on',
+                                     }
+                    for field in field_to_label:
+                        if field in metadata['Linux kernel module']:
+                            new_markdown += f"**{field_to_label[field]}** | {metadata['Linux kernel module'][field]}|\n"
 
-            reports.append(meta_table)
+            if 'needed' in metadata:
+                new_markdown += "# Needed libraries\n"
+                new_markdown += "|Name|Symbol versions|\n|--|--|\n"
+
+                for n in sorted(metadata['needed'], key=lambda x: x['name']):
+                    symbol_versions = sorted(n['symbol_versions'])
+                    new_markdown += f"{n['name']}|{", ".join(symbol_versions)}|\n"
+
+            if 'package note' in metadata:
+                new_markdown += "# Package note\n"
+                new_markdown += "| | |\n|--|--|\n"
+                if 'name' in metadata['package note']:
+                    new_markdown += f"**Package name** | {metadata['package note']['name']}|\n"
+                if 'version' in metadata['package note']:
+                    new_markdown += f"**Package version** | {metadata['package note']['version']}|\n"
+                if 'osCpe' in metadata['package note']:
+                    new_markdown += f"**OS CPE** | {metadata['package note']['osCpe']}|\n"
+
 
             if 'sections' in metadata:
-                meta_table = rich.table.Table('Number', 'Name', 'Type', 'Size', 'Offset', title='ELF section data', show_lines=True, show_header=True)
+                new_markdown += "# ELF sections\n"
+                new_markdown += "|Number|Name|Type|Size|Offset|\n|--|--|--|--|--|\n"
                 for s in metadata['sections']:
-                    if type(metadata['sections'][s]['type']) == int:
-                        meta_table.add_row(str(metadata['sections'][s]['nr']), s, hex(metadata['sections'][s]['type']),
-                                           str(metadata['sections'][s]['size']), str(metadata['sections'][s]['offset']))
-                    else:
-                        if metadata['sections'][s]['type'] == 'nobits':
-                            meta_table.add_row(str(metadata['sections'][s]['nr']), s, metadata['sections'][s]['type'])
-                        else:
-                            meta_table.add_row(str(metadata['sections'][s]['nr']), s, metadata['sections'][s]['type'],
-                                               str(metadata['sections'][s]['size']), str(metadata['sections'][s]['offset']))
-                reports.append(meta_table)
+                    section_nr = metadata['sections'][s]['nr']
+                    section_type = metadata['sections'][s]['type']
 
-        return title, reports
+                    if metadata['sections'][s]['type'] == 'nobits':
+                        new_markdown += f"{section_nr}|{s}|{section_type}| | |\n"
+                        continue
+
+                    section_size = metadata['sections'][s]['size']
+                    section_offset = metadata['sections'][s]['offset']
+
+                    if isinstance(metadata['sections'][s]['type'], int):
+                        new_markdown += f"{section_nr}|{s}|{hex(section_type)}|{section_size}|{section_offset}|\n"
+                    else:
+                        new_markdown += f"{section_nr}|{s}|{section_type}|{section_size}|{section_offset}|\n"
+
+        return new_markdown

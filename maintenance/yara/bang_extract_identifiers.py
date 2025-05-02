@@ -2,27 +2,25 @@
 
 # Binary Analysis Next Generation (BANG!)
 #
-# Copyright 2021-2022 - Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright 2021-2024 - Armijn Hemel
+# Licensed under the terms of the GNU General Public License version 3
+# SPDX-License-Identifier: GPL-3.0-only
 
 '''
 Process source code archives, extracts identifiers and output as JSON
 '''
 
-import datetime
 import hashlib
 import json
 import multiprocessing
 import pathlib
-import pickle
+import queue
 import re
 import shutil
 import subprocess
 import sys
 import tarfile
 import tempfile
-import uuid
 import zipfile
 
 import packageurl
@@ -68,12 +66,15 @@ REMOVE_CHARACTERS_TABLE = str.maketrans({'\a': '', '\b': '', '\v': '',
                                         })
 
 
-def extract_identifiers(process_queue, temporary_directory, source_directory, json_output_directory, extraction_env, package_meta_information):
+def extract_identifiers(process_queue, temporary_directory, json_output_directory,
+                        extraction_env, package_meta_information):
     '''Unpack a tar archive based on extension and extract identifiers'''
 
-    heuristics = {}
     while True:
-        purl, version, archive = process_queue.get()
+        try:
+            purl, version, archive = process_queue.get()
+        except queue.Empty:
+            break
 
         try:
             tarchive = tarfile.open(name=archive)
@@ -193,7 +194,7 @@ def extract_identifiers(process_queue, temporary_directory, source_directory, js
                         for line in lines:
                             try:
                                 ctags_json = json.loads(line)
-                            except Exception as e:
+                            except json.decoder.JSONDecodeError:
                                 continue
                             try:
                                 ctags_name = ctags_json['name']
@@ -233,7 +234,7 @@ def extract_identifiers(process_queue, temporary_directory, source_directory, js
 
             if not (strings == [] and variables == [] and functions == []):
                 # write results to a JSON file for later processing
-                json_file = json_output_directory / ("%s-%s.json" % (archive.name, language))
+                json_file = json_output_directory / (f"{archive.name}-{language}.json")
                 with open(json_file, 'w') as dump_file:
                     json.dump({'metadata': metadata, 'strings': strings,
                               'variables': variables, 'functions': functions}, dump_file, indent=4)
@@ -242,10 +243,12 @@ def extract_identifiers(process_queue, temporary_directory, source_directory, js
         process_queue.task_done()
 
 
-@click.command(short_help='process BANG result files and output YARA')
+@click.command(short_help='process source code files and output JSON')
 @click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
-@click.option('--source-directory', '-s', required=True, help='source code archive directory', type=click.Path(exists=True))
-@click.option('--meta', '-m', required=True, help='file with meta information about a package', type=click.File('r'))
+@click.option('--source-directory', '-s', required=True, help='source code archive directory',
+              type=click.Path(exists=True, path_type=pathlib.Path))
+@click.option('--meta', '-m', required=True, help='file with meta information about a package',
+              type=click.File('r'))
 def main(config_file, source_directory, meta):
     # check if ctags is available. This should be "universal ctags"
     # not "exuberant ctags"
@@ -260,10 +263,8 @@ def main(config_file, source_directory, meta):
               file=sys.stderr)
         sys.exit(1)
 
-    source_directory = pathlib.Path(source_directory)
-
     if not source_directory.is_dir():
-        print("%s is not a directory, exiting." % source_directory, file=sys.stderr)
+        print(f"{source_directory} is not a directory, exiting.", file=sys.stderr)
         sys.exit(1)
 
     # parse the configuration
@@ -295,7 +296,7 @@ def main(config_file, source_directory, meta):
     try:
         top_purl = packageurl.PackageURL.from_string(package_meta_information['packageurl'])
     except ValueError:
-        print("%s not a valid packageurl" % package_meta_information['packageurl'], file=sys.stderr)
+        print(f"{package_meta_information['packageurl']} not a valid packageurl", file=sys.stderr)
         sys.exit(1)
 
     packages = []
@@ -305,10 +306,10 @@ def main(config_file, source_directory, meta):
         for release_version in release:
             release_filename = release[release_version]
             if not (source_directory / release_filename).exists():
-                print("%s does not exist" % (source_directory / release_filename), file=sys.stderr)
+                print(f"{source_directory / release_filename} does not exist", file=sys.stderr)
                 if extraction_env['error_fatal']:
                     sys.exit(1)
-                    continue
+                continue
             packages.append((release_version, release_filename))
 
     json_output_directory = extraction_env['json_directory'] / package
@@ -329,19 +330,19 @@ def main(config_file, source_directory, meta):
         try:
             purl = packageurl.PackageURL.from_string(version)
         except ValueError:
-            print("%s not a valid packageurl" % version, file=sys.stderr)
+            print(f"{version} not a valid packageurl", file=sys.stderr)
             if extraction_env['error_fatal']:
                 sys.exit(1)
             continue
         # sanity checks to verify that the top level purl matches
         if purl.type != top_purl.type:
-            print("type '%s' does not match top level type '%s'" % (purl.type, top_purl.type),
+            print(f"type '{purl.type}' does not match top level type '{top_purl.type}'",
                   file=sys.stderr)
             if extraction_env['error_fatal']:
                 sys.exit(1)
             continue
         if purl.name != top_purl.name:
-            print("name '%s' does not match top level name '%s'" % (purl.name, top_purl.name),
+            print(f"name '{purl.name}' does not match top level name '{top_purl.name}'",
                   file=sys.stderr)
             if extraction_env['error_fatal']:
                 sys.exit(1)
@@ -356,8 +357,7 @@ def main(config_file, source_directory, meta):
     for i in range(0, extraction_env['threads']):
         process = multiprocessing.Process(target=extract_identifiers,
                                           args=(process_queue, extraction_env['temporary_directory'],
-                                                source_directory, json_output_directory,
-                                                extraction_env, package_meta_information))
+                                                json_output_directory, extraction_env, package_meta_information))
         processes.append(process)
 
     # start all the processes

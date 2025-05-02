@@ -28,6 +28,11 @@ import sys
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 
+
+KNOWN_DIRECTORIES = [b'/bin/', b'/boot/', b'/etc/', b'/home/', b'/lib/',
+                     b'/lib64', b'/linuxrc', b'/opt/', b'/root/', b'/sbin',
+                     b'/sys/', b'/usr/', b'/var/']
+
 class Base64UnpackParser(UnpackParser):
     extensions = []
     signatures = [
@@ -86,6 +91,11 @@ class Base64UnpackParser(UnpackParser):
         # now read 'unpacked' bytes for more sanity checks and
         # finding out which decoder is used.
         base64_bytes = self.infile.read(unpacked)
+
+        # Known Unix file paths are a big source of false positives.
+        for d in KNOWN_DIRECTORIES:
+            if base64_bytes.startswith(d):
+                check_condition(False, "file path, no base64")
 
         # first remove all the different line endings. These are not
         # valid characters in the base64 alphabet, plus it also conveniently

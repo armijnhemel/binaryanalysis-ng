@@ -7,6 +7,9 @@ meta:
 doc: |
   Resource file found in CPB firmware archives, mostly used on older CoolPad
   phones and/or tablets. The only observed files are called "ResPack.cfg".
+
+  Also used as by Baidu Maps. Test files (file extension: .rs) can be found in:
+  <https://www.asus.com/mobile-handhelds/wearable-healthcare/asus-vivowatch/asus-vivowatch-5-hc-b05/helpdesk_download/?model2Name=ASUS-VivoWatch-5-HC-B05>
 seq:
   - id: header
     type: header

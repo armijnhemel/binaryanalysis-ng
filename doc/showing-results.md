@@ -1,11 +1,26 @@
 # Showing unpacking results
 
-There are a few ways you can show the results of the unpacking process:
+In BANG there are a few ways you can show the results of the unpacking process:
+
+1. interactive TUI (text user interface)
+2. CLI interface for pretty printing data to standard out, or files
+
+## TUI
+
+A TUI (text user interface) can be a quick and easy way to browse (and
+eventually search) results. [Textual][textual] and [Rich][rich] are very
+suited for this task.
+
+```
+$ python3 -m bang.bang_shell -r /path/to/metadirectory
+```
+
+## CLI
 
 1. full unpacking tree
 2. data for individual files
 
-## Printing the full unpacking tree
+### Printing the full unpacking tree
 
 ```
 $ python3 -m bang.cli print-tree /path/to/metadirectory
@@ -36,7 +51,7 @@ ls
     └── /unpacked_from_xz
 ```
 
-## Printing the results of a single file
+### Printing the results of a single file
 
 ```
 $ python3 -m bang.cli show /path/to/metadirectory
@@ -179,3 +194,15 @@ $ python3 -m bang.cli show -a /tmp/bang/3adbaa353d70408aa775d07d551d8f33
 │  1 │ 3adbaa353d70408aa775d07d551d8f33/rel/unpacked_from_xz │ elf, static │ c292e801f4ee49c8acacbf6157c97b49 │
 └────┴───────────────────────────────────────────────────────┴─────────────┴──────────────────────────────────┘
 ```
+
+### Printing the results of all files
+
+To show the results of all files (basically, a recursive version of printing
+the results of a single file) can be done with the `report` subcommand:
+
+```
+$ python3 -m bang.cli report /path/to/metadirectory
+```
+
+[rich]:https://github.com/Textualize/rich
+[textual]:https://github.com/Textualize/textual

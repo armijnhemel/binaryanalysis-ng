@@ -34,7 +34,8 @@ from . import vdi
 class VdiUnpackParser(UnpackParser):
     extensions = []
     signatures = [
-        (0, b'<<< Oracle VM VirtualBox Disk Image >>>\n')
+        (0, b'<<< Oracle VM VirtualBox Disk Image >>>\n'),
+        (0, b'<<< QEMU VM Virtual Disk Image >>>\n')
     ]
     pretty_name = 'vdi'
 
