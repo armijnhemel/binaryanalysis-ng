@@ -201,12 +201,12 @@ class Ext2UnpackParser(UnpackParser):
                     # ignore deleted files
                     if d.strip().startswith(b'>'):
                         continue
-                    dirsplit = re.split(b'\s+', d.strip(), 7)
+                    dirsplit = re.split(rb'\s+', d.strip(), 7)
                     if len(dirsplit) != 8:
                         failure = True
                         break
 
-                    (inode, filemode, userid, groupid, size, filedate, filetime, ext2name) = re.split(b'\s+', d.strip(), 7)
+                    (inode, filemode, userid, groupid, size, filedate, filetime, ext2name) = re.split(rb'\s+', d.strip(), 7)
 
                     try:
                         filemode = int(filemode, base=8)
