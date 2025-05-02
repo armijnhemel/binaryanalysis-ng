@@ -20,10 +20,6 @@
 # version 3
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import rich
-import rich.markdown
-import rich.table
-
 from bang.Reporter import Reporter
 
 
@@ -32,28 +28,28 @@ class PngReporter(Reporter):
     pretty_name = 'png'
 
     def create_report(self, md):
-        title = rich.markdown.Markdown("## PNG")
+        '''Create markdown for PNG results'''
+        new_markdown = '# PNG metadata\n'
+
         metadata = md.info.get('metadata')
-        reports = []
         with md.open(open_file=False, info_write=False):
-            meta_table = rich.table.Table('', '', title='PNG meta data', show_lines=True, show_header=False)
-            meta_table.add_row('Width', str(metadata['width']))
-            meta_table.add_row('Height', str(metadata['height']))
-            meta_table.add_row('Depth', str(metadata['depth']))
-            meta_table.add_row('Colour', metadata['color'])
-            meta_table.add_row('Chunk names', ", ".join(metadata['chunk_names']))
+            new_markdown += "| | |\n|--|--|\n"
+            new_markdown += f"**Width** | {metadata['width']}|\n"
+            new_markdown += f"**Height** | {metadata['height']}|\n"
+            new_markdown += f"**Depth** | {metadata['depth']}|\n"
+            new_markdown += f"**Colour** | {metadata['color']}|\n"
+            new_markdown += f"**Chunk names** | {', '.join(metadata['chunk_names'])}|\n"
             if metadata['png_type'] != []:
-                meta_table.add_row('Type', ", ".join(sorted(metadata['png_type'])))
+                new_markdown += f"**Type** | {', '.join(metadata['png_type'])}|\n"
             if metadata['unknownchunks'] != []:
-                meta_table.add_row('Unknown chunks', ", ".join(sorted(metadata['unknownchunks'])))
-            reports.append(meta_table)
+                new_markdown += f"**Unknown chunks** | {', '.join(sorted(metadata['unknownchunks']))}|\n"
 
             # print any texts if available
             if 'text' in metadata:
-                if metadata['text'] != []:
-                    meta_table = rich.table.Table('', '', title='PNG texts', show_lines=True, show_header=False)
+                if metadata['text']:
+                    new_markdown += '# PNG texts\n'
+                    new_markdown += "|**Key**|**Value**|\n|--|--|\n"
                     for t in metadata['text']:
-                        meta_table.add_row(t['key'], t['value'])
-                    reports.append(meta_table)
+                        new_markdown += f"{t['key']} | {t['value']}|\n"
 
-        return title, reports
+        return new_markdown
