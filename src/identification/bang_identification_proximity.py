@@ -3,8 +3,8 @@
 # Binary Analysis Next Generation (BANG!)
 #
 # Copyright - Armijn Hemel, Tjaldur Software Governance Solutions
-# Licensed under the terms of the GNU Affero General Public License version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# Licensed under the terms of the GNU General Public License version 3
+# SPDX-License-Identifier: GPL-3.0-only
 
 '''
 This script processes ELF files extracted/tagged by BANG and looks up the
@@ -20,7 +20,6 @@ be searched in an another external data source, for example a database.
 '''
 
 import collections
-import os
 import pathlib
 import pickle
 import sys
@@ -41,16 +40,18 @@ except ImportError:
 
 
 @click.command(short_help='process BANG result directory and extract/generate TLSH hashes for proximity matching')
-@click.option('--config-file', '-c', required=True, help='path to configuration file', type=click.File('r'))
-@click.option('--result-directory', '-r', required=True, help='path to BANG result directories', type=click.Path(exists=True))
-@click.option('--identifiers', '-i', help='pickle with low quality identifiers', type=click.File('rb'))
+@click.option('--config-file', '-c', required=True, help='path to configuration file',
+              type=click.File('r'))
+@click.option('--result-directory', '-r', required=True, help='path to BANG result directories',
+               type=click.Path(exists=True))
+@click.option('--identifiers', '-i', help='pickle with low quality identifiers',
+              type=click.File('rb'))
 def main(config_file, result_directory, identifiers):
     result_directory = pathlib.Path(result_directory)
 
     # ... and should be a real directory
     if not result_directory.is_dir():
-        print("%s is not a directory, exiting." % result_directory, file=sys.stderr)
-        sys.exit(1)
+        raise click.ClickException(f"{result_directory} is not a directory")
 
     lq_identifiers = {'elf': {'functions': [], 'variables': []}}
 
@@ -71,7 +72,7 @@ def main(config_file, result_directory, identifiers):
     # some sanity checks:
     for i in ['general', 'proximity']:
         if i not in configuration:
-            print("Invalid configuration file, section %s missing, exiting" % i,
+            print("Invalid configuration file, section {i} missing, exiting",
                   file=sys.stderr)
             sys.exit(1)
 
@@ -210,7 +211,7 @@ def main(config_file, result_directory, identifiers):
                             try:
                                 if metadata[h] == '':
                                     continue
-                                req = session.get('%s/%s' % (endpoint, metadata[h]))
+                                req = session.get(f"{endpoint}, {metadata[h]}")
                                 json_results = req.json()
                                 if json_results['match']:
                                     if json_results['distance'] <= maximum_distance:

@@ -3,8 +3,8 @@
 # Binary Analysis Next Generation (BANG!)
 #
 # Copyright 2021-2022 - Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# Licensed under the terms of the GNU General Public License version 3
+# SPDX-License-Identifier: GPL-3.0-only
 
 '''
 This script processes ELF files extracted/tagged by BANG, runs YARA rules to
@@ -12,16 +12,13 @@ identify what is inside, finds closest files using proximity matching and
 searches results in VulnerableCode.
 '''
 
-import os
 import pathlib
 import pickle
 import re
-import shutil
 import sys
 import urllib
 
 import click
-import packageurl
 import requests
 import tlsh
 import yara
@@ -38,16 +35,18 @@ from VulnerableCodeConnector import VulnerableCodeConnector, VulnerableCodeExcep
 
 
 @click.command(short_help='run YARA rules on a BANG result directory')
-@click.option('--config', '-c', required=True, help='path to configuration file', type=click.File('r'))
-@click.option('--result-directory', '-r', required=True, help='path to BANG result directories', type=click.Path(exists=True))
-@click.option('--identifiers', '-i', help='pickle with low quality identifiers', type=click.File('rb'))
+@click.option('--config', '-c', required=True, help='path to configuration file',
+              type=click.File('r'))
+@click.option('--result-directory', '-r', required=True, help='path to BANG result directories',
+              type=click.Path(exists=True))
+@click.option('--identifiers', '-i', help='pickle with low quality identifiers',
+              type=click.File('rb'))
 def main(config, result_directory, identifiers):
     result_directory = pathlib.Path(result_directory)
 
     # result_directory should be a real directory
     if not result_directory.is_dir():
-        print("%s is not a directory, exiting." % result_directory, file=sys.stderr)
-        sys.exit(1)
+        click.ClickException(f"{result_directory} is not a directory.")
 
     # read the configuration file. This is in YAML format
     try:
@@ -108,14 +107,12 @@ def main(config, result_directory, identifiers):
 
     # the result directory should exist ...
     if not rules_directory.exists():
-        print("Rules directory %s does not exist, exiting." % rules_directory,
-              file=sys.stderr)
+        print(f"Rules directory {rules_directory} does not exist, exiting.", file=sys.stderr)
         sys.exit(1)
 
     # ... and should be a real directory
     if not rules_directory.is_dir():
-        print("%s is not a directory, exiting." % rules_directory,
-              file=sys.stderr)
+        print(f"{rules_directory} is not a directory, exiting.", file=sys.stderr)
         sys.exit(1)
 
     # load the YARA rules found in the directory
@@ -199,7 +196,7 @@ def main(config, result_directory, identifiers):
 
             # open the result pickle
             try:
-                results_data = pickle.load(open(result_directory / 'results' / ("%s.pickle" % sha256), 'rb'))
+                results_data = pickle.load(open(result_directory / 'results' / f"{sha256}.pickle", 'rb'))
             except:
                 continue
 
@@ -278,8 +275,8 @@ def main(config, result_directory, identifiers):
                     if matches == []:
                         continue
                     for match in matches:
-                        print('Rule %s matched for %s' % (match.rule, bang_file))
-                        print('  number of strings matched: %d' % len(match.strings))
+                        print(f'Rule {match.rule} matched for {bang_file}')
+                        print(f'  number of strings matched: {len(match.strings)}')
                         if verbose:
                             print('\n  Matched strings:\n')
                             for s in match.strings:
@@ -305,7 +302,7 @@ def main(config, result_directory, identifiers):
                     try:
                         if metadata[h] == '':
                             continue
-                        req = session.get('%s/%s' % (endpoint, metadata[h]))
+                        req = session.get(f'{endpoint}/{metadata[h]}')
                         json_results = req.json()
                         if json_results['match']:
                             if json_results['distance'] <= maximum_distance:
