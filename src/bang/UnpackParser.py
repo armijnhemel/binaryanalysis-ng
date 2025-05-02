@@ -134,6 +134,7 @@ class UnpackParser:
         '''
         self.record_parser(to_meta_directory)
         self.record_size(to_meta_directory)
+        self.record_offset(to_meta_directory)
         self.add_labels(to_meta_directory)
         self.update_metadata(to_meta_directory)
 
@@ -142,6 +143,9 @@ class UnpackParser:
 
     def record_size(self, to_meta_directory):
         to_meta_directory.info['size'] = self.parsed_size
+
+    def record_offset(self, to_meta_directory):
+        to_meta_directory.info['offset'] = self.offset
 
     def add_labels(self, to_meta_directory):
         to_meta_directory.info.setdefault('labels',[]).extend(set(self.labels))
