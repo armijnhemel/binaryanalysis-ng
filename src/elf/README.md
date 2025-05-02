@@ -24,9 +24,9 @@ and was adapted to work with output from BANG.
 
 # License
 
-Licensed under the terms of the Affero General Public License version 3
+Licensed under the terms of the General Public License version 3
 
-SPDX-License-Identifier: AGPL-3.0-only
+SPDX-License-Identifier: GPL-3.0-only
 
 Copyright 2018-2022 - Armijn Hemel
 

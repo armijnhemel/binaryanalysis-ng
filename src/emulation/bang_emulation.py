@@ -3,8 +3,8 @@
 # Binary Analysis Next Generation (BANG!)
 #
 # Copyright - Armijn Hemel, Tjaldur Software Governance Solutions
-# Licensed under the terms of the GNU Affero General Public License version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# Licensed under the terms of the GNU General Public License version 3
+# SPDX-License-Identifier: GPL-3.0-only
 
 '''
 This script processes ELF files extracted/tagged by BANG
@@ -32,8 +32,10 @@ except ImportError:
 
 
 @click.command(short_help='Emulate ELF files in Qiling')
-@click.option('--config', '-c', required=True, help='path to configuration file', type=click.File('r'))
-@click.option('--result-directory', '-r', required=True, help='path to BANG result directories', type=click.Path(exists=True))
+@click.option('--config', '-c', required=True, help='path to configuration file',
+              type=click.File('r'))
+@click.option('--result-directory', '-r', required=True, help='path to BANG result directories',
+              type=click.Path(exists=True))
 def main(config, result_directory):
     result_directory = pathlib.Path(result_directory)
 
