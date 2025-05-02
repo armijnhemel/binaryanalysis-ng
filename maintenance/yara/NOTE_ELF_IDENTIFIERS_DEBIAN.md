@@ -5,8 +5,8 @@ observations:
 
 * several binary packages are made from a single source code package like gcc
 and related. While the identifiers occur in many different *binaries* they
-come from the same packages. What would be needed is to map these to a single
-package first.
+come from the same *source code* packages. What would be needed is to map these
+to a single source code package first.
 * strings from frameworks, interpreters, etc. are often shared. Think Boost,
 OCaml, and so on.
 

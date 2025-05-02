@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 import binascii
 import pathlib
@@ -29,7 +27,7 @@ from kaitaistruct import ValidationFailedError
 from . import uimage
 
 
-class UbootLegacyUnpackParser(UnpackParser):
+class UbootUnpackParser(UnpackParser):
     extensions = []
 
     # There are different U-Boot files with different magic:
@@ -41,7 +39,7 @@ class UbootLegacyUnpackParser(UnpackParser):
         (0, b'\x83\x80\x00\x00'),
         (0, b'\x93\x00\x00\x00')
     ]
-    pretty_name = 'uboot_legacy'
+    pretty_name = 'uboot'
 
     def parse(self):
         try:
@@ -88,7 +86,7 @@ class UbootLegacyUnpackParser(UnpackParser):
         #
         # TODO: correctly process multi images
 
-        if self.is_asus_device or self.data.header.name == '':
+        if self.is_asus_device or self.data.header.name == '' or not self.data.header.name.isprintable():
             imagename = self.data.header.image_type.name
         else:
             imagename = self.data.header.name

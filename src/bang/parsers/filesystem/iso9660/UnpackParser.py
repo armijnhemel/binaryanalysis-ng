@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 # Process ISO9660 file systems. It should be noted that this is not
 # a complete implementation and there are quite a few different ways to
@@ -114,7 +112,7 @@ class Iso9660UnpackParser(UnpackParser):
 
                         extent_size = record.body.extent.value * descriptor.volume.logical_block_size.value
                         check_condition(extent_size <= self.infile.size,
-                                        "extent cannot be outside of file")
+                                        "file extent cannot be outside of file")
 
                         # store if an entry is a zisofs file
                         is_zisofs_file = False
@@ -299,7 +297,16 @@ class Iso9660UnpackParser(UnpackParser):
         self.unpacked_size = iso_size
 
     def unpack(self, meta_directory):
-        # check the contents of the ISO image
+        # first write the system area. There could be useful data
+        # in here such as boot loaders (syslinux and friends) that contain
+        # useful information, but which are not really part of the contents
+        # of an ISO image, so this should be written to a separate directory
+        file_path = pathlib.Path('system_area')
+        with meta_directory.unpack_regular_file(file_path, is_extradata=True) as (unpacked_md, outfile):
+            outfile.write(self.data.system_area)
+            yield unpacked_md
+
+        # then process the actual data
         for descriptor in self.data.data_area:
             if descriptor.type == iso9660.Iso9660.VolumeType.primary:
 

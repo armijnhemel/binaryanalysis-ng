@@ -4,22 +4,20 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 import datetime
 import logging
@@ -68,23 +66,63 @@ def app():
     pass
 
 
+# bang scan_directory <input directory>
+@click.option('-c', '--config', 'config_file', type=click.File('r'))
+@click.option('-v', '--verbose', is_flag=True, help='Enable debug logging')
+@click.option('-u', '--unpack-directory', type=click.Path(path_type=pathlib.Path), default=pathlib.Path('/tmp'), help='Directory to unpack to')
+@click.option('-t', '--temporary-directory', type=click.Path(path_type=pathlib.Path, exists=True), default=pathlib.Path('/tmp'), help='Temporary directory')
+@click.option('-i', '--ignore-list', type=click.File('r'))
+@click.option('-j', '--jobs', default=1, type=click.IntRange(min=1), help='Number of jobs running simultaneously')
+@click.option('--job-wait-time', default=1, type=int, help='Time to wait for a new job')
+@click.option('-f', '--force', is_flag=True, help='Ignore warnings about existing unpacking directory')
+@click.argument('path', type=click.Path(path_type=pathlib.Path, exists=True))
+@app.command(short_help='Scan a directory of files')
+@click.pass_context
+def scan_directory(ctx, config_file, verbose, unpack_directory, temporary_directory, ignore_list, jobs, job_wait_time, force, path):
+    '''Scans files in PATH and unpacks its files to a sudirectory of UNPACK_DIRECTORY.
+    '''
+    if config_file is not None:
+        # read the configuration file. This is in YAML format
+        try:
+            config = load(config_file, Loader=Loader)
+        except (YAMLError, PermissionError, UnicodeDecodeError):
+            print("Cannot open configuration file, exiting", file=sys.stderr)
+            sys.exit(1)
+
+    for scan_archive in sorted(path.glob('**/*')):
+        # first create a directory similar as the file name
+        scan_directory = unpack_directory / (scan_archive.name)
+        try:
+            scan_directory.mkdir(parents=True)
+        except FileExistsError:
+            continue
+
+        ctx.invoke(scan, config_file=config_file, verbose=verbose, unpack_directory=scan_directory, temporary_directory=temporary_directory, ignore_list=ignore_list, jobs=jobs, job_wait_time=job_wait_time, force=force, path=scan_archive)
+
+
 # bang scan <input file>
 @app.command(short_help='Scan a file')
 @click.option('-c', '--config', 'config_file', type=click.File('r'))
 @click.option('-v', '--verbose', is_flag=True, help='Enable debug logging')
 @click.option('-u', '--unpack-directory', type=click.Path(path_type=pathlib.Path), default=pathlib.Path('/tmp'), help='Directory to unpack to')
 @click.option('-t', '--temporary-directory', type=click.Path(path_type=pathlib.Path, exists=True), default=pathlib.Path('/tmp'), help='Temporary directory')
+@click.option('-i', '--ignore-list', type=click.File('r'))
 @click.option('-j', '--jobs', default=1, type=click.IntRange(min=1), help='Number of jobs running simultaneously')
 @click.option('--job-wait-time', default=1, type=int, help='Time to wait for a new job')
-@click.argument('path', type=click.Path(exists=True))
-def scan(config_file, verbose, unpack_directory, temporary_directory, jobs, job_wait_time, path):
+@click.option('-f', '--force', is_flag=True, help='Ignore warnings about existing unpacking directory')
+@click.argument('path', type=click.Path(path_type=pathlib.Path, exists=True))
+def scan(config_file, verbose, unpack_directory, temporary_directory, ignore_list, jobs, job_wait_time, force, path):
     '''Scans PATH and unpacks its files to UNPACK_DIRECTORY.
     '''
 
     # record the starting time of the scan
-    start_time = datetime.datetime.utcnow()
+    start_time = datetime.datetime.now(datetime.UTC)
     ignore_parsers = []
     config = None
+
+    if unpack_directory.exists() and not force:
+        print("Unpacking directory already exists, exiting", file=sys.stderr)
+        sys.exit(1)
 
     if config_file is not None:
         # read the configuration file. This is in YAML format
@@ -97,11 +135,30 @@ def scan(config_file, verbose, unpack_directory, temporary_directory, jobs, job_
             if config['parsers'] is not None:
                 ignore_parsers = config['parsers'].get('ignore', [])
 
+    ignore = set()
+
+    if ignore_list is not None:
+        # read the ignore list file. This is in YAML format
+        try:
+            ignore_dicts = load(ignore_list, Loader=Loader)
+            ignore.update(k['sha256'] for k in ignore_dicts)
+        except (YAMLError, PermissionError, UnicodeDecodeError):
+            print("Cannot open ignore list file, exiting", file=sys.stderr)
+            sys.exit(1)
+
+    # TODO: make configurable
+    #tlsh_ignore = set()
+    tlsh_ignore = set(['compressed', 'encrypted', 'graphics', 'audio', 'archive',
+            'filesystem', 'srec', 'ihex', 'padding', 'database', 'ignored', 'utmp',
+            'resource', 'rpm', 'stone', 'vim swap', 'pcap', 'pcapng', 'edid'])
+
     # set up the environment
     scan_environment = create_scan_environment_from_config(config)
     scan_environment.job_wait_time = job_wait_time
     scan_environment.configuration.temporary_directory = temporary_directory.absolute()
     scan_environment.unpack_directory = unpack_directory.absolute()
+    scan_environment.ignore = ignore
+    scan_environment.tlsh_ignore = tlsh_ignore
 
     if verbose:
         log.setLevel(logging.DEBUG)
@@ -141,7 +198,7 @@ def scan(config_file, verbose, unpack_directory, temporary_directory, jobs, job_
 
     # first create a meta directory for the file
     md = MetaDirectory(scan_environment.unpack_directory, None, True)
-    md.file_path = pathlib.Path(path).absolute()
+    md.file_path = path.absolute()
     log.debug(f'cli:scan[{md.md_path}]: queued job [{time.time_ns()}]')
 
     # create a scanjob using the created meta directory
@@ -163,7 +220,7 @@ def scan(config_file, verbose, unpack_directory, temporary_directory, jobs, job_
         p.terminate()
     log.debug(f'cli:scan: done.')
 
-    stop_time = datetime.datetime.utcnow()
+    stop_time = datetime.datetime.now(datetime.UTC)
 
 
 @app.command(short_help='Show bang scan results')
@@ -493,9 +550,6 @@ def pack(metadir, with_data, output):
               file=sys.stderr)
         sys.exit(1)
 
-    # then try to open the tarfile in write mode
-    pack_file = tarfile.open(output, mode='w:gz')
-
     # first grab all of the directories that need to be processed.
     # This is done by traversing the unpacking tree for a few reasons:
     #
@@ -530,24 +584,24 @@ def pack(metadir, with_data, output):
                 metadirs.append(child_md)
                 unpack_directories.append(v)
 
-    for u in unpack_directories:
-        if with_data:
-            pack_file.add(metadir.parent / u, arcname=u, filter=clear_ids)
-        else:
-            pack_file.add(metadir.parent / u / 'info.pkl', arcname=u / 'info.pkl', filter=clear_ids)
-            pack_file.add(metadir.parent / u / 'pathname', arcname=u / 'pathname', filter=clear_ids)
+    # then try to open the tarfile in write mode
+    with tarfile.open(output, mode='w:gz') as pack_file:
+        for u in unpack_directories:
+            if with_data:
+                pack_file.add(metadir.parent / u, arcname=u, filter=clear_ids)
+            else:
+                pack_file.add(metadir.parent / u / 'info.pkl', arcname=u / 'info.pkl', filter=clear_ids)
+                pack_file.add(metadir.parent / u / 'pathname', arcname=u / 'pathname', filter=clear_ids)
 
-    if with_data and metadir.name == 'root':
-        try:
-            root_file_name = metadir / 'pathname'
-            with open(root_file_name, 'r') as r:
-                root_file = pathlib.Path(r.read())
-            if root_file.exists():
-                pack_file.add(root_file, arcname=root_file.name, filter=clear_ids)
-        except:
-            pass
-
-    pack_file.close()
+        if with_data and metadir.name == 'root':
+            try:
+                root_file_name = metadir / 'pathname'
+                with open(root_file_name, 'r') as r:
+                    root_file = pathlib.Path(r.read())
+                if root_file.exists():
+                    pack_file.add(root_file, arcname=root_file.name, filter=clear_ids)
+            except:
+                pass
 
 def clear_ids(tarinfo):
     '''Rewrite the UID and GIDs to something neutral.
@@ -559,6 +613,53 @@ def clear_ids(tarinfo):
     tarinfo.gname = "root"
     return tarinfo
 
+@app.command(short_help='Create a directory structure as used in old BANG to easier navigate results using standard Linux shell tools')
+@click.argument('metadir', type=click.Path(path_type=pathlib.Path))
+@click.option('-o', '--output', type=click.Path(path_type=pathlib.Path), required=True, help='output directory')
+@click.option('-c', '--copy', 'do_copy', is_flag=True, help='Copy results instead of link')
+def create_directory_view(metadir, output, do_copy):
+    '''Create a directory structure as used in old BANG to easier
+       navigate results using standard Linux shell tools.
+    '''
+    md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
+
+    try:
+        m = f'{md.file_path}'
+    except MetaDirectoryException:
+        print(f'directory {metadir} not found, exiting', file=sys.stderr)
+        sys.exit(1)
+
+    # first create the output directory, if it doesn't exist yet
+    try:
+        output.mkdir(parents=True)
+    except FileExistsError:
+        pass
+
+    # first grab all of the directories that need to be processed
+    # by traversing the unpacking tree.
+    root_md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
+
+    metadirs = deque([root_md])
+
+    while True:
+        try:
+            md = metadirs.popleft()
+        except IndexError:
+            break
+
+        # recurse into all of the children
+        with md.open(open_file=False, info_write=False):
+            for k,v in sorted(md.info.get('extracted_files', {}).items()):
+                child_md = MetaDirectory.from_md_path(metadir.parent, v)
+                metadirs.append(child_md)
+
+            for k,v in sorted(md.info.get('unpacked_absolute_files', {}).items()):
+                child_md = MetaDirectory.from_md_path(metadir.parent, v)
+                metadirs.append(child_md)
+
+            for k,v in sorted(md.info.get('unpacked_relative_files', {}).items()):
+                child_md = MetaDirectory.from_md_path(metadir.parent, v)
+                metadirs.append(child_md)
 
 if __name__=="__main__":
     app()

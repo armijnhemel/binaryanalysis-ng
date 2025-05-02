@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 import base64
 import binascii
@@ -27,6 +25,11 @@ import sys
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
+
+
+KNOWN_DIRECTORIES = [b'/bin/', b'/boot/', b'/etc/', b'/home/', b'/lib/',
+                     b'/lib64', b'/linuxrc', b'/opt/', b'/root/', b'/sbin',
+                     b'/sys/', b'/usr/', b'/var/']
 
 class Base64UnpackParser(UnpackParser):
     extensions = []
@@ -86,6 +89,11 @@ class Base64UnpackParser(UnpackParser):
         # now read 'unpacked' bytes for more sanity checks and
         # finding out which decoder is used.
         base64_bytes = self.infile.read(unpacked)
+
+        # Known Unix file paths are a big source of false positives.
+        for d in KNOWN_DIRECTORIES:
+            if base64_bytes.startswith(d):
+                check_condition(False, "file path, no base64")
 
         # first remove all the different line endings. These are not
         # valid characters in the base64 alphabet, plus it also conveniently

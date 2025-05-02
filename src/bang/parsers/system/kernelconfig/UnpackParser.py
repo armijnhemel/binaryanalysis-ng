@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 # Kernel configuration files are frequently embedded in Linux kernel images
 
@@ -47,7 +45,7 @@ class LinuxKernelConfigUnpackParser(UnpackParser):
     header_compiler_re = re.compile(r'# Compiler: ([\w\d\.\-() ]+)$')
 
     # regular expression for the configuration header lines
-    config_header_re = re.compile(r'# [\w\d/\-;:\. ,()&+\']+$')
+    config_header_re = re.compile(r'# [\w\d/\-;:\. ,()&+\'>]+$')
 
     # regular expressions for the lines with configuration
     commented_config_re = re.compile(r'# CONFIG_[\w\d_]+ is not set$')

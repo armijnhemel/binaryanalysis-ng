@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 '''
 Parse and unpack PNG files. The specification of the PNG format can be found
@@ -80,6 +78,9 @@ class PngUnpackParser(UnpackParser):
 
         self.chunknames.add('IHDR')
 
+        # The bytes in the IDAT chunks are part of a single zlib compressed
+        # stream. Store the bytes and decompress as an extra sanity check.
+        idata = b''
         for i in self.data.chunks:
             # compute CRC32
             computed_crc = binascii.crc32(i.type.encode('utf-8'))
@@ -92,6 +93,12 @@ class PngUnpackParser(UnpackParser):
             check_condition(computed_crc == int.from_bytes(i.crc, byteorder='big'),
                     "invalid CRC")
             self.chunknames.add(i.type)
+            if i.type == 'IDAT':
+                idata += i.body
+        try:
+            zlib.decompress(idata)
+        except zlib.error as e:
+            raise UnpackParserException(e.args)
 
         check_condition('IDAT' in self.chunknames,
                         "IDAT section missing")

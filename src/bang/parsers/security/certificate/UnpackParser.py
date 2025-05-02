@@ -2,29 +2,28 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 # The SSL certificate formats themselves are defined in for example:
 # * X.690 - https://en.wikipedia.org/wiki/X.690
 # * X.509 - https://en.wikipedia.org/wiki/X.509
 
 import os
+import pathlib
 import shutil
 import string
 import subprocess
@@ -130,6 +129,20 @@ class CertificateUnpackParser(UnpackParser):
 
         check_condition(end_pos != -1, "no end of certificate found")
         check_condition(cert_unpacked, "no certificate found")
+
+        # extra sanity check for ca-certificates.crt to prevent
+        # writing many 1 byte files with whitespace that clutter
+        # the scan results.
+        if pathlib.Path(self.infile.name).name == 'ca-certificates.crt':
+            self.infile.seek(end_of_certificate)
+            if self.infile.read(1) == b'\n':
+                end_of_certificate += 1
+        else:
+            # check if there is an extra newline at the end
+            if self.infile.size - end_of_certificate == 1:
+                self.infile.seek(end_of_certificate)
+                if self.infile.read(1) == b'\n':
+                    end_of_certificate += 1
 
         # check the certificate
         self.infile.seek(0)

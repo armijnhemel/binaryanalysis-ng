@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 # Test files can be created with 'lz4c -l'
 
@@ -32,6 +30,7 @@ from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import lz4_legacy
+from . import lz4_legacy_kernel
 
 
 class Lz4legacyUnpackParser(UnpackParser):
@@ -41,14 +40,31 @@ class Lz4legacyUnpackParser(UnpackParser):
     ]
     pretty_name = 'lz4_legacy'
 
+    def __init__(self, from_meta_directory, offset, configuration):
+        super().__init__(from_meta_directory, offset, configuration)
+        self.from_md = from_meta_directory
+
     def parse(self):
         if shutil.which('lz4c') is None:
             raise UnpackParserException("lz4c not installed")
         try:
             self.data = lz4_legacy.Lz4Legacy.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            propagated = self.from_md.info.get('propagated', {})
 
+            if 'parent_parser' in propagated:
+                if propagated['parent_parser'] == 'linux_x86':
+                    try:
+                        self.infile.seek(0)
+                        self.data = lz4_legacy_kernel.Lz4LegacyKernel.from_io(self.infile)
+                    except (Exception, ValidationFailedError) as e:
+                        raise UnpackParserException(e.args)
+                else:
+                    raise UnpackParserException(e.args)
+            else:
+                raise UnpackParserException(e.args)
+
+        # correctly set unpacked_size
         self.unpacked_size = 4
         for block in self.data.blocks:
             if not block.is_magic:
@@ -56,7 +72,7 @@ class Lz4legacyUnpackParser(UnpackParser):
 
         # check if the file starts at offset 0 and if the file length
         # equals the entire file. If not, carve the file first, as multiple
-        # streams can be concatenated and lz4c will concatenate result
+        # streams can be concatenated and lz4c will concatenate results
         self.havetmpfile = False
         if not (self.offset == 0 and self.infile.size == self.unpacked_size):
             self.temporary_file = tempfile.mkstemp(dir=self.configuration.temporary_directory)

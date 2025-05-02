@@ -23,7 +23,7 @@ endif
 all: $(KAITAI_PARSERS)
 
 %.py : %.ksy
-	$(KAITAISTRUCT_COMPILER) -I bang/parsers -t python --outdir `dirname "$<"` $<
+	$(KAITAISTRUCT_COMPILER) --read-pos -I bang/parsers -t python --outdir `dirname "$<"` $<
 	sed -i 's/^from \($(KAITAI_PATTERN)\) import /from .\1 import /' "$@"
 	sed -i 's/^import \($(KAITAI_PATTERN)\)$$/from . &\nfrom .\1 import \*/' "$@"
 

@@ -2,22 +2,20 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 import hashlib
 import os
@@ -134,6 +132,7 @@ class UnpackParser:
         '''
         self.record_parser(to_meta_directory)
         self.record_size(to_meta_directory)
+        self.record_offset(to_meta_directory)
         self.add_labels(to_meta_directory)
         self.update_metadata(to_meta_directory)
 
@@ -142,6 +141,9 @@ class UnpackParser:
 
     def record_size(self, to_meta_directory):
         to_meta_directory.info['size'] = self.parsed_size
+
+    def record_offset(self, to_meta_directory):
+        to_meta_directory.info['offset'] = self.offset
 
     def add_labels(self, to_meta_directory):
         to_meta_directory.info.setdefault('labels',[]).extend(set(self.labels))
@@ -173,7 +175,7 @@ class ExtractedParser(UnpackParser):
     metadata = {}
 
     def unpack(self, to_meta_directory):
-        # synthesize files must be scanned again (with featureless parsers), so let them unpack themselves
+        # synthesized files must be scanned again (with featureless parsers), so let them unpack themselves
         # but first, write the info data before the meta directory is queued.
         to_meta_directory.write_ahead()
         yield to_meta_directory
@@ -198,7 +200,7 @@ class SynthesizingParser(UnpackParser):
     metadata = {}
 
     def unpack(self, to_meta_directory):
-        # synthesize files must be scanned again (with featureless parsers), so let them unpack themselves
+        # synthesized files must be scanned again (with featureless parsers), so let them unpack themselves
         # but first, write the info data before the meta directory is queued.
         to_meta_directory.write_ahead()
         yield to_meta_directory
@@ -260,77 +262,21 @@ class ExtractingParser(UnpackParser):
         pass
 
 class HashParser(UnpackParser):
-    '''Compute various hashes for files. By default a few hashes have
-    been hardcoded. To compute different hashes change this file.
-    '''
-
-    hash_algorithms = ['sha256', 'md5', 'sha1']
-
-    # read data in blocks of 10 MiB
-    read_size = 10485760
-
-    # labels that TLSH should ignore
-    tlsh_labels_ignore = set([
-            'compressed', 'graphics', 'audio', 'archive',
-            'filesystem', 'srec', 'ihex', 'padding',
-            'database'])
-
-    # TLSH maximum size
-    tlsh_maximum = 31457280
-
     def __init__(self, from_meta_directory, offset, configuration):
         super().__init__(from_meta_directory, offset, configuration)
         self.from_md = from_meta_directory
+        self.offset = offset
 
     pretty_name = 'hashparser'
 
     def parse(self):
-        # create the hashes
-        hashes = {}
-        for h in self.hash_algorithms:
-            hashes[h] = hashlib.new(h)
+        # reset the file pointer to compute TLSH
+        self.infile.seek(self.offset)
+        self.hash_results = compute_tlsh(self.infile)
 
-        # also compute TLSH hashes, but only for interesting
-        # files and files that are big enough but not too big
-        scan_tlsh = False
-        if 256 <= self.from_md.size <= self.tlsh_maximum:
-            scan_tlsh = True
-
-        labels = self.from_md.info.get('labels', [])
-        if self.tlsh_labels_ignore.intersection(labels) != set():
-            scan_tlsh = False
-
-        if scan_tlsh:
-            tlsh_hash = tlsh.Tlsh()
-
-        # then read the data
-        bytes_processed = 0
-        scanbytes = bytearray(self.read_size)
-        bytes_read = self.infile.readinto(scanbytes)
-        while bytes_read != 0:
-            bytes_processed += bytes_read
-            data = memoryview(scanbytes[:bytes_read])
-            for h in hashes:
-                hashes[h].update(data)
-            if scan_tlsh:
-                tlsh_hash.update(data.tobytes())
-            bytes_read = self.infile.readinto(scanbytes)
-
-        if scan_tlsh:
-            tlsh_hash.final()
-
-        self.hash_results = dict([(algorithm, computed_hash.hexdigest())
-            for algorithm, computed_hash in hashes.items()])
-
-        if scan_tlsh:
-            try:
-                self.hash_results['tlsh'] = tlsh_hash.hexdigest()
-            except ValueError:
-                # not enough entropy in input file
-                pass
-
-        self.update_metadata(self.from_md)
-        self.from_md.write_ahead()
+        if self.hash_results is not None:
+            self.update_metadata(self.from_md)
+            self.from_md.write_ahead()
 
     def calculate_unpacked_size(self):
         self.unpacked_size = 0
@@ -339,10 +285,73 @@ class HashParser(UnpackParser):
 
     @property
     def metadata(self):
-        metadata = {}
-        metadata['hashes'] = self.hash_results
+        metadata = self.from_md.info.get('metadata', {})
+        if 'hashes' not in metadata:
+            metadata['hashes'] = {}
+        metadata['hashes']['tlsh'] = self.hash_results
         return metadata
 
+def compute_tlsh(open_file):
+    '''Compute TLSH hash for files. By default a few hashes have
+    been hardcoded. To compute different hashes change this file.
+    '''
+
+    # read data in blocks of 10 MiB
+    read_size = 10485760
+
+    # TLSH maximum size
+    tlsh_maximum = 31457280
+
+    tlsh_hash = tlsh.Tlsh()
+
+    # then read the data
+    bytes_processed = 0
+    scanbytes = bytearray(read_size)
+    bytes_read = open_file.readinto(scanbytes)
+
+    while bytes_read != 0:
+        bytes_processed += bytes_read
+        data = memoryview(scanbytes[:bytes_read])
+        tlsh_hash.update(data.tobytes())
+        bytes_read = open_file.readinto(scanbytes)
+
+    tlsh_hash.final()
+
+    try:
+        return tlsh_hash.hexdigest()
+    except ValueError:
+        # not enough entropy in input file
+        return
+
+def compute_hashes(open_file):
+    '''Compute various hashes for files. By default a few hashes have
+    been hardcoded. To compute different hashes change this file.
+    '''
+    hash_algorithms = ['sha256', 'md5', 'sha1']
+
+    # read data in blocks of 10 MiB
+    read_size = 10485760
+
+    hashes = {}
+    for h in hash_algorithms:
+        hashes[h] = hashlib.new(h)
+
+    # then read the data
+    bytes_processed = 0
+    scanbytes = bytearray(read_size)
+    bytes_read = open_file.readinto(scanbytes)
+
+    while bytes_read != 0:
+        bytes_processed += bytes_read
+        data = memoryview(scanbytes[:bytes_read])
+        for h in hashes:
+            hashes[h].update(data)
+        bytes_read = open_file.readinto(scanbytes)
+
+    hash_results = dict([(algorithm, computed_hash.hexdigest())
+        for algorithm, computed_hash in hashes.items()])
+
+    return hash_results
 
 def check_condition(condition, message):
     '''semantic check function to see if condition is True.

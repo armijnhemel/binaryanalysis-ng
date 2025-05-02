@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright - Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 import hashlib
 import json
@@ -55,11 +53,13 @@ class ResPackUnpackParser(UnpackParser):
         self.unpacked_size = self.infile.tell()
 
         check_condition('files' in self.file_metadata, "invalid ResPack JSON")
+
         for f in self.file_metadata['files']:
             check_condition('n' in f, "invalid ResPack JSON")
             check_condition(f['n'] != '', "invalid file name in ResPack JSON")
             check_condition('p' in f, "invalid ResPack JSON")
             check_condition('l' in f, "invalid ResPack JSON")
+
             check_condition(self.end_of_json_offset + f['p'] + f['l'] <= self.infile.size,
                             "data cannot be outside of file")
             self.unpacked_size = max(self.unpacked_size, self.end_of_json_offset + f['p'] + f['l'])
