@@ -128,7 +128,7 @@ class DexUnpackParser(UnpackParser):
 
     def parse_bytecode(self, bytecode, opcode_version=None):
         # parse enough of the bytecode to be able to extract the strings
-        if opcode_version == None:
+        if opcode_version is None:
             version_str = self.data.header.version_str
         else:
             version_str = opcode_version
@@ -286,7 +286,7 @@ class DexUnpackParser(UnpackParser):
             computed_checksum = zlib.adler32(self.data.bytes_for_adler32)
             self.unpacked_size = self.data.header.file_size
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         check_condition(self.data.header.checksum == computed_checksum,
                         "wrong Adler32")
 
@@ -459,7 +459,7 @@ class OdexUnpackParser(UnpackParser):
         try:
             self.data = odex.Odex.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.unpacked_size = self.data.ofs_opt + self.data.len_opt
 
@@ -473,7 +473,7 @@ class OdexUnpackParser(UnpackParser):
         try:
             self.dex = dex.Dex.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         # cut .odex from the path name if it is there

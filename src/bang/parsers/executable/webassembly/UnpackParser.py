@@ -20,7 +20,7 @@
 
 # Kaitai file from: https://github.com/evacchi/kaitai-webassembly
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import webassembly
@@ -37,7 +37,7 @@ class WebAssemblyUnpackParser(UnpackParser):
         try:
             self.data = webassembly.Webassembly.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     labels = ['webassembly']
 

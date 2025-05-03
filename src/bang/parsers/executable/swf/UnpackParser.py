@@ -40,7 +40,7 @@ class SwfUnpackParser(UnpackParser):
         try:
             self.data = swf.Swf.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.unpacked_size = self.infile.tell()
 
@@ -67,7 +67,7 @@ class SwfUnpackParser(UnpackParser):
                     if len(decompressor.unused_data) != 0:
                         break
                 except:
-                    raise UnpackParserException('zlib decompression failure')
+                    raise UnpackParserException('zlib decompression failure') from e
 
             check_condition(len_decompressed + 8 == self.data.header.len_file,
                             "length of decompressed data does not match declared length")
@@ -122,7 +122,7 @@ class SwfUnpackParser(UnpackParser):
             try:
                 decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=swf_filters)
             except:
-                raise UnpackParserException('unsupported LZMA properties')
+                raise UnpackParserException('unsupported LZMA properties') from e
 
             # read 1 MB chunks
             checkbytes = bytearray(chunksize)
@@ -138,7 +138,7 @@ class SwfUnpackParser(UnpackParser):
                     if len(decompressor.unused_data) != 0:
                         break
                 except:
-                    raise UnpackParserException('lzma decompression failure')
+                    raise UnpackParserException('lzma decompression failure') from e
 
             check_condition(len_decompressed + 8 == self.data.header.len_file,
                             "length of decompressed data does not match declared length")

@@ -22,11 +22,11 @@
 
 import zlib
 
+from kaitaistruct import ValidationFailedError
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationFailedError
-from . import bflt
 from bang.parsers.archivers.gzip import gzip as kaitai_gzip
+from . import bflt
 
 
 class BfltUnpackParser(UnpackParser):
@@ -51,7 +51,7 @@ class BfltUnpackParser(UnpackParser):
                 try:
                     gzip_data = kaitai_gzip.Gzip.from_io(self.infile)
                 except (Exception, ValidationFailedError) as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
 
                 gzipcrc32 = zlib.crc32(b'')
 
@@ -74,7 +74,7 @@ class BfltUnpackParser(UnpackParser):
                         len_uncompressed += len(unpacked_data)
                         gzipcrc32 = zlib.crc32(unpacked_data, gzipcrc32)
                     except Exception as e:
-                        raise UnpackParserException(e.args)
+                        raise UnpackParserException(e.args) from e
 
                     total_bytes_read += bytesread - len(decompressor.unused_data)
                     if decompressor.unused_data != b'':
@@ -135,7 +135,7 @@ class BfltUnpackParser(UnpackParser):
                     self.data_data = self.data.data
                     self.data_text = self.data.text
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):

@@ -18,10 +18,9 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
-import os
 import mutf8
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import java_class
@@ -38,7 +37,7 @@ class JavaClassUnpackParser(UnpackParser):
         try:
             self.data = java_class.JavaClass.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # make sure that all the pointers
         # into the constant pool are actually valid
@@ -56,14 +55,14 @@ class JavaClassUnpackParser(UnpackParser):
                     pass
 
             try:
-                if type(i.cp_info) == java_class.JavaClass.StringCpInfo:
+                if isinstance(i.cp_info, java_class.JavaClass.StringCpInfo):
                     decoded_string = mutf8.decode_modified_utf8(i.cp_info.name_as_str)
             except UnicodeDecodeError:
                 # This shouldn't happen and means there
                 # is an error in the mutf8 package
                 pass
             except AttributeError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
             constant_pool_index += 1
 
     labels = ['java class']
@@ -105,7 +104,7 @@ class JavaClassUnpackParser(UnpackParser):
                     # This shouldn't happen and means there
                     # is an error in the mutf8 package
                     pass
-            if type(i.cp_info) == java_class.JavaClass.StringCpInfo:
+            if isinstance(i.cp_info, java_class.JavaClass.StringCpInfo):
                 try:
                     decoded_string = mutf8.decode_modified_utf8(i.cp_info.name_as_str)
                     metadata['strings'].append(decoded_string)

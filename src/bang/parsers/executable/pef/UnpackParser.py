@@ -51,7 +51,7 @@ class PefClassUnpackParser(UnpackParser):
                 else:
                     symbols = s.section.header.symbols
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def calculate_unpacked_size(self):
         pass

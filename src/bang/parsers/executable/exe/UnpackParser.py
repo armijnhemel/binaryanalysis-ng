@@ -31,6 +31,7 @@ a specific order to recognize from most specific (PE, NE) to least
 specific (DOS MZ).
 '''
 
+import pefile
 from bang.UnpackParser import UnpackParser, check_condition, OffsetInputFile
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
@@ -39,7 +40,6 @@ from . import ne
 from . import dos_mz
 from . import coff
 
-import pefile
 
 
 class ExeUnpackParser(UnpackParser):
@@ -94,8 +94,8 @@ class ExeUnpackParser(UnpackParser):
                 self.infile.seek(self.offset)
                 self.data = dos_mz.DosMz.from_io(self.infile)
                 self.exetype = 'dos_mz'
-            except (Exception, ValidationFailedError) as e:
-                raise UnpackParserException(e.args)
+            except (Exception, ValidationFailedError) as ex:
+                raise UnpackParserException(e.args) from ex
 
         if self.exetype == 'pe':
             check_condition(self.data.mz.ofs_pe <= self.infile.size,
@@ -167,7 +167,7 @@ class ExeUnpackParser(UnpackParser):
                         for s in self.coff.symbol_table_and_string_table.string_table.strings:
                             pass
                         self.coff_size = max(self.coff_size, self.coff.header.ofs_symbol_table + symbol_size)
-                except (Exception, ValidationFailedError) as e:
+                except (Exception, ValidationFailedError):
                     self.has_coff = False
 
     def calculate_unpacked_size(self):
@@ -224,13 +224,13 @@ class ExeUnpackParser(UnpackParser):
                         if imp.name is None:
                             continue
                         imported_symbols[dll].append(imp.name.decode())
-            except Exception as e:
+            except Exception:
                 pass
 
             try:
                 for entry in self.pe.DIRECTORY_ENTRY_EXPORT.symbols:
                     exported_symbols.append(entry.name.decode())
-            except Exception as e:
+            except Exception:
                 pass
 
             metadata['symbols']['imported'] = imported_symbols

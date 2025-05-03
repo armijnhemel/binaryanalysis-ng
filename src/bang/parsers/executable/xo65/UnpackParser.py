@@ -81,7 +81,7 @@ class Xo65UnpackParser(UnpackParser):
                             "not enough data for span table")
 
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
