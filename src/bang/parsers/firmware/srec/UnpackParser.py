@@ -39,8 +39,8 @@ class SrecUnpackParser(UnpackParser):
         try:
             # open the file again, but then in text mode
             srec_file = open(self.infile.name, 'r', newline='')
-        except:
-            raise UnpackParserException("Cannot decode file as text")
+        except Exception as e:
+            raise UnpackParserException("Cannot decode file as text") from e
 
         # read the lines of the data, until either EOF
         # or until the end of the srec data has been reached
@@ -140,7 +140,7 @@ class SrecUnpackParser(UnpackParser):
                 unpacked += len(srec_line)
         except UnicodeDecodeError as e:
             srec_file.close()
-            raise UnpackParserException("cannot decode")
+            raise UnpackParserException("cannot decode") from e
 
         srec_file.close()
 

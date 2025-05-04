@@ -45,7 +45,7 @@ class HuaweiFirmwareUnpackParser(UnpackParser):
                 self.unpacked_size = max(self.unpacked_size, item.ofs_data + item.len_data)
                 check_condition(len(item.data) == item.len_data, "not enough data")
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):

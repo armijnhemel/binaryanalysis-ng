@@ -38,7 +38,7 @@ class RockchipUnpackParser(UnpackParser):
         try:
             self.data = rockchip.Rockchip.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.unpacked_size = 0
 
@@ -74,11 +74,11 @@ class RockchipUnpackParser(UnpackParser):
             # This is ugly, but sometimes there are duplicate
             # 'path' entries.
             if entry.path in seen_paths:
-                new_name = "%s-%s" % (entry.name, entry.path)
+                new_name = f"{entry.name}-{entry.path}"
                 if new_name in seen_paths:
                     counter = 1
                     while True:
-                        name_with_ctr = "%s-renamed-%d" % (new_name, counter)
+                        name_with_ctr = f"{new_name}-renamed-{counter}"
                         if not new_name in seen_paths:
                             new_name = name_with_ctr
                             out_labels.append('renamed')

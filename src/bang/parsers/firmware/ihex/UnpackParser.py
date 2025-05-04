@@ -41,7 +41,7 @@ class IhexUnpackParser(UnpackParser):
             ihex_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
             ihex_file.close()
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # read the lines of the data, until either EOF
         # or until the end of the ihex data has been reached
@@ -112,7 +112,7 @@ class IhexUnpackParser(UnpackParser):
                     end_of_ihex = True
                     unpacked += len(hex_line)
                     break
-                elif record_type == 0:
+                if record_type == 0:
                     try:
                         ihexdata = bytes.fromhex(line[9:9+num_bytes*2])
                     except ValueError:
@@ -137,7 +137,7 @@ class IhexUnpackParser(UnpackParser):
                     record_types.add(record_type)
                 unpacked += len(hex_line)
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             ihex_file.close()
 
@@ -183,7 +183,7 @@ class IhexUnpackParser(UnpackParser):
                 if record_type == 1:
                     end_of_ihex = True
                     break
-                elif record_type == 0:
+                if record_type == 0:
                     ihexdata = bytes.fromhex(line[9:9+num_bytes*2])
                     outfile.write(ihexdata)
             ihex_file.close()

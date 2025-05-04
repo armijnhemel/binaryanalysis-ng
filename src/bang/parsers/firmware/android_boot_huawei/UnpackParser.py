@@ -38,7 +38,7 @@ class AndroidBootHuaweiUnpackParser(UnpackParser):
         try:
             self.data = android_bootldr_huawei.AndroidBootldrHuawei.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         check_condition(self.data.meta_header.len_meta_header == 76, "invalid header size")
         self.unpacked_size = 0
         for entry in self.data.image_header.entries:

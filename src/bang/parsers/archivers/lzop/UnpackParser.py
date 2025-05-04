@@ -39,7 +39,7 @@ class LzopUnpackParser(UnpackParser):
         try:
             self.data = lzop.Lzop.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # version, has to be 0x00, 0x10 or 0x20 according
         # to /usr/share/magic and 0x30 and 0x40 according

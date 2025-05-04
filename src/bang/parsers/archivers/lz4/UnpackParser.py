@@ -27,6 +27,7 @@ import xxhash
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
+
 from . import lz4 as kaitai_lz4
 
 
@@ -41,7 +42,7 @@ class Lz4UnpackParser(UnpackParser):
         try:
             self.data = kaitai_lz4.Lz4.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         for block in self.data.blocks:
             if block.is_endmark:
                 break
@@ -68,7 +69,7 @@ class Lz4UnpackParser(UnpackParser):
             try:
                 uncompressresults = lz4.frame.decompress_chunk(decompressor, checkbytes)
             except Exception as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
             bytes_to_read -= readsize
             readsize = min(bytes_to_read, 1000000)
             if readsize == 0:

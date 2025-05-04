@@ -43,7 +43,7 @@ class AmbarellaUnpackParser(UnpackParser):
                 if section.body is None:
                     continue
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.unpacked_size = 256
         for i in range(len(self.data.start_offsets)):

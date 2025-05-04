@@ -50,8 +50,8 @@ class AndroidBootImgUnpacker(UnpackParser):
                 self.infile.seek(0)
                 self.data = android_img_lk.AndroidImgLk.from_io(self.infile)
                 self.is_variant = True
-            except (Exception, ValidationFailedError) as e:
-                raise UnpackParserException(e.args)
+            except (Exception, ValidationFailedError) as ex:
+                raise UnpackParserException(ex.args) from ex
 
             check_condition(self.data.header.page_size + self.data.header.kernel.size <= self.infile.size,
                             "data cannot be outside of file")
@@ -70,7 +70,7 @@ class AndroidBootImgUnpacker(UnpackParser):
                 try:
                     unpacked_size = ((page_size + self.data.header.kernel.size + page_size - 1)//page_size) * page_size
                 except ZeroDivisionError as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
                 if self.data.header.ramdisk.size > 0:
                     unpacked_size = ((unpacked_size + self.data.header.ramdisk.size + page_size - 1)//page_size) * page_size
                 if self.data.header.second.size > 0:

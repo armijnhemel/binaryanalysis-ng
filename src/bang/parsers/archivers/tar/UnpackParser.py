@@ -19,7 +19,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import pathlib
-import stat
 import tarfile
 
 from bang.UnpackParser import UnpackParser
@@ -39,11 +38,11 @@ class TarUnpackParser(UnpackParser):
         try:
             self.unpacktar = tarfile.open(fileobj=self.infile, mode='r')
         except tarfile.TarError as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         try:
             self.tarinfos = self.unpacktar.getmembers()
         except tarfile.TarError as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         tar_filenames = set()
         for tarinfo in self.tarinfos:

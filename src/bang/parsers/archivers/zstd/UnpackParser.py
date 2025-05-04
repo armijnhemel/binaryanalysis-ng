@@ -142,7 +142,7 @@ class ZstdUnpackParser(UnpackParser):
             reader = zstandard.ZstdDecompressor().stream_reader(self.infile.read(self.unpacked_size))
             payload = reader.read()
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         # determine the name of the output file

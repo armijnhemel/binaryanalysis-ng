@@ -21,7 +21,7 @@
 import bz2
 import pathlib
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import bzip2
@@ -47,7 +47,7 @@ class Bzip2UnpackParser(UnpackParser):
         try:
             self.data = bzip2.Bzip2.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # the header parsed cleanly, so test unpack the data
         # First reset the offset
@@ -65,10 +65,10 @@ class Bzip2UnpackParser(UnpackParser):
         while bz2data != b'':
             try:
                 bz2decompressor.decompress(bz2data)
-            except EOFError as e:
+            except EOFError:
                 break
             except Exception as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
             # there is no more compressed data
             self.unpacked_size += len(bz2data) - len(bz2decompressor.unused_data)
@@ -106,7 +106,7 @@ class Bzip2UnpackParser(UnpackParser):
                 try:
                     unpacked_data = bz2decompressor.decompress(bz2data)
                     outfile.write(unpacked_data)
-                except EOFError as e:
+                except EOFError:
                     break
 
                 # there is no more compressed data

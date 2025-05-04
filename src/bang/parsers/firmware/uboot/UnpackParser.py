@@ -45,7 +45,7 @@ class UbootUnpackParser(UnpackParser):
         try:
             self.data = uimage.Uimage.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # now calculate the CRC of the header and compare it
         # to the stored one

@@ -58,7 +58,8 @@ class SevenzipUnpackParser(UnpackParser):
             self.data = sevenzip.Sevenzip.from_io(self.infile)
             computed_crc = binascii.crc32(self.data.header.start_header.next_header)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
+
         check_condition(self.data.header.start_header.next_header_crc == computed_crc,
                         "invalid next header CRC")
 
@@ -107,9 +108,9 @@ class SevenzipUnpackParser(UnpackParser):
             self.unpack_directory = pathlib.Path(tempfile.mkdtemp(dir=self.configuration.temporary_directory))
 
             if self.havetmpfile:
-                p = subprocess.Popen(['7z', '-o%s' % self.unpack_directory, '-y', 'x', self.temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                p = subprocess.Popen(['7z', f'-o{self.unpack_directory}', '-y', 'x', self.temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             else:
-                p = subprocess.Popen(['7z', '-o%s' % self.unpack_directory, '-y', 'x', self.infile.name], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                p = subprocess.Popen(['7z', f'-o{self.unpack_directory}', '-y', 'x', self.infile.name], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             (outputmsg, errormsg) = p.communicate()
 

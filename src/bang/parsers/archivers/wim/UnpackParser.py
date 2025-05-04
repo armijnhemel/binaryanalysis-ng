@@ -37,7 +37,7 @@ import subprocess
 import tempfile
 import defusedxml
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import wim
@@ -56,18 +56,18 @@ class WimUnpackParser(UnpackParser):
         try:
             self.data = wim.Wim.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         if self.data.header.xml != b'':
             try:
                 wimxml = self.data.header.xml.decode('utf_16_le')
             except UnicodeDecodeError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
             try:
                 defusedxml.minidom.parseString(wimxml)
             except Exception as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
         # record the maximum offset
         self.unpacked_size = max(self.infile.tell(),
@@ -92,9 +92,9 @@ class WimUnpackParser(UnpackParser):
         self.unpack_directory = pathlib.Path(tempfile.mkdtemp(dir=self.configuration.temporary_directory))
 
         if self.havetmpfile:
-            p = subprocess.Popen(['7z', '-o%s' % self.unpack_directory, '-y', 'x', temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p = subprocess.Popen(['7z', f'-o{self.unpack_directory}', '-y', 'x', temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         else:
-            p = subprocess.Popen(['7z', '-o%s' % self.unpack_directory, '-y', 'x', self.infile.name], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p = subprocess.Popen(['7z', f'-o{self.unpack_directory}', '-y', 'x', self.infile.name], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         (outputmsg, errormsg) = p.communicate()
 

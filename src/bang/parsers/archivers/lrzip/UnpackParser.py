@@ -68,7 +68,7 @@ class LrzipUnpackParser(UnpackParser):
                 self.unpacked_size += 16
 
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         check_condition(self.unpacked_size <= self.infile.size, "data cannot be outside of file")
 

@@ -20,7 +20,7 @@
 
 import pathlib
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import xiaomi_firmware
@@ -48,7 +48,7 @@ class XiaomiFirmwareUnpackParser(UnpackParser):
             # signature
             self.unpacked_size = max(self.unpacked_size, self.data.header.ofs_signature + 16 + self.data.header.signature.len_signature)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):

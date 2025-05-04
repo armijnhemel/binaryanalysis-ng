@@ -83,7 +83,7 @@ class AndroidBackupUnpackParser(UnpackParser):
         except Exception as e:
             os.fdopen(self.temporary_file[0]).close()
             os.unlink(self.temporary_file[1])
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         os.fdopen(self.temporary_file[0]).close()
 
         # check the if the file is a valid tar file
@@ -92,9 +92,9 @@ class AndroidBackupUnpackParser(UnpackParser):
             members = android_tar.getmembers()
             for member in members:
                 pass
-        except TarError as e:
+        except tarfile.TarError as e:
             os.unlink(self.temporary_file[1])
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         android_tar = tarfile.open(self.temporary_file[1], mode='r')

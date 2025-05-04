@@ -43,7 +43,7 @@ class GzipUnpackParser(UnpackParser):
         try:
             self.data = kaitai_gzip.Gzip.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # store the CRC and length of the uncompressed data
         gzipcrc32 = zlib.crc32(b'')
@@ -70,7 +70,7 @@ class GzipUnpackParser(UnpackParser):
                 len_uncompressed += len(unpacked_data)
                 gzipcrc32 = zlib.crc32(unpacked_data, gzipcrc32)
             except Exception as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
             total_bytes_read += bytesread - len(decompressor.unused_data)
             if decompressor.unused_data != b'':

@@ -26,7 +26,7 @@ import shutil
 import subprocess
 import tempfile
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import lz4_legacy
@@ -57,12 +57,12 @@ class Lz4legacyUnpackParser(UnpackParser):
                     try:
                         self.infile.seek(0)
                         self.data = lz4_legacy_kernel.Lz4LegacyKernel.from_io(self.infile)
-                    except (Exception, ValidationFailedError) as e:
-                        raise UnpackParserException(e.args)
+                    except (Exception, ValidationFailedError) as ex:
+                        raise UnpackParserException(ex.args) from ex
                 else:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
             else:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
         # correctly set unpacked_size
         self.unpacked_size = 4

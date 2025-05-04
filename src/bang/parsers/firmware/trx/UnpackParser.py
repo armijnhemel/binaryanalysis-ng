@@ -38,7 +38,7 @@ class TrxUnpackParser(UnpackParser):
         try:
             self.data = trx.Trx.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         computed_crc = ~zlib.crc32(self.data.raw_data) & 0xffffffff
         check_condition(self.data.preheader.crc32 == computed_crc,

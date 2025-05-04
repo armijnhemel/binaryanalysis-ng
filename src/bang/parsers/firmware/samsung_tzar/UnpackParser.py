@@ -20,7 +20,7 @@
 
 import pathlib
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import samsung_tzar
@@ -38,7 +38,7 @@ class SamsungTzarUnpackParser(UnpackParser):
         try:
             self.data = samsung_tzar.SamsungTzar.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         for entry in self.data.entries.entries:

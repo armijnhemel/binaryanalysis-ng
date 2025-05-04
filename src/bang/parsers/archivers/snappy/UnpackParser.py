@@ -41,7 +41,7 @@ class SnappyUnpackParser(UnpackParser):
         try:
             self.data = kaitai_snappy.Snappy.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # first chunk has to be the header, even though
         # this is already covered by the signature
@@ -87,7 +87,7 @@ class SnappyUnpackParser(UnpackParser):
             if self.havetmpfile:
                 infile.close()
                 os.unlink(self.temporary_file[1])
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             outfile.close()
 

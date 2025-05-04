@@ -42,7 +42,7 @@ class SpreadtrumPacUnpackParser(UnpackParser):
                 self.unpacked_size = max(self.unpacked_size, entry.header.ofs_partition + entry.header.len_partition)
                 len_data = len(entry.data)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         check_condition(self.infile.size >= self.unpacked_size, "not enough data")
 

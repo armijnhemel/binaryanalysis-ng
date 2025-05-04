@@ -95,7 +95,7 @@ class ExeUnpackParser(UnpackParser):
                 self.data = dos_mz.DosMz.from_io(self.infile)
                 self.exetype = 'dos_mz'
             except (Exception, ValidationFailedError) as ex:
-                raise UnpackParserException(e.args) from ex
+                raise UnpackParserException(ex.args) from ex
 
         if self.exetype == 'pe':
             check_condition(self.data.mz.ofs_pe <= self.infile.size,

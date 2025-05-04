@@ -18,7 +18,6 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
-import os
 import pathlib
 
 from bang.UnpackParser import UnpackParser, check_condition
@@ -38,7 +37,7 @@ class AndroidVendorBootUnpackParser(UnpackParser):
         try:
             self.data = android_vendor_boot.AndroidVendorBoot.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         if self.data.header.version == 3:
@@ -50,7 +49,7 @@ class AndroidVendorBootUnpackParser(UnpackParser):
             ramdisk_counter = 1
             for ramdisk in self.data.vendor_ramdisk_table.entries:
                 if ramdisk.name == '':
-                    file_path = pathlib.Path("ramdisk-%d" % ramdisk_counter)
+                    file_path = pathlib.Path(f"ramdisk-{ramdisk_counter}")
                 else:
                     file_path = pathlib.Path(ramdisk.name)
                 ramdisk_counter += 1
