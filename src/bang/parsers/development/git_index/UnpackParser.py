@@ -41,7 +41,7 @@ class GitIndexUnpackParser(UnpackParser):
         try:
             self.data = git_index.GitIndex.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # verify the SHA1 checksum
         bytes_to_read = self.infile.tell() - self.data.len_hash

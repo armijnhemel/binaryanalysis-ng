@@ -50,7 +50,7 @@ class ChromePakUnpackParser(UnpackParser):
         try:
             self.data = chrome_pak.ChromePak.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         check_condition(self.data.resources[-1].id == 0, "wrong resource identifier")
         check_condition(self.data.resources[-1].ofs_body <= self.infile.size,
                         "not enough data")
@@ -58,7 +58,7 @@ class ChromePakUnpackParser(UnpackParser):
     def unpack(self, meta_directory):
         resources = self.data.resources
         for i in range(0, len(resources)-1):
-            file_path = pathlib.Path("resource-%d" % resources[i].id)
+            file_path = pathlib.Path(f"resource-{resources[i].id}")
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                 outfile.write(resources[i].body)
 

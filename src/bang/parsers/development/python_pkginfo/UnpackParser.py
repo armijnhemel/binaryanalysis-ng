@@ -24,7 +24,6 @@
 # https://packaging.python.org/en/latest/specifications/core-metadata/
 
 import email.parser
-import re
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
@@ -103,7 +102,7 @@ class PythonPkginfoUnpackParser(UnpackParser):
 
         except Exception as e:
             pkg_info_file.close()
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # then some sanity checks
         check_condition('Metadata-Version' in headers, 'Metadata-Version missing')
