@@ -21,7 +21,7 @@
 import lzma
 import pathlib
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import vxworks_memfs
@@ -44,7 +44,7 @@ class VxworksMemfsUnpackParser(UnpackParser):
                 lzma.decompress(entry.data)
                 self.unpacked_size = max(self.unpacked_size, entry.ofs_data + entry.len_data)
         except (Exception, ValidationFailedError, lzma.LZMAError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def calculate_unpacked_size(self):
         pass

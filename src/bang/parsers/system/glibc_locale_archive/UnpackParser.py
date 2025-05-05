@@ -18,7 +18,7 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import glibc_locale_archive
@@ -47,7 +47,7 @@ class GlibcLocaleArchiveUnpackParser(UnpackParser):
                     # force evaluation check of locrec type
                     loc_rec_type = locrec.loc_rec_type
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):

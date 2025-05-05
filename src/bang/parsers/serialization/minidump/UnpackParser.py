@@ -24,7 +24,7 @@ Parse and unpack Minidump files used in for example Firefox crash reports
 https://chromium.googlesource.com/breakpad/breakpad/+/master/src/google_breakpad/common/minidump_format.h
 '''
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 
@@ -47,7 +47,7 @@ class MinidumpUnpackParser(UnpackParser):
             for i in self.data.streams:
                  a = type(i.data)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def calculate_unpacked_size(self):
         self.unpacked_size = self.data.ofs_streams

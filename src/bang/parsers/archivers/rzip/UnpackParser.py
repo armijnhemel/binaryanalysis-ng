@@ -52,7 +52,7 @@ class RzipUnpackParser(UnpackParser):
 
         # then read the major version
         buf = self.infile.read(1)
-        check_condition(ord(buf) <= 2, "invalid rzip major version %d" % ord(buf))
+        check_condition(ord(buf) <= 2, f"invalid rzip major version {ord(buf)}")
 
         # then read the minor version
         buf = self.infile.read(1)
@@ -97,7 +97,7 @@ class RzipUnpackParser(UnpackParser):
                 except EOFError as e:
                     break
                 except Exception as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
 
                 # there is no more compressed data
                 bz2size += len(bz2data) - len(bz2decompressor.unused_data)

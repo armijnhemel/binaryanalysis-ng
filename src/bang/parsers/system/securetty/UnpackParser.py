@@ -41,7 +41,7 @@ class SecureTTYUnpackParser(UnpackParser):
             securetty_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
             securetty_file.close()
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.entries = []
 
@@ -57,7 +57,7 @@ class SecureTTYUnpackParser(UnpackParser):
                 self.entries.append(match_result.groups()[0])
                 data_unpacked = True
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             securetty_file.close()
 

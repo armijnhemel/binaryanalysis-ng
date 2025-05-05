@@ -18,9 +18,8 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
-import xml.dom
 import defusedxml.minidom
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 
 
@@ -40,7 +39,7 @@ class XmlUnpackParser(UnpackParser):
         try:
             self.data = defusedxml.minidom.parse(self.infile)
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     labels = ['xml']
     metadata = {}

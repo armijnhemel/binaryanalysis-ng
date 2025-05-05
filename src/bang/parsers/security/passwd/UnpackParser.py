@@ -38,7 +38,7 @@ class PasswdUnpackParser(UnpackParser):
             passwd_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
             passwd_file.close()
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.entries = []
 
@@ -63,7 +63,7 @@ class PasswdUnpackParser(UnpackParser):
                     uid = int(fields[2])
                     gid = int(fields[3])
                 except ValueError as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
 
                 entry = {}
                 entry['name'] = fields[0]
@@ -88,7 +88,7 @@ class PasswdUnpackParser(UnpackParser):
                 len_unpacked += len(passwd_line)
                 data_unpacked = True
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             passwd_file.close()
 

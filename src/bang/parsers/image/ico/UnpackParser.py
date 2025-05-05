@@ -36,10 +36,8 @@ class IcoUnpackParser(UnpackParser):
         try:
             self.data = ico.Ico.from_io(self.infile)
         # TODO: decide what exceptions to catch
-        except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
-        except BaseException as e:
-            raise UnpackParserException(e.args)
+        except (Exception, ValidationFailedError, BaseException) as e:
+            raise UnpackParserException(e.args) from e
 
         for img in self.data.images:
             try:
@@ -50,7 +48,7 @@ class IcoUnpackParser(UnpackParser):
                     check_condition(img.height * 2 == bmp_header.height,
                                     "height in icon dir and bmp header not matching")
             except (Exception, ValidationFailedError) as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
             #check_condition(img.num_colors > 0,
                     #"Invalid ico file: zero or negative num_colors")
             # specifications are often not followed for num_planes and bpp:

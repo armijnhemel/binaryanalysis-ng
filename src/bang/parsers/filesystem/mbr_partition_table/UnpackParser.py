@@ -21,9 +21,9 @@
 
 import os
 import pathlib
-from . import mbr_partition_table
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
+from . import mbr_partition_table
 
 class MbrPartitionTableUnpackParser(UnpackParser):
     pretty_name = 'mbr'
@@ -41,7 +41,7 @@ class MbrPartitionTableUnpackParser(UnpackParser):
                 check_condition((p.lba_start + p.num_sectors) * 512 <= self.infile.size,
                                 "partition bigger than file")
         except BaseException as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def calculate_unpacked_size(self):
         self.unpacked_size = 0
@@ -50,7 +50,7 @@ class MbrPartitionTableUnpackParser(UnpackParser):
                 self.unpacked_size = max( self.unpacked_size,
                         (p.lba_start + p.num_sectors) * 512 )
         except BaseException as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         check_condition(self.unpacked_size >= 0x1be,
                 "invalid partition table: no partitions")
 
@@ -63,7 +63,7 @@ class MbrPartitionTableUnpackParser(UnpackParser):
             partition_start = p.lba_start * 512
             partition_length = p.num_sectors * 512
 
-            outfile = "unpacked.mbr-partition%d.%s" % (partition_number, partition_ext)
+            outfile = f"unpacked.mbr-partition{partition_number,}.{partition_ext}"
             with meta_directory.unpack_regular_file(pathlib.Path(outfile)) as (unpacked_md, f):
                 os.sendfile(f.fileno(), self.infile.fileno(), partition_start, partition_length)
                 partition_name = p.partition_type.name
@@ -76,4 +76,3 @@ class MbrPartitionTableUnpackParser(UnpackParser):
 
     labels = ['filesystem','mbr']
     metadata = {}
-

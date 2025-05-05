@@ -21,7 +21,7 @@
 import pathlib
 import gzip
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import plf
@@ -55,7 +55,7 @@ class PlfUnpackParser(UnpackParser):
         try:
             self.data = plf.Plf.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         unpacked_files = []
@@ -162,7 +162,7 @@ class PlfUnpackParser(UnpackParser):
             elif partition.section_type == plf.Plf.SectionTypes.section11:
                 pass
             else:
-                partition_name = "partition-%d" % counter
+                partition_name = f"partition-{counter}"
                 '''
                 if have_mapping:
                     if partition.section_type.value in SECTION_TO_NAMES[self.data.header.file_type.name]:

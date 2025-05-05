@@ -18,7 +18,7 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import psd
@@ -35,7 +35,7 @@ class PsdUnpackParser(UnpackParser):
         try:
             self.data = psd.Psd.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     labels = ['psd', 'graphics']
     metadata = {}

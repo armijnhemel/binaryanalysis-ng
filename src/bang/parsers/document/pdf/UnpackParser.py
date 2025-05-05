@@ -35,7 +35,6 @@
 
 import io
 import os
-import re
 import tempfile
 
 import pdfminer
@@ -79,7 +78,7 @@ class PdfUnpackParser(UnpackParser):
         try:
             version_number = int(buf)
         except ValueError as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         check_condition(version_number <= 7, "invalid minor version number")
 

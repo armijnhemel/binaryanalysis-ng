@@ -27,7 +27,7 @@ test files for ANI: http://www.anicursor.com/diercur.html
 http://fileformats.archiveteam.org/wiki/Windows_Animated_Cursor#Sample_files
 '''
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import ani
@@ -47,7 +47,7 @@ class AniUnpackParser(UnpackParser):
             for c in self.data.subchunks:
                 chunk_id = c.chunk.id
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     labels = ['ani', 'graphics']
     metadata = {}

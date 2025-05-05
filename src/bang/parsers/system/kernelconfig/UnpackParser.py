@@ -58,7 +58,7 @@ class LinuxKernelConfigUnpackParser(UnpackParser):
             kernel_config_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
             kernel_config_file.close()
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.header = {}
         self.configurations = {}
@@ -156,7 +156,7 @@ class LinuxKernelConfigUnpackParser(UnpackParser):
                 if header_found:
                     data_unpacked = True
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             kernel_config_file.close()
 

@@ -45,7 +45,8 @@ class AuUnpackParser(UnpackParser):
         try:
             self.data = au.Au.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
+
         check_condition(self.data.header.data_size != 0xffffffff,
                         "files with unknown data size not supported")
         check_condition(self.infile.size >= self.data.ofs_data + self.data.header.data_size,

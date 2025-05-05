@@ -35,7 +35,7 @@ class AndroidSuperUnpackParser(UnpackParser):
     pretty_name = 'android_super'
 
     def parse(self):
-        # store partitions and extents 
+        # store partitions and extents
         self.partitions = {}
         self.extents = {}
         self.unpacked_size = 0
@@ -81,7 +81,7 @@ class AndroidSuperUnpackParser(UnpackParser):
                 pass
 
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # sanity check the partitions and extents
         for partition in self.partitions:
@@ -93,7 +93,7 @@ class AndroidSuperUnpackParser(UnpackParser):
                 check_condition(self.extents[extent_number]['offset'] + self.extents[extent_number]['size'] <= self.infile.size,
                                 "extent too large for file")
                 self.unpacked_size = self.extents[extent_number]['offset'] + self.extents[extent_number]['size']
-                
+
     def unpack(self, meta_directory):
         # write partitions
         for partition in self.partitions:

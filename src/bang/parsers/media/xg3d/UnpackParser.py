@@ -35,7 +35,8 @@ class Xg3dUnpackParser(UnpackParser):
         try:
             self.data = xg3d.Xg3d.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
+
         check_condition(self.offset == 0 and self.infile.tell() == self.infile.size,
                         "carving not supported for xg3d")
 

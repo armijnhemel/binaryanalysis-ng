@@ -38,7 +38,7 @@ a form of lookahead to see if there is another name.
 Version 2.0.0 of the format seems to be completely different.
 '''
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import qti_chromatix
@@ -55,7 +55,7 @@ class QtiChromatixUnpackParser(UnpackParser):
         try:
             self.data = qti_chromatix.QtiChromatix.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     labels = ['chromatix', 'resource']
     metadata = {}

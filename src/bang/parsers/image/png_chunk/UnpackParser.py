@@ -27,7 +27,6 @@ https://www.w3.org/TR/PNG/
 Section 5 describes the structure of a PNG file
 '''
 
-import os
 import binascii
 
 from bang.UnpackParser import UnpackParser, check_condition
@@ -56,7 +55,7 @@ class PngChunkUnpackParser(UnpackParser):
         try:
             self.data = png_chunk.PngChunk.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         computed_crc = binascii.crc32(self.data.chunk.type.encode('utf-8'))
 

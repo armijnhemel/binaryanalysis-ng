@@ -36,7 +36,7 @@ class RarUnpackParser(UnpackParser):
         raise UnpackParserException("Rar not supported")
         try:
             self.data = rar.Rar.from_io(self.infile)
-        except (BaseException, ValidationFailedError) as e:
+        except (ValidationFailedError, BaseException) as e:
             raise UnpackParserException(e.args) from e
     def unpack(self, unpack_directory):
         return []

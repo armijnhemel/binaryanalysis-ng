@@ -58,12 +58,8 @@ class QuakePakUnpackParser(UnpackParser):
             # are read.
             for i in self.data.index.entries:
                 pass
-        except ValidationFailedError as e:
-            raise UnpackParserException(e.args)
-        except EOFError as e:
-            raise UnpackParserException(e.args)
-        except Exception as e:
-            raise UnpackParserException(e.args)
+        except (ValidationFailedError, EOFError, Exception) as e:
+            raise UnpackParserException(e.args) from e
 
     def calculate_unpacked_size(self):
         self.unpacked_size = self.data.ofs_index + self.data.len_index
@@ -81,7 +77,7 @@ class QuakePakUnpackParser(UnpackParser):
             if entry_name in seen_files:
                 counter=1
                 while True:
-                    entry_name = "%s-renamed-%d" % (quake_entry.name, counter)
+                    entry_name = f"{quake_entry.name}-renamed-{counter}"
                     if entry_name not in seen_files:
                         out_labels.append('renamed')
                         break

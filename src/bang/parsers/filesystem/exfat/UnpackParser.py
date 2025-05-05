@@ -93,7 +93,7 @@ class ExfatUnpacker(UnpackParser):
                 except IndexError:
                     break
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         # walk the directory sets, starting with the root directory

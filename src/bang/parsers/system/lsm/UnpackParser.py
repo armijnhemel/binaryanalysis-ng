@@ -46,7 +46,7 @@ class LsmUnpackParser(UnpackParser):
             lsm_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
             lsm_file.close()
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         len_unpacked = 0
         is_first_line = True
@@ -89,7 +89,7 @@ class LsmUnpackParser(UnpackParser):
 
                 len_unpacked += len(lsm_line)
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             lsm_file.close()
 

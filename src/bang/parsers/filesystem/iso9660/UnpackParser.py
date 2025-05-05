@@ -225,8 +225,8 @@ class Iso9660UnpackParser(UnpackParser):
                                 # sanity checks for zisofs files
                                 try:
                                     zisofs_file = zisofs.Zisofs.from_bytes(record.body.file_content)
-                                except ValidationFailedError:
-                                    raise UnpackParserException(e.args)
+                                except ValidationFailedError as e:
+                                    raise UnpackParserException(e.args) from e
 
                                 # extra sanity checks
                                 check_condition(original_size == zisofs_file.header.uncompressed_size,
@@ -244,7 +244,7 @@ class Iso9660UnpackParser(UnpackParser):
                                         try:
                                             zlib.decompress(block.data)
                                         except zlib.error as e:
-                                            raise UnpackParserException(e.args)
+                                            raise UnpackParserException(e.args) from e
 
                         if record.body.directory_records is None:
                             continue
@@ -262,7 +262,7 @@ class Iso9660UnpackParser(UnpackParser):
                     # there should be at least one volume descriptor set terminator
                     has_terminator = True
         except (Exception, ValidationFailedError, UndecidedEndiannessError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         check_condition(has_primary, "no primary volume descriptor found")
         check_condition(has_terminator, "no volume descriptor set terminator found")
@@ -408,7 +408,7 @@ class Iso9660UnpackParser(UnpackParser):
                                 original_size = entry.susp_data.uncompressed_size.value
                                 zisofs_header_size_susp = entry.susp_data.header_size
 
-                        if symbolic_link_components != []:
+                        if symbolic_link_components:
                             symbolic_target_name = pathlib.Path(*symbolic_link_components)
                     except AttributeError:
                         # there are no entries in the system use

@@ -23,7 +23,6 @@ import os
 import pathlib
 
 from bang.UnpackParser import UnpackParser, check_condition
-from bang.UnpackParserException import UnpackParserException
 
 # UBI (Unsorted Block Image) is not a file system, but it
 # is typically used in combination with UBIFS or squashfs,

@@ -23,7 +23,7 @@
 
 import pathlib
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 
@@ -41,12 +41,12 @@ class PfsUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = pfs.Pfs.from_io(self.infile)
-        except (Exception, ValidationFailedError) as e:
+        except (Exception, ValidationFailedError):
             self.infile.infile.seek(self.infile.offset)
             try:
                 self.data = pfs_40.Pfs40.from_io(self.infile)
-            except (Exception, ValidationFailedError) as e:
-                raise UnpackParserException(e.args)
+            except (Exception, ValidationFailedError) as ex:
+                raise UnpackParserException(ex.args) from ex
 
         self.unpacked_size = self.infile.tell()
         try:
@@ -54,7 +54,7 @@ class PfsUnpackParser(UnpackParser):
             for entry in self.data.files:
                 self.unpacked_size = max(self.unpacked_size, entry.pos + len(entry.data))
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):

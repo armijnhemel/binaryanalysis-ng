@@ -18,7 +18,7 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import systemd_journal
@@ -35,7 +35,7 @@ class SystemdJournal(UnpackParser):
         try:
             self.data = systemd_journal.SystemdJournal.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     labels = ['systemd', 'resource']
     metadata = {}

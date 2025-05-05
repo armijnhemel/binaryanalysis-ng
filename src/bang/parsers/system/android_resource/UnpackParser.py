@@ -37,7 +37,7 @@ class AndroidResourceUnpackParser(UnpackParser):
         try:
             self.data = android_resource.AndroidResource.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         if self.data.resource.header.type == android_resource.AndroidResource.ResourceTypes.xml:
             # walk to see if the XML is actually correct
             elem_count = 0

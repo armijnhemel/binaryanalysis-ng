@@ -47,7 +47,7 @@ class PkgConfigUnpackParser(UnpackParser):
             pkg_config_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
             pkg_config_file.close()
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.keywords_found = set()
 
@@ -81,10 +81,9 @@ class PkgConfigUnpackParser(UnpackParser):
                     if k == fields[0]:
                         self.keywords_found.add(k)
                         keyword_found = True
+                        continued = False
                         if line.endswith('\\'):
                             continued = True
-                        else:
-                            continued = False
                         break
                 if keyword_found:
                     len_unpacked += len(pkg_config_line)
@@ -103,7 +102,7 @@ class PkgConfigUnpackParser(UnpackParser):
                 len_unpacked += len(pkg_config_line)
                 data_unpacked = True
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             pkg_config_file.close()
 

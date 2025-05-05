@@ -44,7 +44,7 @@ class WinhelpClassUnpackParser(UnpackParser):
                 check_condition(i.ofs_fileheader + i.file.header.len_reserved_space <= self.data.len_file,
                                 "leaf entry cannot be outside of file")
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def calculate_unpacked_size(self):
         self.unpacked_size = self.data.len_file

@@ -36,7 +36,7 @@ class AiffUnpackParser(UnpackParser):
         try:
             self.data = aiff.Aiff.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # sanity checks: COMM and SSND chunks are mandatory
         seen_common = False

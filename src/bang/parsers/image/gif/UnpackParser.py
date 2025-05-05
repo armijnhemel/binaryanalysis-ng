@@ -20,7 +20,7 @@
 
 import defusedxml.minidom
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 
@@ -38,10 +38,8 @@ class GifUnpackParser(UnpackParser):
         try:
             self.data = gif.Gif.from_io(self.infile)
         # TODO: decide what exceptions to catch
-        except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
-        except BaseException as e:
-            raise UnpackParserException(e.args)
+        except (Exception, ValidationFailedError, BaseException) as e:
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         """extract any files from the input file"""

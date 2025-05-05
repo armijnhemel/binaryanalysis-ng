@@ -18,11 +18,12 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
-from . import windows_shell_items
-from . import windows_lnk_file
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
+
+from . import windows_shell_items
+from . import windows_lnk_file
 
 
 class WindowsLinkUnpackParser(UnpackParser):
@@ -37,7 +38,7 @@ class WindowsLinkUnpackParser(UnpackParser):
         try:
             self.data = windows_lnk_file.WindowsLnkFile.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     metadata = {}
     labels = [ 'lnk', 'resource', 'windows' ]

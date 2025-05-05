@@ -18,7 +18,7 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import serialized_java
@@ -35,7 +35,7 @@ class SerializedJavaUnpackParser(UnpackParser):
         try:
             self.data = serialized_java.SerializedJava.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.unpacked_size = 4
         for block in self.data.blocks:

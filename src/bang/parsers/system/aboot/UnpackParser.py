@@ -21,7 +21,7 @@
 import pathlib
 import ssl
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import aboot
@@ -35,9 +35,11 @@ class AbootUnpackParser(UnpackParser):
     def parse(self):
         try:
             self.data = aboot.Aboot.from_io(self.infile)
+
+            # force read some data because of Kaitai's lazy evaluation
             certificate_chain = ssl.DER_cert_to_PEM_cert(self.data.image.certificate_chain)
         except (Exception, ValidationFailedError, ssl.SSLError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         file_path = pathlib.Path("image")

@@ -51,7 +51,7 @@ class Qcow2UnpackParser(UnpackParser):
         try:
             self.data = qcow2.Qcow2.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # run qemu-img to see if the whole file is the qcow2 file
         # Carving unfortunately doesn't seem to work well.
@@ -63,8 +63,8 @@ class Qcow2UnpackParser(UnpackParser):
 
         try:
             vmdkjson = json.loads(standardout)
-        except:
-            raise UnpackParserException("no valid JSON output from qemu-img")
+        except Exception as e:
+            raise UnpackParserException("no valid JSON output from qemu-img") from e
 
         # convert the file to a temporary file to rule out any unpacking errors
         self.temporary_file = tempfile.mkstemp(dir=self.configuration.temporary_directory)

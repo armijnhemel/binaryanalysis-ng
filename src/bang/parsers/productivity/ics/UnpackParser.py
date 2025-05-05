@@ -22,7 +22,7 @@
 
 import icalendar
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 
 
@@ -38,7 +38,7 @@ class IcsUnpackParser(UnpackParser):
             with open(self.infile.name, 'r') as ics_file:
                 icalendar.Calendar.from_ical(ics_file.read())
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):

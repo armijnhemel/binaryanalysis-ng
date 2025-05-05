@@ -20,7 +20,6 @@
 
 import json
 import math
-import os
 import pathlib
 import shutil
 import subprocess
@@ -44,7 +43,7 @@ class VmdkUnpackParser(UnpackParser):
         try:
             self.data = vmware_vmdk.VmwareVmdk.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         check_condition(pow(2, int(math.log2(self.data.header.size_grain,))) == self.data.header.size_grain,
                         "invalid grain size")
@@ -64,8 +63,8 @@ class VmdkUnpackParser(UnpackParser):
         if p.returncode == 0:
             try:
                 vmdkjson = json.loads(standardout)
-            except:
-                raise UnpackParserException('no valid JSON output from qemu-img')
+            except json.decoder.JSONDecodeError as e:
+                raise UnpackParserException('no valid JSON output from qemu-img') from e
         else:
             raise UnpackParserException('invalid VMDK')
         check_condition(self.infile.size == vmdkjson['actual-size'],

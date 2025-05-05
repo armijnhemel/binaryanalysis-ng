@@ -59,7 +59,8 @@ class GnuMessageCatalogUnpackParser(UnpackParser):
             # it could be that the file has been truncated and
             # that the last NUL is missing. TODO.
         except (Exception, ValidationFailedError, UndecidedEndiannessError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
+
         check_condition(self.data.mo.version.major in [0,1],
                         "unknown GNU message catalog version number")
 

@@ -22,7 +22,7 @@ from xml.parsers.expat import ExpatError
 
 import defusedxml.minidom
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import riff
@@ -43,7 +43,7 @@ class WavUnpackParser(UnpackParser):
             for c in self.data.subchunks:
                 chunk_id = c.chunk.id
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     labels = [ 'wav', 'audio' ]
 
@@ -55,7 +55,7 @@ class WavUnpackParser(UnpackParser):
 
         # extract metadata
         for chunk in self.data.subchunks:
-            if type(chunk.chunk_id) == wav.Wav.Fourcc:
+            if isinstance(chunk.chunk_id,  wav.Wav.Fourcc):
                 if chunk.chunk_id == wav.Wav.Fourcc.pmx:
                     try:
                         # XMP should be valid XML
@@ -64,6 +64,6 @@ class WavUnpackParser(UnpackParser):
                     except ExpatError:
                         # TODO: what to do here?
                         pass
-        if xmptags != []:
+        if xmptags:
             metadata['xmp'] = xmptags
         return metadata

@@ -43,7 +43,7 @@ class VdiUnpackParser(UnpackParser):
         try:
             self.data = vdi.Vdi.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         vdi_size = self.data.header.block_size * (self.data.header.header_main.blocks_allocated + 2)
         check_condition(vdi_size <= self.infile.size, "not enough data for vdi")
 
@@ -58,8 +58,8 @@ class VdiUnpackParser(UnpackParser):
         if p.returncode == 0:
             try:
                 vdijson = json.loads(standardout)
-            except:
-                raise UnpackParserException('no valid JSON output from qemu-img')
+            except json.decoder.JSONDecodeError as e:
+                raise UnpackParserException('no valid JSON output from qemu-img') from e
         self.unpacked_size = vdi_size
 
         # TODO: test unpack here

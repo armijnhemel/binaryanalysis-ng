@@ -21,9 +21,10 @@
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
-from . import gimp_brush
 
 from PIL.GbrImagePlugin import GbrImageFile
+
+from . import gimp_brush
 
 
 class GimpBrushUnpackParser(UnpackParser):
@@ -38,13 +39,13 @@ class GimpBrushUnpackParser(UnpackParser):
         try:
             self.unpacked_size = self.data.len_header + self.data.len_body
         except BaseException as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def parse(self):
         try:
             self.data = gimp_brush.GimpBrush.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         check_condition(self.data.header.version < 3, "Invalid version")
         check_condition(self.data.header.version > 0, "Invalid version")
@@ -60,7 +61,7 @@ class GimpBrushUnpackParser(UnpackParser):
             testimg = GbrImageFile(self.infile)
             testimg.load()
         except BaseException as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     labels = ['gimp brush', 'graphics']
 

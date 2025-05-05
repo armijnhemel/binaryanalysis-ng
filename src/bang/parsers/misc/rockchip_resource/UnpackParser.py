@@ -41,7 +41,7 @@ class RockchipResourceUnpackParser(UnpackParser):
             for entry in self.data.entries:
                 tmp = len(entry.data)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.unpacked_size = 0
         for entry in self.data.entries:

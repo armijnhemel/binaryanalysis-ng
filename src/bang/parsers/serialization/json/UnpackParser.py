@@ -20,7 +20,7 @@
 
 import json
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 
 
@@ -34,9 +34,9 @@ class JsonUnpackParser(UnpackParser):
         try:
             self.data = json.load(self.infile)
         except (json.JSONDecodeError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         except (UnicodeError) as e:
-            raise UnpackParserException("cannot decode JSON")
+            raise UnpackParserException("cannot decode JSON") from e
 
     labels = ['json']
     metadata = {}

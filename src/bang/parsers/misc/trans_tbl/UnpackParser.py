@@ -36,7 +36,7 @@ class TranstblUnpackParser(UnpackParser):
             trans_tbl_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
             trans_tbl_file.close()
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.is_android = False
 
@@ -60,7 +60,7 @@ class TranstblUnpackParser(UnpackParser):
                 len_unpacked += len(trans_tbl_line)
                 data_unpacked = True
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             trans_tbl_file.close()
 

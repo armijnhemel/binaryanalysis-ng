@@ -26,7 +26,7 @@ Some documentation:
 https://www.csie.ntu.edu.tw/~r92092/ref/midi/
 '''
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 
@@ -45,13 +45,13 @@ class MidiUnpackParser(UnpackParser):
         try:
             self.data = standard_midi_file.StandardMidiFile.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     labels = ['midi', 'audio']
 
     @property
     def metadata(self):
         metadata = {}
-        pngtexts = []
+
         # TODO: extract meta information from MIDI file
         return metadata

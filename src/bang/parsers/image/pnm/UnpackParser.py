@@ -90,7 +90,7 @@ class PnmUnpackParser(UnpackParser):
                 if seenint:
                     self.infile.seek(-1, os.SEEK_CUR)
                     break
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
         width = int(widthbytes)
 
@@ -123,7 +123,7 @@ class PnmUnpackParser(UnpackParser):
                 if seenint:
                     self.infile.seek(-1, os.SEEK_CUR)
                     break
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
         height = int(heightbytes)
 
         if self.pnmtype != 'pbm':
@@ -155,7 +155,7 @@ class PnmUnpackParser(UnpackParser):
                     if seenint:
                         self.infile.seek(-1, os.SEEK_CUR)
                         break
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
             maxvalue = int(maxbytes)
 
         # single whitespace
@@ -194,11 +194,11 @@ class PnmUnpackParser(UnpackParser):
                 testimg.load()
                 testimg.close()
             except OSError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
             except ValueError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
             except ZeroDivisionError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
         else:
             # load the PNM/PPM/PBM data into memory
             self.infile.seek(0)
@@ -210,13 +210,13 @@ class PnmUnpackParser(UnpackParser):
                 testimg.load()
                 testimg.close()
             except OSError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
             except ValueError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
             except ZeroDivisionError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
             except PIL.Image.DecompressionBombError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):

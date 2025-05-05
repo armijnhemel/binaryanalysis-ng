@@ -93,7 +93,7 @@ class JavaManifestUnpackParser(UnpackParser):
             manifest_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
             manifest_file.close()
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.is_android = False
 
@@ -168,7 +168,7 @@ class JavaManifestUnpackParser(UnpackParser):
                 len_unpacked += len(manifest_line)
                 data_unpacked = True
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             manifest_file.close()
 
