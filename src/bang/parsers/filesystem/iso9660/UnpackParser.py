@@ -66,10 +66,10 @@ class Iso9660UnpackParser(UnpackParser):
                 if descriptor.type == iso9660.Iso9660.VolumeType.primary:
                     # sanity checks: dates. This does not apply
                     # to all dates used in the specification.
-                    check_condition(descriptor.volume.volume_creation_date_and_time.valid_date,
+                    check_condition(descriptor.volume.volume_creation_date_and_time.is_empty or descriptor.volume.volume_creation_date_and_time.datetime.valid_date,
                                     "invalid creation date")
 
-                    check_condition(descriptor.volume.volume_modification_date_and_time.valid_date,
+                    check_condition(descriptor.volume.volume_modification_date_and_time.is_empty or descriptor.volume.volume_modification_date_and_time.datetime.valid_date,
                                     "invalid modification date")
 
                     self.block_size = descriptor.volume.logical_block_size.value
