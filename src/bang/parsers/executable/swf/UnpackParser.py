@@ -66,7 +66,7 @@ class SwfUnpackParser(UnpackParser):
                     self.unpacked_size += len(checkbytes) - len(decompressor.unused_data)
                     if len(decompressor.unused_data) != 0:
                         break
-                except:
+                except Exception as e:
                     raise UnpackParserException('zlib decompression failure') from e
 
             check_condition(len_decompressed + 8 == self.data.header.len_file,
@@ -121,7 +121,7 @@ class SwfUnpackParser(UnpackParser):
 
             try:
                 decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=swf_filters)
-            except:
+            except Exception as e:
                 raise UnpackParserException('unsupported LZMA properties') from e
 
             # read 1 MB chunks
@@ -137,7 +137,7 @@ class SwfUnpackParser(UnpackParser):
                     self.unpacked_size += len(checkbytes) - len(decompressor.unused_data)
                     if len(decompressor.unused_data) != 0:
                         break
-                except:
+                except Exception as e:
                     raise UnpackParserException('lzma decompression failure') from e
 
             check_condition(len_decompressed + 8 == self.data.header.len_file,
