@@ -20,7 +20,7 @@
 
 import pathlib
 
-from bang.UnpackParser import UnpackParser
+from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import linux_x86
@@ -39,6 +39,7 @@ class LinuxX86UnpackParser(UnpackParser):
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args) from e
         self.unpacked_size = self.infile.tell()
+        check_condition(self.data.header.version.minor >= 8, "too old to have a payload")
         if self.data.header.ofs_payload != 0:
             self.unpacked_size = self.data.header.real_mode_code_size + self.data.header.ofs_payload + self.data.header.len_payload
 
