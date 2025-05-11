@@ -172,6 +172,8 @@ class BangShell(App):
             pretty_node_name = f'{str(node_name)}  \U000024bc'
         elif 'padding' in labels:
             pretty_node_name = f'{str(node_name)}  \U000024c5'
+        elif labels:
+            pretty_node_name = f'{str(node_name)}  \U0001F3F7'
         else:
             pretty_node_name = str(node_name)
 
