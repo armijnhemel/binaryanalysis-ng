@@ -54,7 +54,7 @@ class ElfReporter(Reporter):
             if 'runpath' in metadata:
                 new_markdown += f"**RUNPATH** | {metadata['runpath']}|\n"
             if 'soname' in metadata:
-                new_markdown += f"**SONAME** | {metadata['SONAME']}|\n"
+                new_markdown += f"**SONAME** | {metadata['soname']}|\n"
             if 'build-id' in metadata:
                 new_markdown += f"**Build id** | {metadata['build-id']}|\n"
             if 'build-id hash' in metadata:
