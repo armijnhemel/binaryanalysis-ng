@@ -69,16 +69,21 @@ def app():
 # bang scan_directory <input directory>
 @click.option('-c', '--config', 'config_file', type=click.File('r'))
 @click.option('-v', '--verbose', is_flag=True, help='Enable debug logging')
-@click.option('-u', '--unpack-directory', type=click.Path(path_type=pathlib.Path), default=pathlib.Path('/tmp'), help='Directory to unpack to')
-@click.option('-t', '--temporary-directory', type=click.Path(path_type=pathlib.Path, exists=True), default=pathlib.Path('/tmp'), help='Temporary directory')
+@click.option('-u', '--unpack-directory', type=click.Path(path_type=pathlib.Path),
+              default=pathlib.Path('/tmp'), help='Directory to unpack to')
+@click.option('-t', '--temporary-directory', type=click.Path(path_type=pathlib.Path, exists=True),
+              default=pathlib.Path('/tmp'), help='Temporary directory')
 @click.option('-i', '--ignore-list', type=click.File('r'))
-@click.option('-j', '--jobs', default=1, type=click.IntRange(min=1), help='Number of jobs running simultaneously')
+@click.option('-j', '--jobs', default=1, type=click.IntRange(min=1),
+              help='Number of jobs running simultaneously')
 @click.option('--job-wait-time', default=1, type=int, help='Time to wait for a new job')
-@click.option('-f', '--force', is_flag=True, help='Ignore warnings about existing unpacking directory')
+@click.option('-f', '--force', is_flag=True,
+              help='Ignore warnings about existing unpacking directory')
 @click.argument('path', type=click.Path(path_type=pathlib.Path, exists=True))
 @app.command(short_help='Scan a directory of files')
 @click.pass_context
-def scan_directory(ctx, config_file, verbose, unpack_directory, temporary_directory, ignore_list, jobs, job_wait_time, force, path):
+def scan_directory(ctx, config_file, verbose, unpack_directory, temporary_directory,
+                   ignore_list, jobs, job_wait_time, force, path):
     '''Scans files in PATH and unpacks its files to a sudirectory of UNPACK_DIRECTORY.
     '''
     if config_file is not None:
@@ -91,27 +96,34 @@ def scan_directory(ctx, config_file, verbose, unpack_directory, temporary_direct
 
     for scan_archive in sorted(path.glob('**/*')):
         # first create a directory similar as the file name
-        scan_directory = unpack_directory / (scan_archive.name)
+        scan_dir = unpack_directory / (scan_archive.name)
         try:
-            scan_directory.mkdir(parents=True)
+            scan_dir.mkdir(parents=True)
         except FileExistsError:
             continue
 
-        ctx.invoke(scan, config_file=config_file, verbose=verbose, unpack_directory=scan_directory, temporary_directory=temporary_directory, ignore_list=ignore_list, jobs=jobs, job_wait_time=job_wait_time, force=force, path=scan_archive)
+        ctx.invoke(scan, config_file=config_file, verbose=verbose, unpack_directory=scan_dir,
+                   temporary_directory=temporary_directory, ignore_list=ignore_list, jobs=jobs,
+                   job_wait_time=job_wait_time, force=force, path=scan_archive)
 
 
 # bang scan <input file>
 @app.command(short_help='Scan a file')
 @click.option('-c', '--config', 'config_file', type=click.File('r'))
 @click.option('-v', '--verbose', is_flag=True, help='Enable debug logging')
-@click.option('-u', '--unpack-directory', type=click.Path(path_type=pathlib.Path), default=pathlib.Path('/tmp'), help='Directory to unpack to')
-@click.option('-t', '--temporary-directory', type=click.Path(path_type=pathlib.Path, exists=True), default=pathlib.Path('/tmp'), help='Temporary directory')
+@click.option('-u', '--unpack-directory', type=click.Path(path_type=pathlib.Path),
+              default=pathlib.Path('/tmp'), help='Directory to unpack to')
+@click.option('-t', '--temporary-directory', type=click.Path(path_type=pathlib.Path, exists=True),
+              default=pathlib.Path('/tmp'), help='Temporary directory')
 @click.option('-i', '--ignore-list', type=click.File('r'))
-@click.option('-j', '--jobs', default=1, type=click.IntRange(min=1), help='Number of jobs running simultaneously')
+@click.option('-j', '--jobs', default=1, type=click.IntRange(min=1),
+              help='Number of jobs running simultaneously')
 @click.option('--job-wait-time', default=1, type=int, help='Time to wait for a new job')
-@click.option('-f', '--force', is_flag=True, help='Ignore warnings about existing unpacking directory')
+@click.option('-f', '--force', is_flag=True,
+              help='Ignore warnings about existing unpacking directory')
 @click.argument('path', type=click.Path(path_type=pathlib.Path, exists=True))
-def scan(config_file, verbose, unpack_directory, temporary_directory, ignore_list, jobs, job_wait_time, force, path):
+def scan(config_file, verbose, unpack_directory, temporary_directory, ignore_list,
+         jobs, job_wait_time, force, path):
     '''Scans PATH and unpacks its files to UNPACK_DIRECTORY.
     '''
 
@@ -208,23 +220,24 @@ def scan(config_file, verbose, unpack_directory, temporary_directory, ignore_lis
     scan_queue.put(j)
 
     # start processes
-    log.debug(f'cli:scan: starting processes...')
+    log.debug('cli:scan: starting processes...')
     for p in processes: p.start()
 
-    log.debug(f'cli:scan: waiting for all processes to finish...')
+    log.debug('cli:scan: waiting for all processes to finish...')
     for p in processes: p.join()
-    log.debug(f'cli:scan: all processes in queue finished')
+    log.debug('cli:scan: all processes in queue finished')
 
-    log.debug(f'cli:scan: terminating processes...')
+    log.debug('cli:scan: terminating processes...')
     for p in processes:
         p.terminate()
-    log.debug(f'cli:scan: done.')
+    log.debug('cli:scan: done.')
 
     stop_time = datetime.datetime.now(datetime.UTC)
 
 
 @app.command(short_help='Show bang scan results')
-@click.option('-a', '--all', 'show_all', is_flag=True, help='Show all information, including extracted/unpacked files')
+@click.option('-a', '--all', 'show_all', is_flag=True,
+              help='Show all information, including extracted/unpacked files')
 @click.argument('metadir', type=click.Path(path_type=pathlib.Path))
 @click.option('--pretty', is_flag=True, help='pretty print')
 def show(show_all, metadir, pretty):
@@ -266,7 +279,8 @@ def show(show_all, metadir, pretty):
 def build_meta_table(md):
     '''Construct a parser meta information table given a meta directory'''
     with md.open(open_file=False, info_write=False):
-        meta_table = rich.table.Table('', '', title='Parser data', show_lines=True, show_header=False)
+        meta_table = rich.table.Table('', '', title='Parser data', show_lines=True,
+                                      show_header=False)
         meta_table.add_row('Meta directory', f'{md.md_path}')
         meta_table.add_row('Original file', f'{md.file_path}')
         meta_table.add_row('Parser', f'{md.info.get("unpack_parser")}')
@@ -538,7 +552,8 @@ def report_for_file(md, parent, console, pretty=False):
 
 @app.command(short_help='Pack results in a gzip compressed tar archive')
 @click.argument('metadir', type=click.Path(path_type=pathlib.Path))
-@click.option('-o', '--output', type=click.Path(path_type=pathlib.Path), required=True, help='output archive')
+@click.option('-o', '--output', type=click.Path(path_type=pathlib.Path),
+              required=True, help='output archive')
 @click.option('--with-data', is_flag=True, help='include data in archive')
 def pack(metadir, with_data, output):
     '''Stores results of upacked files stored underneath metadir
@@ -615,7 +630,8 @@ def clear_ids(tarinfo):
 
 @app.command(short_help='Create a directory structure as used in old BANG to easier navigate results using standard Linux shell tools')
 @click.argument('metadir', type=click.Path(path_type=pathlib.Path))
-@click.option('-o', '--output', type=click.Path(path_type=pathlib.Path), required=True, help='output directory')
+@click.option('-o', '--output', type=click.Path(path_type=pathlib.Path),
+              required=True, help='output directory')
 @click.option('-c', '--copy', 'do_copy', is_flag=True, help='Copy results instead of link')
 def create_directory_view(metadir, output, do_copy):
     '''Create a directory structure as used in old BANG to easier
