@@ -17,10 +17,8 @@
 #
 # SPDX-License-Identifier: GPL-3.0-only
 
-import multiprocessing
 import os
 import queue
-import re
 import sys
 import threading
 import traceback
@@ -178,8 +176,8 @@ def check_with_suggested_parsers(scan_environment, checking_meta_directory):
 
 #####
 #
-# Iterator that yields a MetaDirectory for a successfully parsed file by extension. If the
-# file contains extra data, it will yield MetaDirectory objects for the parent
+# Iterator that yields a MetaDirectory for a successfully parsed file by extension.
+# If the file contains extra data, it will yield MetaDirectory objects for the parent
 # (i.e. checking_meta_directory), for the parsed part, and for the extracted part.
 # Stops after a successful parse.
 #
@@ -261,7 +259,7 @@ class FileScanState:
 # UnpackParser.py file (default: 0 - no priority).
 #
 def find_signature_parsers(scan_environment, open_file, file_scan_state, file_size):
-    # yield all matching signatures
+    '''Yield all matching signatures'''
     file_scan_state.chunk_start = file_scan_state.scanned_until
     chunk_size = scan_environment.signature_chunk_size
     chunk_overlap = scan_environment.parsers.longest_signature_length - 1
@@ -311,6 +309,7 @@ def find_signature_parsers(scan_environment, open_file, file_scan_state, file_si
 # and will not yield any overlapping results.
 #
 def scan_signatures(scan_environment, meta_directory):
+    '''Iterator that yields succesfully parsed parts'''
     file_scan_state = FileScanState(0,0)
     for offset, unpack_parser_classes in find_signature_parsers(scan_environment, meta_directory.open_file, file_scan_state, meta_directory.size):
         log.debug(f'scan_signatures[{meta_directory.md_path}]: wait at {file_scan_state.scanned_until}, found parsers at {offset}: {unpack_parser_classes}')
@@ -353,11 +352,11 @@ def scan_signatures(scan_environment, meta_directory):
 #
 # Iterator that yields a MetaDirectory for all file parts parsed by signature. If the
 # file itself is the only part, it will yield checking_meta_directory, otherwise,
-# it will yield MetaDirectory objects for the parent (i.e. checking_meta_directory), and
-# for all the parsed and extracted parts.
+# it will yield MetaDirectory objects for the parent (i.e. checking_meta_directory),
+# and for all the parsed and extracted parts.
 #
 def check_by_signature(scan_environment, checking_meta_directory):
-    # find offsets
+    '''Find signature offsets'''
     parts = [] # record the parts for the ExtractingParser
     for offset, unpack_parser in scan_signatures(scan_environment, checking_meta_directory):
         log.debug(f'check_by_signature[{checking_meta_directory.md_path}]check_by_signature: got match at {offset}: {unpack_parser.__class__} length {unpack_parser.parsed_size}')
@@ -376,7 +375,7 @@ def check_by_signature(scan_environment, checking_meta_directory):
             parts.append((offset, unpack_parser.parsed_size))
 
     # yield ExtractingParser
-    if parts != []:
+    if parts:
         checking_meta_directory.unpack_parser = ExtractingParser.with_parts(checking_meta_directory, parts, scan_environment.configuration)
         yield checking_meta_directory
 
@@ -498,14 +497,13 @@ def pipe_fail(scan_environment, meta_directory):
     return False
 
 def pipe_cond(predicate, pipe_if_true, pipe_if_false):
-    '''conditional pipe: runs pipe_if_true if predicate is true on scan_environment and meta_directory,
-    and pipe_if_false otherwise.
+    '''conditional pipe: runs pipe_if_true if predicate is true on
+       scan_environment and meta_directory, and pipe_if_false otherwise.
     '''
     def _check(scan_environment, meta_directory):
         if predicate(scan_environment, meta_directory):
             return pipe_if_true(scan_environment, meta_directory)
-        else:
-            return pipe_if_false(scan_environment, meta_directory)
+        return pipe_if_false(scan_environment, meta_directory)
     return _check
 
 def pipe_seq(*pipes):
@@ -620,7 +618,7 @@ def process_jobs(pipeline, scan_environment):
     os.chdir(scan_environment.unpack_directory)
 
     while True:
-        log.debug(f'process_jobs: getting scanjob')
+        log.debug('process_jobs: getting scanjob')
 
         try:
             # grab a job from the queue
@@ -649,15 +647,15 @@ def process_jobs(pipeline, scan_environment):
 
             log.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: end job [{time.time_ns()}]')
         except queue.Empty as e:
-            log.debug(f'process_jobs: scan queue is empty')
+            log.debug('process_jobs: scan queue is empty')
             try:
                 # A thread will block here and wait until either *all*
                 # threads end up here (meaning the program is done)
                 # or wait for new data to arrive in the scanning queue.
                 scan_environment.barrier.wait()
-                log.debug(f'process_jobs: all scanjobs are waiting')
+                log.debug('process_jobs: all scanjobs are waiting')
                 break
-            except threading.BrokenBarrierError as e:
+            except threading.BrokenBarrierError:
                 # all waiting threads are woken up again here
                 # because there is new data in the scanning queue
                 continue
@@ -667,7 +665,7 @@ def process_jobs(pipeline, scan_environment):
             exc_trace = traceback.format_exception(exc_type, exc_value, exc_traceback)
             log.error(f'process_jobs:\n{"".join(exc_trace)}')
             break
-    log.debug(f'process_jobs: exiting')
+    log.debug('process_jobs: exiting')
 
     # TODO: this should not be needed if unpackparsers behave
     os.chdir(current_dir)

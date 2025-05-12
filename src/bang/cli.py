@@ -221,10 +221,12 @@ def scan(config_file, verbose, unpack_directory, temporary_directory, ignore_lis
 
     # start processes
     log.debug('cli:scan: starting processes...')
-    for p in processes: p.start()
+    for p in processes:
+        p.start()
 
     log.debug('cli:scan: waiting for all processes to finish...')
-    for p in processes: p.join()
+    for p in processes:
+        p.join()
     log.debug('cli:scan: all processes in queue finished')
 
     log.debug('cli:scan: terminating processes...')
