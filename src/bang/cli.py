@@ -475,13 +475,12 @@ def ls(metadir, pretty):
     md = MetaDirectory.from_md_path(metadir.parent, metadir.name)
     table, link_table, have_unpack_results, have_link_results = build_unpack_link_tables(md, metadir.parent, pretty)
 
-    if all:
-        if have_unpack_results:
-            console.print(table)
-        if have_link_results:
-            console.print(link_table)
+    if have_unpack_results:
+        console.print(table)
+    if have_link_results:
+        console.print(link_table)
 
-@app.command(short_help='Report BANG results (extensive)')
+@app.command(short_help='Report BANG results (extensive) for a single metadir')
 @click.argument('metadir', type=click.Path(path_type=pathlib.Path))
 @click.option('--pretty', is_flag=True, help='pretty print')
 def report(metadir, pretty):
