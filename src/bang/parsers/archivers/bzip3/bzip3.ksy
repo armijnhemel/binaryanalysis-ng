@@ -56,7 +56,37 @@ types:
         valid:
           max: _root.header.max_block_size
       - id: data
+        type:
+          switch-on: is_small
+          cases:
+            true: small_block
+            false: regular_block
         size: len_compressed
     instances:
       is_last:
         value: len_uncompressed <= _root.header.max_block_size
+      is_small:
+        value: len_uncompressed <= 64
+  small_block:
+    seq:
+      - id: crc32
+        type: u4
+      - id: literal
+        contents: [0xff, 0xff, 0xff, 0xff]
+      - id: data
+        size-eos: true
+  regular_block:
+    seq:
+      - id: crc32
+        type: u4
+      - id: bwt_index
+        type: u4
+      - id: model
+        type: u1
+        #enum: compression_models
+      - id: data
+        size-eos: true
+enums:
+  compression_models:
+    0x02: lzp
+    0x04: rle
