@@ -108,6 +108,9 @@ class ElfUnpackParser(UnpackParser):
             else:
                 self.have_section_headers = True
 
+            self.unpacked_size = 0
+
+            '''
             # calculate size, also read all the data to catch EOF
             # This isn't always accurate, for example when debugging
             # data is stored in ELF files as a compressed ELF file.
@@ -164,6 +167,7 @@ class ElfUnpackParser(UnpackParser):
 
                             # restore the file pointer, just in case
                             self.infile.seek(cur_ptr)
+            '''
 
             # TODO: Qualcomm DSP6 (Hexagon) files, as found on many
             # Android devices.
