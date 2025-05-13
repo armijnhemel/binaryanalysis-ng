@@ -71,7 +71,7 @@ class LinuxKernelConfigUnpackParser(UnpackParser):
 
         # A valid kernel configuration typicaly consists of
         # main header followed by sections.
-        # 
+        #
         # Sections typically have a header, followed by
         # configuration statements, which could be commented,
         # and there can be empty lines too.

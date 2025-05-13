@@ -98,4 +98,3 @@ class GptPartitionTableUnpackParser(UnpackParser):
             metadata['partitions'].append({'uuid': guid, 'name': e.name.split('\x00')[0]})
 
         return metadata
-
