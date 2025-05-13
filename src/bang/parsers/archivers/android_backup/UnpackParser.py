@@ -126,7 +126,7 @@ class AndroidBackupUnpackParser(UnpackParser):
                 pass
 
         os.unlink(self.temporary_file[1])
-            
+
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
         pass
