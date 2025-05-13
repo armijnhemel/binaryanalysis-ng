@@ -91,8 +91,8 @@ class IhexUnpackParser(UnpackParser):
                     break
 
                 if len(line) - 11 != num_bytes * 2:
-                     error_msg = 'invalid byte count'
-                     break
+                    error_msg = 'invalid byte count'
+                    break
 
                 # address can be skipped
                 try:

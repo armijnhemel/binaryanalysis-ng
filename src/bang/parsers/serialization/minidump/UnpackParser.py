@@ -45,7 +45,7 @@ class MinidumpUnpackParser(UnpackParser):
             # not entirely complete. Use this to detect if the file
             # has been truncated.
             for i in self.data.streams:
-                 a = type(i.data)
+                a = type(i.data)
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args) from e
 
