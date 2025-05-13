@@ -65,10 +65,10 @@ class Jffs2UnpackParser(UnpackParser):
 
         # store endianness, as it is needed in some cases (dirty nodes)
         self.bigendian = False
-        byteorder = 'little'
+        self.byteorder = 'little'
         if root_inode.magic == jffs2.Jffs2.Magic.be:
             self.bigendian = True
-            byteorder = 'big'
+            self.byteorder = 'big'
 
         # keep a list of inodes to file names
         # the root inode (1) always has ''
@@ -147,7 +147,7 @@ class Jffs2UnpackParser(UnpackParser):
                 if len(buf) != 4:
                     break
 
-                len_inode = int.from_bytes(buf, byteorder=byteorder)
+                len_inode = int.from_bytes(buf, byteorder=self.byteorder)
                 if len_inode == 0:
                     break
                 if cur_offset + len_inode > self.infile.size:
@@ -176,7 +176,7 @@ class Jffs2UnpackParser(UnpackParser):
 
             # check if the inode type is actually valid
             # or perhaps contains padding.
-            if type(jffs2_inode.header.inode_type) == int:
+            if isinstance(jffs2_inode.header.inode_type, int):
                 if jffs2_inode.header.inode_type == 0:
                     if prev_is_padding:
                         break
@@ -384,8 +384,8 @@ class Jffs2UnpackParser(UnpackParser):
                     elif jffs2_inode.data.body.compression == jffs2.Jffs2.Compression.lzo:
                         try:
                             lzo.decompress(jffs2_inode.data.body.data, False, jffs2_inode.data.body.len_decompressed)
-                        except:
-                            raise UnpackParserException("invalid lzo compressed data")
+                        except Exception as e:
+                            raise UnpackParserException("invalid lzo compressed data") from e
                     else:
                         break
 
@@ -451,7 +451,7 @@ class Jffs2UnpackParser(UnpackParser):
                 if len(buf) != 4:
                     break
 
-                len_inode = int.from_bytes(buf, byteorder=byteorder)
+                len_inode = int.from_bytes(buf, byteorder=self.byteorder)
                 if cur_offset + len_inode > self.infile.size:
                     break
 
@@ -663,8 +663,7 @@ class Jffs2UnpackParser(UnpackParser):
                         inode_to_write_offset[inode_number] = writeoffset + decompressed_size
                         outfile.flush()
 
-                        # unsure what to do here now
-                        pass
+                        # unsure what to do here now.
 
             unpackedsize = self.infile.tell()
             if unpackedsize % 4 != 0:
