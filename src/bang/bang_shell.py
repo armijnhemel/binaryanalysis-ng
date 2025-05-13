@@ -164,12 +164,18 @@ class BangShell(App):
 
         if 'elf' in labels:
             pretty_node_name = f'{str(node_name)}  \U000024ba'
+            metadata = md.info.get('metadata', {})
+            if 'elf_type' in metadata:
+                if 'Linux kernel module' in metadata['elf_type']:
+                    pretty_node_name += ' :penguin:'
         elif 'compressed' in labels:
             pretty_node_name = f'{str(node_name)}  \U000024b8'
         elif 'font' in labels:
             pretty_node_name = f'{str(node_name)}  \U000024bb'
         elif 'graphics' in labels:
             pretty_node_name = f'{str(node_name)}  \U000024bc'
+        elif 'linux kernel configuration' in labels:
+            pretty_node_name = f'{str(node_name)}  :penguin:'
         elif 'padding' in labels:
             pretty_node_name = f'{str(node_name)}  \U000024c5'
         elif labels:
