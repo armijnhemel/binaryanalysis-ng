@@ -172,8 +172,10 @@ class BangShell(App):
             pretty_node_name = f'{str(node_name)}  \U000024b8'
         elif 'font' in labels:
             pretty_node_name = f'{str(node_name)}  \U000024bb'
+        elif 'filesystem' in labels:
+            pretty_node_name = f'{str(node_name)}  :computer_disk:'
         elif 'graphics' in labels:
-            pretty_node_name = f'{str(node_name)}  \U000024bc'
+            pretty_node_name = f'{str(node_name)}  :framed_picture:'
         elif 'linux kernel configuration' in labels:
             pretty_node_name = f'{str(node_name)}  :penguin:'
         elif 'padding' in labels:
