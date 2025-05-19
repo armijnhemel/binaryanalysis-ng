@@ -91,12 +91,13 @@ def scan_directory(ctx, config_file, verbose, unpack_directory, temporary_direct
         try:
             config = load(config_file, Loader=Loader)
         except (YAMLError, PermissionError, UnicodeDecodeError):
-            print("Cannot open configuration file, exiting", file=sys.stderr)
-            sys.exit(1)
+            raise click.ClickException(f"Cannot open configuration file {config_file}")
 
     for scan_archive in sorted(path.glob('**/*')):
         # first create a directory similar as the file name
         scan_dir = unpack_directory / (scan_archive.name)
+        if scan_dir.exists() and not force:
+            raise click.ClickException(f"Unpacking directory {scan_dir} already exists")
         try:
             scan_dir.mkdir(parents=True)
         except FileExistsError:
@@ -104,7 +105,7 @@ def scan_directory(ctx, config_file, verbose, unpack_directory, temporary_direct
 
         ctx.invoke(scan, config_file=config_file, verbose=verbose, unpack_directory=scan_dir,
                    temporary_directory=temporary_directory, ignore_list=ignore_list, jobs=jobs,
-                   job_wait_time=job_wait_time, force=force, path=scan_archive)
+                   job_wait_time=job_wait_time, force=True, path=scan_archive)
 
 
 # bang scan <input file>
