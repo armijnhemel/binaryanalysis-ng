@@ -132,9 +132,11 @@ def scan(config_file, verbose, unpack_directory, temporary_directory, ignore_lis
     ignore_parsers = []
     config = None
 
+    if not path.is_file():
+        raise click.ClickException(f"{path} is not a file")
+
     if unpack_directory.exists() and not force:
-        print("Unpacking directory already exists, exiting", file=sys.stderr)
-        sys.exit(1)
+        raise click.ClickException(f"Unpacking directory {unpack_directory} already exists")
 
     if config_file is not None:
         # read the configuration file. This is in YAML format
