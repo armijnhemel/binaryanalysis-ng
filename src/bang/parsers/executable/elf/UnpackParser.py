@@ -346,13 +346,21 @@ class ElfUnpackParser(UnpackParser):
                 # TODO linux kernel module signatures
                 # see scripts/sign-file.c in Linux kernel
 
-            # parse the ELF file with pwntools, but only if the
+            # Parse the ELF file with pwntools, but only if the
             # original offset of the file is 0 (i.e. not a carved file).
             # This is because pwntools can only work with file names
-            # and not byte streams
+            # and not byte streams.
+            #
+            # This does not seem to work well for older MIPS files,
+            # which lead to a segmentation fault, which BANG currently
+            # silently ignores, so MIPS files are not processed.
+            machine = ''
+            if not isinstance(self.data.header.machine, int):
+                machine = self.data.header.machine.name
             self.elf = None
             if self.infile.offset == 0:
-                self.elf = pwn.ELF(self.infile.name, checksec=False)
+                if machine not in ['mips']:
+                    self.elf = pwn.ELF(self.infile.name, checksec=False)
 
         except (Exception, ValidationFailedError, UndecidedEndiannessError, elftools.common.exceptions.ELFError) as e:
             raise UnpackParserException(e.args) from e
