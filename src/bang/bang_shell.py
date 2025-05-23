@@ -20,7 +20,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import pathlib
-import shlex
 import sys
 
 from typing import Any, Iterable
@@ -37,30 +36,8 @@ from textual.widgets import Footer, Markdown, Tree, TabbedContent, TabPane, Inpu
 
 from .meta_directory import MetaDirectory, MetaDirectoryException
 from . import parser_utils
-
-class FilterValidator(Validator):
-    '''Syntax validator for the filtering language.'''
-
-    def __init__(self, **kwargs):
-        # Known values: only these will be regarded as valid.
-        self.labels = kwargs.get('labels', set())
-
-    def validate(self, value: str) -> ValidationResult:
-        try:
-            # split the value into tokens
-            tokens = shlex.split(value.lower())
-            if not tokens:
-                return self.failure("Empty string")
-
-            # verify each token
-            for t in tokens:
-                if '=' not in t:
-                    return self.failure("Invalid identifier")
-                token_identifier, token_value = t.split('=', maxsplit=1)
-
-            return self.success()
-        except ValueError:
-            return self.failure('Incomplete')
+from . import bang_filter
+from . import bang_dataset_composer
 
 
 class BangShell(App):
@@ -74,7 +51,6 @@ class BangShell(App):
         super().__init__(*args, **kwargs)
         self.metadir = result_directory
         self.reporters = parser_utils.get_reporters()
-
 
     def compose(self) -> ComposeResult:
         self.md = MetaDirectory.from_md_path(self.metadir.parent, self.metadir.name)
@@ -95,7 +71,7 @@ class BangShell(App):
         self.meta_report = self.build_meta_report(self.md)
         self.static_widget = Markdown('')
 
-        tree_filter = Input(placeholder='Filter', validators=[FilterValidator()], valid_empty=True)
+        tree_filter = Input(placeholder='Filter', validators=[bang_filter.FilterValidator({})], valid_empty=True)
 
         with Container(id='app-grid'):
             with Container(id='left-grid'):
@@ -140,26 +116,20 @@ class BangShell(App):
         node_name = pathlib.Path(md.file_path.name)
         labels = md.info.get("labels", [])
 
-        have_subfiles = False
         files = []
         for k, v in sorted(md.info.get('extracted_files', {}).items()):
-            have_subfiles = True
             files.append((k,v, 'regular'))
 
         for k,v in sorted(md.info.get('unpacked_absolute_files', {}).items()):
-            have_subfiles = True
             files.append((k,v, 'regular'))
 
         for k,v in sorted(md.info.get('unpacked_relative_files', {}).items()):
-            have_subfiles = True
             files.append((k,v, 'regular'))
 
         for k,v in sorted(md.info.get('unpacked_symlinks', {}).items()):
-            have_subfiles = True
             files.append((k,v, 'symlink'))
 
         for k,v in sorted(md.info.get('unpacked_hardlinks', {}).items()):
-            have_subfiles = True
             files.append((k,v, 'hardlink'))
 
         if 'elf' in labels:
@@ -185,7 +155,7 @@ class BangShell(App):
         else:
             pretty_node_name = str(node_name)
 
-        if have_subfiles:
+        if files:
             this_node = parent_node.add(pretty_node_name, data=(labels, md), expand=True)
         else:
             this_node = parent_node.add_leaf(pretty_node_name, data=(labels, md))
