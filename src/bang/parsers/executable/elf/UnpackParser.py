@@ -354,9 +354,12 @@ class ElfUnpackParser(UnpackParser):
             # This does not seem to work well for older MIPS files,
             # which lead to a segmentation fault, which BANG currently
             # silently ignores, so MIPS files are not processed.
+            #
+            # Related: https://github.com/Gallopsled/pwntools/issues/2560
             machine = ''
             if not isinstance(self.data.header.machine, int):
                 machine = self.data.header.machine.name
+
             self.elf = None
             if self.infile.offset == 0:
                 if machine not in ['mips']:
