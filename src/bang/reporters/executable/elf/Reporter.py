@@ -18,6 +18,7 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
+import collections
 from bang.Reporter import Reporter
 
 
@@ -67,7 +68,7 @@ class ElfReporter(Reporter):
                 comm = "\n".join(metadata['comment'])
                 new_markdown += f"**Comment** | {comm}|\n"
             if 'strings' in metadata:
-                if metadata['strings'] != []:
+                if metadata['strings']:
                     new_markdown += f"**Extracted strings** | {len(metadata['strings'])}|\n"
             if 'symbols' in metadata:
                 if metadata['symbols'] != []:
@@ -124,4 +125,11 @@ class ElfReporter(Reporter):
                     else:
                         new_markdown += f"{section_nr}|{s}|{section_type}|{section_size}|{section_offset}|\n"
 
+            if 'strings' in metadata:
+                if metadata['strings']:
+                    string_counter = collections.Counter(metadata['strings'])
+                    new_markdown += "# Extracted strings\n"
+                    new_markdown += "|String|Count|\n|--|--|\n"
+                    for s, count in sorted(string_counter.items()):
+                        new_markdown += f"|{s}|{count}|\n"
         return new_markdown
