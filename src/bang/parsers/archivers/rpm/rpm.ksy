@@ -1514,6 +1514,9 @@ enums:
     5119:
       id: package_digest_algos
       -orig-id: RPMTAG_PACKAGEDIGESTALGOS
+    5120:
+      id: source_nevr
+      -orig-id: RPMTAG_SOURCENEVR
   record_types:
     # from LSB
     0: not_implemented
