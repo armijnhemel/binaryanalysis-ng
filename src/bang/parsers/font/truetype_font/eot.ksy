@@ -22,6 +22,8 @@ types:
         doc: "Total structure length in bytes (including string and font data)"
       - id: len_data_size
         type: u4
+        valid:
+          min: 1
         doc: "Length of the OpenType font (FontData) in bytes"
       - id: version
         type: u4
