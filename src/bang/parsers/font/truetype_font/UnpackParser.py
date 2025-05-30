@@ -22,10 +22,12 @@
 
 import math
 import os
+import pathlib
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
+from . import eot
 from . import ttf
 
 # https://docs.microsoft.com/en-us/typography/opentype/spec/otff
@@ -40,6 +42,31 @@ REQUIRED_OPENTYPE = set(['cmap', 'head', 'hhea', 'hmtx',
 REQUIRED_TRUETYPE = set(['cmap', 'glyf', 'head', 'hhea', 'hmtx',
                          'loca', 'maxp', 'name', 'post'])
 
+
+class OpenEmbeddedTyoe(UnpackParser):
+    extensions = []
+    signatures = [
+        (34, b'\x4c\x50'),
+    ]
+    pretty_name = 'eot'
+
+    def parse(self):
+        self.unpacked_size = self.infile.tell()
+        try:
+            self.data = eot.Eot.from_io(self.infile)
+        except (Exception, ValidationFailedError) as e:
+            raise UnpackParserException(e.args) from e
+
+    def unpack(self, meta_directory):
+        # determine the name of the output file
+        file_path = pathlib.Path(self.data.header.full_name)
+        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+            outfile.write(self.data.font_data)
+
+            yield unpacked_md
+
+    labels = ['eot', 'font']
+    metadata = {}
 
 class TruetypeFontUnpackParser(UnpackParser):
     extensions = []
