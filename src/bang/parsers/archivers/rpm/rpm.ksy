@@ -1431,11 +1431,11 @@ enums:
       id: file_signature_length
       -orig-id: RPMTAG_FILESIGNATURELENGTH
     5092:
-      id: payload_digest
-      -orig-id: RPMTAG_PAYLOADDIGEST
+      id: payload_sha256
+      -orig-id: RPMTAG_PAYLOADSHA256
     5093:
-      id: payload_digest_algo
-      -orig-id: RPMTAG_PAYLOADDIGESTALGO
+      id: payload_sha256_algo
+      -orig-id: RPMTAG_PAYLOADSHA256ALGO
     5094:
       id: auto_installed_unimplemented
       -orig-id: RPMTAG_AUTOINSTALLED
@@ -1446,8 +1446,8 @@ enums:
       id: modularity_label
       -orig-id: RPMTAG_MODULARITYLABEL
     5097:
-      id: payload_digest_alt
-      -orig-id: RPMTAG_PAYLOADDIGESTALT
+      id: payload_sha256_alt
+      -orig-id: RPMTAG_PAYLOADSHA256ALT
     5098:
       id: arch_suffix
       -orig-id: RPMTAG_ARCHSUFFIX
@@ -1517,6 +1517,12 @@ enums:
     5120:
       id: source_nevr
       -orig-id: RPMTAG_SOURCENEVR
+    5123:
+      id: payload_sha3_256
+      -orig-id: RPMTAG_PAYLOADSHA3_256
+    5124:
+      id: payload_sha3_256_alt
+      -orig-id: RPMTAG_PAYLOADSHA3_256ALT
   record_types:
     # from LSB
     0: not_implemented
