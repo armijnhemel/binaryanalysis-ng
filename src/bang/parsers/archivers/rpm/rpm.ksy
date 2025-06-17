@@ -421,6 +421,9 @@ enums:
     278:
       id: openpgp
       -orig-id: RPMTAG_OPENPGP
+    279:
+      id: sha3_256
+      -orig-id: RPMTAG_SHA3_256HEADER
     1000:
       id: size
       -orig-id: RPMSIGTAG_SIZE
