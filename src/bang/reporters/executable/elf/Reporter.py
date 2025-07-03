@@ -125,7 +125,7 @@ class ElfReporter(Reporter):
                     else:
                         new_markdown += f"{section_nr}|{s}|{section_type}|{section_size}|{section_offset}|\n"
 
-            if 'strings' in metadata:
+            if 'strings' in metadata and False:
                 if metadata['strings']:
                     string_counter = collections.Counter(metadata['strings'])
                     new_markdown += "# Extracted strings\n"
