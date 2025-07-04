@@ -26,7 +26,7 @@ import re
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 
-RE_TTY = re.compile(r'(ttyS?\d+|pts/\d+)$')
+RE_TTY = re.compile(r'(console|[hx]vc\d+|tty[a-zA-Z]*\d+|pts/\d+|tts/\d+|vc/\d+)$')
 
 
 class SecureTTYUnpackParser(UnpackParser):
@@ -52,6 +52,12 @@ class SecureTTYUnpackParser(UnpackParser):
                 line = securetty_line.rstrip()
                 match_result = RE_TTY.match(line)
                 if not match_result:
+                    if line.startswith('#'):
+                        len_unpacked += len(securetty_line)
+                    elif line.strip() == '':
+                        len_unpacked += len(securetty_line)
+                    else:
+                        break
                     continue
                 len_unpacked += len(securetty_line)
                 self.entries.append(match_result.groups()[0])
