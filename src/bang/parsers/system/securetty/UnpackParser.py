@@ -61,7 +61,7 @@ class SecureTTYUnpackParser(UnpackParser):
         finally:
             securetty_file.close()
 
-        check_condition(data_unpacked, "no fstab file data could be unpacked")
+        check_condition(data_unpacked, "no securetty file data could be unpacked")
         self.unpacked_size = len_unpacked
 
     # make sure that self.unpacked_size is not overwritten
