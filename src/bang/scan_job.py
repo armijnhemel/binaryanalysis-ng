@@ -406,11 +406,19 @@ def check_featureless(scan_environment, checking_meta_directory):
                 # yield the matched part of the file
                 extracted_md = extract_file(checking_meta_directory, checking_meta_directory.open_file, 0, unpack_parser.parsed_size)
                 extracted_md.unpack_parser = unpack_parser
+                with extracted_md.open() as md:
+                    hashes = compute_hashes(md.open_file)
+                    metadata = {'hashes': hashes}
+                    md.info.setdefault('metadata', metadata)
                 yield extracted_md
 
                 # yield a synthesized file
                 extracted_md = extract_file(checking_meta_directory, checking_meta_directory.open_file, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size)
                 extracted_md.unpack_parser = ExtractedParser.with_size(checking_meta_directory, unpack_parser.parsed_size, checking_meta_directory.size - unpack_parser.parsed_size, scan_environment.configuration)
+                with extracted_md.open() as md:
+                    hashes = compute_hashes(md.open_file)
+                    metadata = {'hashes': hashes}
+                    md.info.setdefault('metadata', metadata)
                 yield extracted_md
 
                 # stop after first successful extension parse
