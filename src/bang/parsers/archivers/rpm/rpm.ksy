@@ -1520,6 +1520,12 @@ enums:
     5120:
       id: source_nevr
       -orig-id: RPMTAG_SOURCENEVR
+    5121:
+      id: payload_sha512
+      -orig-id: RPMTAG_PAYLOADSHA512
+    5122:
+      id: payload_sha512_alt
+      -orig-id: RPMTAG_PAYLOADSHA512ALT
     5123:
       id: payload_sha3_256
       -orig-id: RPMTAG_PAYLOADSHA3_256
