@@ -1629,6 +1629,42 @@ enums:
       doc: NXP 56800EF Digital Signal Controller (DSC)
       doc-ref:
         - https://gitlab.com/gnutools/binutils-gdb/-/blob/dfbcbf85ea/include/elf/common.h#L359
+    263:
+      id: sbf
+      -orig-id: EM_SBF
+      doc: Solana Bytecode Format
+      doc-ref:
+        - https://github.com/xinuos/gabi/commit/e25448e452d763
+    264:
+      id: aiengine
+      -orig-id: EM_AIENGINE
+      doc: AMD/Xilinx AIEngine architecture
+      doc-ref:
+        - https://github.com/xinuos/gabi/commit/e25448e452d763
+    265:
+      id: sima_mla
+      -orig-id: EM_SIMA_MLA
+      doc: SiMa MLA
+      doc-ref:
+        - https://github.com/xinuos/gabi/commit/e25448e452d763
+    266:
+      id: bang
+      -orig-id: EM_BANG
+      doc: Cambricon BANG
+      doc-ref:
+        - https://github.com/xinuos/gabi/commit/6cbb74646b9f99a37ff4291ac4bd081c95e192e6
+    267:
+      id: loonggpu
+      -orig-id: EM_LOONGGPU
+      doc: Loongson LoongGPU
+      doc-ref:
+        - https://github.com/xinuos/gabi/commit/223b2d160936fa589d8109f677365660ca55b64b
+    268:
+      id: sw64
+      -orig-id: EM_SW64
+      doc: Wuxi Institute of Advanced Technology SW64
+      doc-ref:
+        - https://github.com/xinuos/gabi/commit/a9fe6c0ab0643ae27bc41a4c9b8c2c546d1c1755
     # unofficial values
     # https://gitlab.com/gnutools/binutils-gdb/-/blob/4ffb22ec40/include/elf/common.h#L358
     4183:
