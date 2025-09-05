@@ -391,7 +391,7 @@ class ElfUnpackParser(UnpackParser):
                 # * .rom_info: Mediatek preloader(?)
                 # * .init.data: Linux kernel init data, sometimes contains initial ramdisk
                 if header.name in ['.gnu_debugdata', '.qtmimedatabase', '.BTF', '.BTF.ext',
-                                   '.rom_info', '.init.data', 'esstra_info']:
+                                   '.rom_info', '.init.data', '.esstra']:
                     interesting = True
 
                 # GNOME/glib GVariant database
