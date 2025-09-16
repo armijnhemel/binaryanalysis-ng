@@ -310,6 +310,7 @@ larger file, unless stated otherwise.
 210. TP-Link minifs
 211. ANJVision IP camera firmware files
 212. Linux `securetty` files (whole file)
+213. EOT fonts
 
 ## Getting started
 
@@ -339,7 +340,7 @@ the file was scanned in regular mode, not directory mode.
 
 ## License
 
-GNU Affero General Public License, version 3 (AGPL-3.0)
+GNU General Public License, version 3 (GPL-3.0), except where noted.
 
 The code for verifying and labeling Android Verified Boot images was heavily
 inspired by code from Android (`avbtool`) found at:

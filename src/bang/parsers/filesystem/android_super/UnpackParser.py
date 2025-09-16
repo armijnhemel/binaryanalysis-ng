@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 import os
 import pathlib
@@ -37,7 +35,7 @@ class AndroidSuperUnpackParser(UnpackParser):
     pretty_name = 'android_super'
 
     def parse(self):
-        # store partitions and extents 
+        # store partitions and extents
         self.partitions = {}
         self.extents = {}
         self.unpacked_size = 0
@@ -83,7 +81,7 @@ class AndroidSuperUnpackParser(UnpackParser):
                 pass
 
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # sanity check the partitions and extents
         for partition in self.partitions:
@@ -95,7 +93,7 @@ class AndroidSuperUnpackParser(UnpackParser):
                 check_condition(self.extents[extent_number]['offset'] + self.extents[extent_number]['size'] <= self.infile.size,
                                 "extent too large for file")
                 self.unpacked_size = self.extents[extent_number]['offset'] + self.extents[extent_number]['size']
-                
+
     def unpack(self, meta_directory):
         # write partitions
         for partition in self.partitions:

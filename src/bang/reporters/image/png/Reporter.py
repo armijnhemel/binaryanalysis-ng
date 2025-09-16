@@ -2,27 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
-
-import rich
-import rich.markdown
-import rich.table
+# SPDX-License-Identifier: GPL-3.0-only
 
 from bang.Reporter import Reporter
 
@@ -32,28 +26,28 @@ class PngReporter(Reporter):
     pretty_name = 'png'
 
     def create_report(self, md):
-        title = rich.markdown.Markdown("## PNG")
+        '''Create markdown for PNG results'''
+        new_markdown = '# PNG metadata\n'
+
         metadata = md.info.get('metadata')
-        reports = []
         with md.open(open_file=False, info_write=False):
-            meta_table = rich.table.Table('', '', title='PNG meta data', show_lines=True, show_header=False)
-            meta_table.add_row('Width', str(metadata['width']))
-            meta_table.add_row('Height', str(metadata['height']))
-            meta_table.add_row('Depth', str(metadata['depth']))
-            meta_table.add_row('Colour', metadata['color'])
-            meta_table.add_row('Chunk names', ", ".join(metadata['chunk_names']))
+            new_markdown += "| | |\n|--|--|\n"
+            new_markdown += f"**Width** | {metadata['width']}|\n"
+            new_markdown += f"**Height** | {metadata['height']}|\n"
+            new_markdown += f"**Depth** | {metadata['depth']}|\n"
+            new_markdown += f"**Colour** | {metadata['color']}|\n"
+            new_markdown += f"**Chunk names** | {', '.join(metadata['chunk_names'])}|\n"
             if metadata['png_type'] != []:
-                meta_table.add_row('Type', ", ".join(sorted(metadata['png_type'])))
+                new_markdown += f"**Type** | {', '.join(metadata['png_type'])}|\n"
             if metadata['unknownchunks'] != []:
-                meta_table.add_row('Unknown chunks', ", ".join(sorted(metadata['unknownchunks'])))
-            reports.append(meta_table)
+                new_markdown += f"**Unknown chunks** | {', '.join(sorted(metadata['unknownchunks']))}|\n"
 
             # print any texts if available
             if 'text' in metadata:
-                if metadata['text'] != []:
-                    meta_table = rich.table.Table('', '', title='PNG texts', show_lines=True, show_header=False)
+                if metadata['text']:
+                    new_markdown += '# PNG texts\n'
+                    new_markdown += "|**Key**|**Value**|\n|--|--|\n"
                     for t in metadata['text']:
-                        meta_table.add_row(t['key'], t['value'])
-                    reports.append(meta_table)
+                        new_markdown += f"{t['key']} | {t['value']}|\n"
 
-        return title, reports
+        return new_markdown

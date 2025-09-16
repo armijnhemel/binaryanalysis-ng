@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 '''
 Parse and unpack various DOS/Windows executable formats, namely:
@@ -33,6 +31,7 @@ a specific order to recognize from most specific (PE, NE) to least
 specific (DOS MZ).
 '''
 
+import pefile
 from bang.UnpackParser import UnpackParser, check_condition, OffsetInputFile
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
@@ -41,7 +40,6 @@ from . import ne
 from . import dos_mz
 from . import coff
 
-import pefile
 
 
 class ExeUnpackParser(UnpackParser):
@@ -96,8 +94,8 @@ class ExeUnpackParser(UnpackParser):
                 self.infile.seek(self.offset)
                 self.data = dos_mz.DosMz.from_io(self.infile)
                 self.exetype = 'dos_mz'
-            except (Exception, ValidationFailedError) as e:
-                raise UnpackParserException(e.args)
+            except (Exception, ValidationFailedError) as ex:
+                raise UnpackParserException(ex.args) from ex
 
         if self.exetype == 'pe':
             check_condition(self.data.mz.ofs_pe <= self.infile.size,
@@ -169,7 +167,7 @@ class ExeUnpackParser(UnpackParser):
                         for s in self.coff.symbol_table_and_string_table.string_table.strings:
                             pass
                         self.coff_size = max(self.coff_size, self.coff.header.ofs_symbol_table + symbol_size)
-                except (Exception, ValidationFailedError) as e:
+                except (Exception, ValidationFailedError):
                     self.has_coff = False
 
     def calculate_unpacked_size(self):
@@ -226,13 +224,13 @@ class ExeUnpackParser(UnpackParser):
                         if imp.name is None:
                             continue
                         imported_symbols[dll].append(imp.name.decode())
-            except Exception as e:
+            except Exception:
                 pass
 
             try:
                 for entry in self.pe.DIRECTORY_ENTRY_EXPORT.symbols:
                     exported_symbols.append(entry.name.decode())
-            except Exception as e:
+            except Exception:
                 pass
 
             metadata['symbols']['imported'] = imported_symbols

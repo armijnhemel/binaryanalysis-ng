@@ -2,34 +2,33 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 import os
 import struct
 import pathlib
-from . import vfat
-from . import vfat_directory
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from bang.log import log
 from kaitaistruct import ValidationFailedError
+
+from . import vfat
+from . import vfat_directory
 
 # https://en.wikipedia.org/wiki/File_Allocation_Table
 # https://en.wikipedia.org/wiki/Design_of_the_FAT_file_system
@@ -64,10 +63,8 @@ class VfatUnpackParser(UnpackParser):
         try:
             self.data = vfat.Vfat.from_io(self.infile)
         # TODO: decide what exceptions to catch
-        except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
-        except BaseException as e:
-            raise UnpackParserException(e.args)
+        except (ValidationFailedError, Exception, BaseException) as e:
+            raise UnpackParserException(e.args) from e
         bpb = self.data.boot_sector.bpb
         check_condition(bpb.ls_per_clus > 0, "invalid bpb value: ls_per_clus")
         check_condition(bpb.bytes_per_ls > 0, "invalid bpb value: bytes_per_ls")
@@ -147,12 +144,13 @@ class VfatUnpackParser(UnpackParser):
                     pass # keep long filename
             log.debug(f'vfat_parser: {fn=} {lfn=}')
             if not lfn:
-                if fn[0] == '\0': continue
+                if fn[0] == '\0':
+                    continue
                 log.debug(f'vfat_parser: {record.attr_subdirectory=}')
                 # get other attributes
                 if record.attr_subdirectory:
-                    if fn != '.' and fn != '..':
-                        log.debug(f'vfat:unpack_directory: get dir_entries')
+                    if fn not in ['.', '..']:
+                        log.debug('vfat:unpack_directory: get dir_entries')
                         dir_entries = self.get_dir_entries(record.start_clus)
                         # We are just extracting the directory, not creating a
                         # MetaDirectory for it.

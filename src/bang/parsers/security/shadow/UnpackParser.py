@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 # verify Unix shadow files
 # man 5 shadow
@@ -39,7 +37,7 @@ class ShadowUnpackParser(UnpackParser):
             shadow_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
             shadow_file.close()
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.entries = []
 
@@ -54,20 +52,20 @@ class ShadowUnpackParser(UnpackParser):
 
                 check_condition(len(fields) == 9, "invalid number of entries")
                 try:
-                   if fields[2] != '':
-                       date_last_change = int(fields[2])
-                   if fields[3] != '':
-                       minimum_password_age = int(fields[3])
-                   if fields[4] != '':
-                       maximmum_password_age = int(fields[4])
-                   if fields[5] != '':
-                       password_warning_period = int(fields[5])
-                   if fields[6] != '':
-                       password_inactivity_period = int(fields[6])
-                   if fields[7] != '':
-                       account_expiration_date = int(fields[7])
+                    if fields[2] != '':
+                        date_last_change = int(fields[2])
+                    if fields[3] != '':
+                        minimum_password_age = int(fields[3])
+                    if fields[4] != '':
+                        maximmum_password_age = int(fields[4])
+                    if fields[5] != '':
+                        password_warning_period = int(fields[5])
+                    if fields[6] != '':
+                        password_inactivity_period = int(fields[6])
+                    if fields[7] != '':
+                        account_expiration_date = int(fields[7])
                 except ValueError as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
 
                 # store a few entries
                 entry = {}
@@ -79,7 +77,7 @@ class ShadowUnpackParser(UnpackParser):
                 len_unpacked += len(shadow_line)
                 data_unpacked = True
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             shadow_file.close()
 

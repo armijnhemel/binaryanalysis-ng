@@ -3,12 +3,14 @@
 # Binary Analysis Next Generation (BANG!)
 #
 # Copyright 2022 - Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# Licensed under the terms of the GNU General Public License version 3
+# SPDX-License-Identifier: GPL-3.0-only
 
 '''
 Proof of concept script documenting how to use the VulnerableCodeConnector class
 '''
+
+import sys
 
 import click
 import packageurl
@@ -24,7 +26,8 @@ except ImportError:
 from VulnerableCodeConnector import VulnerableCodeConnector, VulnerableCodeException
 
 @click.command(short_help='query VulnerableCode using a package URL')
-@click.option('--config', '-c', required=True, help='path to configuration file', type=click.File('r'))
+@click.option('--config', '-c', required=True, help='path to configuration file',
+              type=click.File('r'))
 def main(config):
 
     # read the configuration file. This is in YAML format

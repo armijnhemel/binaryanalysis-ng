@@ -3,8 +3,8 @@
 # Binary Analysis Next Generation (BANG!)
 #
 # Copyright 2018-2022 - Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# Licensed under the terms of the GNU General Public License version 3
+# SPDX-License-Identifier: GPL-3.0-only
 
 '''
 Crawls the release XML from F-Droid and stores files and metadata
@@ -204,7 +204,7 @@ def main(config_file, force):
     if not os.path.exists(xmldirectory):
         os.mkdir(xmldirectory)
 
-    downloaddate = datetime.datetime.utcnow()
+    downloaddate = datetime.datetime.now(datetime.UTC)
     xmloutname = os.path.join(xmldirectory, "index.xml-%s" % downloaddate.strftime("%Y%m%d-%H%M%S"))
 
     if os.path.exists(xmloutname):

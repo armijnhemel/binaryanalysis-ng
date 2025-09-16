@@ -2,33 +2,31 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
-import pathlib
-import zlib
 import collections
+import pathlib
 import socket
+import zlib
 
 import lzo
 import zstandard
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import ubifs
@@ -42,16 +40,17 @@ class UbifsUnpackParser(UnpackParser):
     pretty_name = 'ubifs'
 
     def parse(self):
+        '''Parse ubifs data structure'''
         try:
             self.data = ubifs.Ubifs.from_io(self.infile)
 
             # store the highest inode number, forces evaluation
             self.highest_inum = self.data.master_1.node_header.highest_inum
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
-        # traverse the tree, starting with the root inode
+        '''Unpack ubifs data by traversing the tree, starting with the root node'''
         node_blocks = collections.deque()
         node_blocks.append(self.data.index_root)
 
@@ -65,10 +64,10 @@ class UbifsUnpackParser(UnpackParser):
             # grab a node to process
             try:
                 process_node = node_blocks.popleft()
-                if type(process_node.node_header) == ubifs.Ubifs.IndexHeader:
+                if isinstance(process_node.node_header, ubifs.Ubifs.IndexHeader):
                     for branch in process_node.node_header.branches:
                         node_blocks.append(branch.branch_target)
-                elif type(process_node.node_header) == ubifs.Ubifs.DirectoryHeader:
+                elif isinstance(process_node.node_header, ubifs.Ubifs.DirectoryHeader):
                     # TODO: use the key for some verification of the inode
                     parent_inode_nr = process_node.node_header.key.inode_number
                     if parent_inode_nr not in parent_to_inodes:
@@ -118,10 +117,10 @@ class UbifsUnpackParser(UnpackParser):
         while True:
             try:
                 process_node = node_blocks.popleft()
-                if type(process_node.node_header) == ubifs.Ubifs.IndexHeader:
+                if isinstance(process_node.node_header, ubifs.Ubifs.IndexHeader):
                     for branch in process_node.node_header.branches:
                         node_blocks.append(branch.branch_target)
-                elif type(process_node.node_header) == ubifs.Ubifs.InodeHeader:
+                elif isinstance(process_node.node_header, ubifs.Ubifs.InodeHeader):
                     inode = process_node.node_header.key.inode_number
                     if inode in inode_to_type:
                         file_path = pathlib.Path(inode_to_path[inode])
@@ -135,11 +134,11 @@ class UbifsUnpackParser(UnpackParser):
                             pass
                         elif inode_to_type[inode] == ubifs.Ubifs.InodeTypes.link:
                             try:
-                                 target = process_node.node_header.data.decode()
-                                 meta_directory.unpack_symlink(file_path, target)
-                                 # No meta directory for symlinks
-                            except Exception as e:
-                                 continue
+                                target = process_node.node_header.data.decode()
+                                meta_directory.unpack_symlink(file_path, target)
+                                # No meta directory for symlinks
+                            except Exception:
+                                continue
                         elif inode_to_type[inode] == ubifs.Ubifs.InodeTypes.block_device:
                             # skip block devices
                             pass
@@ -159,7 +158,7 @@ class UbifsUnpackParser(UnpackParser):
                             pass
                             #ubi_socket = socket.socket(socket.AF_UNIX)
                             #ubi_socket.bind(outfile)
-                elif type(process_node.node_header) == ubifs.Ubifs.DataHeader:
+                elif isinstance(process_node.node_header, ubifs.Ubifs.DataHeader):
                     inode = process_node.node_header.key.inode_number
                     unpacked_md = unpacked_mds[inode]
                     with open(unpacked_md.abs_file_path, 'ab') as outfile:

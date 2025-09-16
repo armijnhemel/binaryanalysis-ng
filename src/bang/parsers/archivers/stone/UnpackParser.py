@@ -2,25 +2,22 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright - Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
-import hashlib
 import io
 import pathlib
 
@@ -44,7 +41,7 @@ class StoneUnpackParser(UnpackParser):
         try:
             self.data = stone.Stone.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # store the types of the sections for sanity checks
         sections = []
@@ -79,7 +76,7 @@ class StoneUnpackParser(UnpackParser):
                 reader = zstandard.ZstdDecompressor().stream_reader(payload.data)
                 unpacked_payload = reader.read()
             except Exception as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
             check_condition(payload.len_usable_data == len(unpacked_payload),
                             "length mismatch")
@@ -90,17 +87,17 @@ class StoneUnpackParser(UnpackParser):
                     try:
                         self.meta = stone.Stone.MetaRecords.from_bytes(unpacked_payload)
                     except (Exception, ValidationFailedError) as e:
-                        raise UnpackParserException(e.args)
+                        raise UnpackParserException(e.args) from e
                 elif payload.type == stone.Stone.PayloadType.layout:
                     try:
                         self.layout = stone.Stone.LayoutEntries.from_bytes(unpacked_payload)
                     except (Exception, ValidationFailedError) as e:
-                        raise UnpackParserException(e.args)
+                        raise UnpackParserException(e.args) from e
                 elif payload.type == stone.Stone.PayloadType.index:
                     try:
                         self.index = stone.Stone.IndexEntries.from_bytes(unpacked_payload)
                     except (Exception, ValidationFailedError) as e:
-                        raise UnpackParserException(e.args)
+                        raise UnpackParserException(e.args) from e
                 elif payload.type == stone.Stone.PayloadType.content:
                     self.content = unpacked_payload
 
@@ -109,7 +106,7 @@ class StoneUnpackParser(UnpackParser):
                     try:
                         self.meta = stone.Stone.MetaRecords.from_bytes(unpacked_payload)
                     except (Exception, ValidationFailedError) as e:
-                        raise UnpackParserException(e.args)
+                        raise UnpackParserException(e.args) from e
 
         if self.data.header.type == stone.Stone.FileTypes.binary:
             # combine layout and index. Index contains the
@@ -134,7 +131,7 @@ class StoneUnpackParser(UnpackParser):
                     try:
                         src = l.source.rsplit(b'\x00')[0].decode()
                     except UnicodeDecodeError as e:
-                        raise UnpackParserException(e.args)
+                        raise UnpackParserException(e.args) from e
                     self.symlinks.append({'source': pathlib.Path(src), 'target': pathlib.Path(l.target)})
                 elif l.file_type == stone.Stone.LayoutEntry.FileType.directory:
                     self.directories.append(l.target)

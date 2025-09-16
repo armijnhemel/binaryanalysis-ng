@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 # A description of the CPIO format can be found in section 5 of the
 # cpio manpage on Linux:
@@ -35,15 +33,16 @@
 import os
 import stat
 import pathlib
-from . import cpio_new_ascii
-from . import cpio_new_crc
-from . import cpio_portable_ascii
-from . import cpio_old_binary
 
 from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from bang.log import log
 from kaitaistruct import ValidationFailedError
+
+from . import cpio_new_ascii
+from . import cpio_new_crc
+from . import cpio_portable_ascii
+from . import cpio_old_binary
 
 
 class CpioBaseUnpackParser(UnpackParser):
@@ -99,7 +98,7 @@ class CpioBaseUnpackParser(UnpackParser):
                     pos += e.header.bsize
                     continue
                 elif stat.S_ISREG(mode):
-                    log.debug(f'unpack: regular file')
+                    log.debug('unpack: regular file')
 
                     filedata_start = e.header.hsize + e.header.nsize + e.header.npaddingsize
                     yield from self.unpack_regular(meta_directory, file_path, pos + filedata_start, e.header.fsize)
@@ -119,9 +118,9 @@ class CpioNewAsciiUnpackParser(CpioBaseUnpackParser):
             self.data = cpio_new_ascii.CpioNewAscii.from_io(self.infile)
         # TODO: decide what exceptions to catch
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         except BaseException as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
 class CpioNewCrcUnpackParser(CpioBaseUnpackParser):
     extensions = []
@@ -133,9 +132,9 @@ class CpioNewCrcUnpackParser(CpioBaseUnpackParser):
             self.data = cpio_new_crc.CpioNewCrc.from_io(self.infile)
         # TODO: decide what exceptions to catch
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         except BaseException as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
 class CpioPortableAsciiUnpackParser(CpioBaseUnpackParser):
     extensions = []
@@ -147,9 +146,9 @@ class CpioPortableAsciiUnpackParser(CpioBaseUnpackParser):
             self.data = cpio_portable_ascii.CpioPortableAscii.from_io(self.infile)
         # TODO: decide what exceptions to catch
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         except BaseException as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
 class CpioOldBinaryUnpackParser(CpioBaseUnpackParser):
     extensions = []
@@ -161,6 +160,6 @@ class CpioOldBinaryUnpackParser(CpioBaseUnpackParser):
             self.data = cpio_old_binary.CpioOldBinary.from_io(self.infile)
         # TODO: decide what exceptions to catch
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         except BaseException as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e

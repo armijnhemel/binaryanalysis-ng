@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 import os
 import pathlib
@@ -70,7 +68,7 @@ class LrzipUnpackParser(UnpackParser):
                 self.unpacked_size += 16
 
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         check_condition(self.unpacked_size <= self.infile.size, "data cannot be outside of file")
 
@@ -81,15 +79,17 @@ class LrzipUnpackParser(UnpackParser):
         # extract the file once).
         self.havetmpfile = False
         if not (self.offset == 0 and self.infile.size == self.unpacked_size):
-            temporary_file = tempfile.mkstemp(dir=self.configuration.temporary_directory)
-            havetmpfile = True
-            os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
-            os.fdopen(temporary_file[0]).close()
+            self.temporary_file = tempfile.mkstemp(dir=self.configuration.temporary_directory)
+            self.havetmpfile = True
+            os.sendfile(self.temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
+            os.fdopen(self.temporary_file[0]).close()
 
         if self.havetmpfile:
-            p = subprocess.Popen(['lrzip', '-d', temporary_file[1], '-o', '-'], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+            p = subprocess.Popen(['lrzip', '-d', self.temporary_file[1], '-o', '-'],
+                    stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         else:
-            p = subprocess.Popen(['lrzip', '-d', self.infile.name, '-o', '-'], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+            p = subprocess.Popen(['lrzip', '-d', self.infile.name, '-o', '-'],
+                    stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
         (outputmsg, errormsg) = p.communicate()
 
@@ -114,9 +114,11 @@ class LrzipUnpackParser(UnpackParser):
 
         with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
             if self.havetmpfile:
-                p = subprocess.Popen(['lrzip', '-d', temporary_file[1], '-o', '-'], stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
+                p = subprocess.Popen(['lrzip', '-d', self.temporary_file[1], '-o', '-'],
+                    stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
             else:
-                p = subprocess.Popen(['lrzip', '-d', self.infile.name, '-o', '-'], stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
+                p = subprocess.Popen(['lrzip', '-d', self.infile.name, '-o', '-'],
+                    stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
 
             (outputmsg, errormsg) = p.communicate()
 

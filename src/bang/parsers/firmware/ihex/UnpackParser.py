@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 # https://en.wikipedia.org/wiki/Intel_HEX
 # It is assumed that only files that are completely text
@@ -43,7 +41,7 @@ class IhexUnpackParser(UnpackParser):
             ihex_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
             ihex_file.close()
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # read the lines of the data, until either EOF
         # or until the end of the ihex data has been reached
@@ -93,8 +91,8 @@ class IhexUnpackParser(UnpackParser):
                     break
 
                 if len(line) - 11 != num_bytes * 2:
-                     error_msg = 'invalid byte count'
-                     break
+                    error_msg = 'invalid byte count'
+                    break
 
                 # address can be skipped
                 try:
@@ -114,7 +112,7 @@ class IhexUnpackParser(UnpackParser):
                     end_of_ihex = True
                     unpacked += len(hex_line)
                     break
-                elif record_type == 0:
+                if record_type == 0:
                     try:
                         ihexdata = bytes.fromhex(line[9:9+num_bytes*2])
                     except ValueError:
@@ -139,7 +137,7 @@ class IhexUnpackParser(UnpackParser):
                     record_types.add(record_type)
                 unpacked += len(hex_line)
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             ihex_file.close()
 
@@ -185,7 +183,7 @@ class IhexUnpackParser(UnpackParser):
                 if record_type == 1:
                     end_of_ihex = True
                     break
-                elif record_type == 0:
+                if record_type == 0:
                     ihexdata = bytes.fromhex(line[9:9+num_bytes*2])
                     outfile.write(ihexdata)
             ihex_file.close()

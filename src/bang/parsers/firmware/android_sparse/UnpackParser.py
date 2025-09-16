@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 '''
 The Android sparse format is documented in the Android source code tree:
@@ -63,7 +61,7 @@ class AndroidSparseUnpackParser(UnpackParser):
                     check_condition(len(chunk.body) == 0, "wrong body length")
                 self.unpacked_size += chunk.header.len_chunk
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         check_condition(self.infile.size >= self.unpacked_size, "not enough data")
         check_condition(self.data.header.version.major == 1, "unsupported major version")
         check_condition(self.data.header.block_size % 4 == 0, "unsupported block size")
@@ -84,10 +82,10 @@ class AndroidSparseUnpackParser(UnpackParser):
                     for c in range(0, chunk.header.num_body_blocks):
                         # It has already been checked that blk_sz
                         # is divisible by 4.
-                       outfile.write(chunk.body*(self.data.header.block_size//4))
+                        outfile.write(chunk.body*(self.data.header.block_size//4))
                 elif chunk.header.chunk_type == android_sparse.AndroidSparse.ChunkTypes.dont_care:
                     for c in range(0, chunk.header.num_body_blocks):
-                       outfile.write(b'\x00' * self.data.header.block_size)
+                        outfile.write(b'\x00' * self.data.header.block_size)
 
             yield unpacked_md
 

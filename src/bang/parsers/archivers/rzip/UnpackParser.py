@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 # https://rzip.samba.org/
 # https://en.wikipedia.org/wiki/Rzip
@@ -54,7 +52,7 @@ class RzipUnpackParser(UnpackParser):
 
         # then read the major version
         buf = self.infile.read(1)
-        check_condition(ord(buf) <= 2, "invalid rzip major version %d" % ord(buf))
+        check_condition(ord(buf) <= 2, f"invalid rzip major version {ord(buf)}")
 
         # then read the minor version
         buf = self.infile.read(1)
@@ -99,7 +97,7 @@ class RzipUnpackParser(UnpackParser):
                 except EOFError as e:
                     break
                 except Exception as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
 
                 # there is no more compressed data
                 bz2size += len(bz2data) - len(bz2decompressor.unused_data)

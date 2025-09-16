@@ -2,27 +2,25 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 import pathlib
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import android_fbpk
@@ -48,7 +46,7 @@ class AndroidFbpkUnpackParser(UnpackParser):
                     # parsing for FBPT entries
                     data = entry.partition_parsed
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         self.unpacked_size = self.data.body.total_file_size
 
     # make sure that self.unpacked_size is not overwritten
@@ -71,7 +69,7 @@ class AndroidFbpkUnpackParser(UnpackParser):
             if partition_name in seen_partitions:
                 counter = 1
                 while True:
-                    new_partition_name = "%s-renamed-%d" % (entry.partition_name, counter)
+                    new_partition_name = f"{entry.partition_name}-renamed-{counter}"
                     if new_partition_name not in seen_partitions:
                         partition_name = new_partition_name
                         is_renamed = True

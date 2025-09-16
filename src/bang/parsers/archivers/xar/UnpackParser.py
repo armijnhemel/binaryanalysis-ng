@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 # Derived from specifications at:
 # https://github.com/mackyle/xar/wiki/xarformat
@@ -65,7 +63,7 @@ class XarUnpackParser(UnpackParser):
         try:
             self.data = xar.Xar.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         check_condition(len(self.data._raw__raw_toc) == self.data.header.len_toc_compressed,
                         "invalid compressed TOC length")
         check_condition(len(self.data.toc.xml_string) == self.data.header.toc_length_uncompressed,
@@ -75,7 +73,7 @@ class XarUnpackParser(UnpackParser):
         try:
             tocdom = defusedxml.minidom.parseString(self.data.toc.xml_string)
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # traverse the TOC for sanity checks
         check_condition(tocdom.documentElement.tagName == 'xar',
@@ -120,7 +118,7 @@ class XarUnpackParser(UnpackParser):
                                         try:
                                             checksum_offset = int(dd.data.strip())
                                         except ValueError as e:
-                                            raise UnpackParserException(e.args)
+                                            raise UnpackParserException(e.args) from e
                             elif ic.tagName == 'size':
                                 # traverse the child nodes
                                 for dd in ic.childNodes:
@@ -128,7 +126,7 @@ class XarUnpackParser(UnpackParser):
                                         try:
                                             checksum_size = int(dd.data.strip())
                                         except ValueError as e:
-                                            raise UnpackParserException(e.args)
+                                            raise UnpackParserException(e.args) from e
                     check_condition(self.end_of_header + checksum_offset + checksum_size <= self.infile.size,
                                     "checksum cannot be outside of file")
                     self.unpacked_size = max(self.unpacked_size, self.end_of_header + checksum_offset + checksum_size)
@@ -185,7 +183,7 @@ class XarUnpackParser(UnpackParser):
                                                 try:
                                                     data_offset = int(dd.data.strip())
                                                 except ValueError as e:
-                                                    raise UnpackParserException(e.args)
+                                                    raise UnpackParserException(e.args) from e
                                     elif file_node.tagName == 'length':
                                         # traverse the child nodes
                                         for dd in file_node.childNodes:
@@ -193,7 +191,7 @@ class XarUnpackParser(UnpackParser):
                                                 try:
                                                     data_length = int(dd.data.strip())
                                                 except ValueError as e:
-                                                    raise UnpackParserException(e.args)
+                                                    raise UnpackParserException(e.args) from e
                                     elif file_node.tagName == 'encoding':
                                         compression_string = file_node.getAttribute('style')
                                         if 'gzip' in compression_string:
@@ -333,8 +331,8 @@ class XarUnpackParser(UnpackParser):
                     # decompress the data and check the hash
                     try:
                         decompressed_bytes = decompressor.decompress(buf)
-                    except:
-                        raise UnpackParserException("broken compressed data")
+                    except Exception as e:
+                        raise UnpackParserException("broken compressed data") from e
                     bytesread += len(buf)
                     extracted_hash.update(decompressed_bytes)
 

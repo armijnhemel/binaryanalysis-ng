@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 # https://en.wikipedia.org/wiki/SREC_(file_format)
 # It is assumed that only files that are completely text
@@ -41,8 +39,8 @@ class SrecUnpackParser(UnpackParser):
         try:
             # open the file again, but then in text mode
             srec_file = open(self.infile.name, 'r', newline='')
-        except:
-            raise UnpackParserException("Cannot decode file as text")
+        except Exception as e:
+            raise UnpackParserException("Cannot decode file as text") from e
 
         # read the lines of the data, until either EOF
         # or until the end of the srec data has been reached
@@ -142,7 +140,7 @@ class SrecUnpackParser(UnpackParser):
                 unpacked += len(srec_line)
         except UnicodeDecodeError as e:
             srec_file.close()
-            raise UnpackParserException("cannot decode")
+            raise UnpackParserException("cannot decode") from e
 
         srec_file.close()
 

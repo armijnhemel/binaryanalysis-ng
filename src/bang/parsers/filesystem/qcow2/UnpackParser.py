@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 # QCOW2 is a file format used by QEMU. It can be inspected and converted
 # using the qemu-img tool, but tool isn't completely accurate: the
@@ -53,7 +51,7 @@ class Qcow2UnpackParser(UnpackParser):
         try:
             self.data = qcow2.Qcow2.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # run qemu-img to see if the whole file is the qcow2 file
         # Carving unfortunately doesn't seem to work well.
@@ -65,8 +63,8 @@ class Qcow2UnpackParser(UnpackParser):
 
         try:
             vmdkjson = json.loads(standardout)
-        except:
-            raise UnpackParserException("no valid JSON output from qemu-img")
+        except Exception as e:
+            raise UnpackParserException("no valid JSON output from qemu-img") from e
 
         # convert the file to a temporary file to rule out any unpacking errors
         self.temporary_file = tempfile.mkstemp(dir=self.configuration.temporary_directory)

@@ -2,30 +2,28 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 import math
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
-from . import otff as otff
+from . import otff
 
 REQUIRED_TABLES = set(['cmap', 'head', 'hhea', 'hmtx',
                        'maxp', 'name', 'OS/2', 'post'])
@@ -42,7 +40,7 @@ class OpentypeFontCollectionUnpackParser(UnpackParser):
         try:
             self.data = otff.Otff.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.unpacked_size = self.infile.tell()
 
@@ -52,7 +50,7 @@ class OpentypeFontCollectionUnpackParser(UnpackParser):
             try:
                 log_tables = int(math.log2(font.offset_table.num_tables))
             except ValueError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
             check_condition(pow(2, log_tables) * 16 == font.offset_table.search_range,
                             "number of tables does not correspond to search range")
 
@@ -100,7 +98,7 @@ class OpentypeFontCollectionUnpackParser(UnpackParser):
                     computed_checksum = computed_checksum & 4294967295
                     if dir_table_entry.tag != 'head':
                         check_condition(dir_table_entry.checksum == computed_checksum,
-                                        "invalid checksum for table %s" % dir_table_entry.tag)
+                                        f"invalid checksum for table {dir_table_entry.tag}")
                         offset_to_checksum[dir_table_entry.offset] = computed_checksum
                     else:
                         # the head table checksum is different and uses a
@@ -111,7 +109,7 @@ class OpentypeFontCollectionUnpackParser(UnpackParser):
                         checksum_adjustment = int.from_bytes(dir_table_entry.raw_value[8:12], byteorder='big')
 
             except (Exception, ValidationFailedError) as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
             check_condition(table_names.intersection(REQUIRED_TABLES) == REQUIRED_TABLES,
                             "not all required tables present")

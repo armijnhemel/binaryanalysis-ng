@@ -2,33 +2,33 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 # Parser for TrueType and OpenType fonts
 
 import math
 import os
+import pathlib
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
-from . import ttf as ttf
+from . import eot
+from . import ttf
 
 # https://docs.microsoft.com/en-us/typography/opentype/spec/otff
 # (section 'Font Tables')
@@ -43,6 +43,31 @@ REQUIRED_TRUETYPE = set(['cmap', 'glyf', 'head', 'hhea', 'hmtx',
                          'loca', 'maxp', 'name', 'post'])
 
 
+class OpenEmbeddedTyoe(UnpackParser):
+    extensions = []
+    signatures = [
+        (34, b'\x4c\x50'),
+    ]
+    pretty_name = 'eot'
+
+    def parse(self):
+        self.unpacked_size = self.infile.tell()
+        try:
+            self.data = eot.Eot.from_io(self.infile)
+        except (Exception, ValidationFailedError) as e:
+            raise UnpackParserException(e.args) from e
+
+    def unpack(self, meta_directory):
+        # determine the name of the output file
+        file_path = pathlib.Path(self.data.header.full_name)
+        with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+            outfile.write(self.data.font_data)
+
+            yield unpacked_md
+
+    labels = ['eot', 'font']
+    metadata = {}
+
 class TruetypeFontUnpackParser(UnpackParser):
     extensions = []
     signatures = [
@@ -56,12 +81,12 @@ class TruetypeFontUnpackParser(UnpackParser):
         try:
             self.data = ttf.Ttf.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         try:
             log_tables = int(math.log2(self.data.offset_table.num_tables))
         except ValueError as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         check_condition(pow(2, log_tables) * 16 == self.data.offset_table.search_range,
                         "number of tables does not correspond to search range")
@@ -109,7 +134,7 @@ class TruetypeFontUnpackParser(UnpackParser):
                 computed_checksum = computed_checksum & 4294967295
                 if dir_table_entry.tag != 'head':
                     check_condition(dir_table_entry.checksum == computed_checksum,
-                                    "invalid checksum for table %s" % dir_table_entry.tag)
+                                    f"invalid checksum for table {dir_table_entry.tag}")
                 else:
                     # the head table checksum is different and uses a
                     # checksum adjustment, which is documented here:
@@ -119,7 +144,7 @@ class TruetypeFontUnpackParser(UnpackParser):
                     checksum_adjustment = int.from_bytes(dir_table_entry.raw_value[8:12], byteorder='big')
 
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         check_condition(self.unpacked_size <= self.infile.size,
                         "not enough data")

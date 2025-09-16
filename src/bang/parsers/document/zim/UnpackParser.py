@@ -2,28 +2,25 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 import bz2
 import hashlib
 import lzma
-import os
 import pathlib
 import zlib
 
@@ -75,7 +72,7 @@ class ZimUnpackParser(UnpackParser):
                 cluster_flag = cluster.cluster.flag
             self.unpacked_size = self.data.header.checksum + 16
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # compute the checksum
         self.infile.seek(0)
@@ -110,7 +107,7 @@ class ZimUnpackParser(UnpackParser):
                     reader = zstandard.ZstdDecompressor().stream_reader(cluster.cluster.body.data)
                     cluster_data = reader.read()
                 except Exception as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
                 blobs = self.parse_cluster_data(cluster_data, offset_size)
                 blobs_per_cluster[cluster_count] = len(blobs) - 1
             elif cluster.cluster.flag.compressed == zim.Zim.Compression.xz:
@@ -118,7 +115,7 @@ class ZimUnpackParser(UnpackParser):
                 try:
                     cluster_data = decompressor.decompress(cluster.cluster.body.data)
                 except Exception as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
                 blobs = self.parse_cluster_data(cluster_data, offset_size)
                 blobs_per_cluster[cluster_count] = len(blobs) - 1
             elif cluster.cluster.flag.compressed == zim.Zim.Compression.zlib:
@@ -126,7 +123,7 @@ class ZimUnpackParser(UnpackParser):
                 try:
                     cluster_data = decompressor.decompress(cluster.cluster.body.data)
                 except Exception as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
                 blobs = self.parse_cluster_data(cluster_data, offset_size)
                 blobs_per_cluster[cluster_count] = len(blobs) - 1
             elif cluster.cluster.flag.compressed == zim.Zim.Compression.bzip2:
@@ -134,7 +131,7 @@ class ZimUnpackParser(UnpackParser):
                 try:
                     cluster_data = decompressor.decompress(cluster.cluster.body.data)
                 except Exception as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
                 blobs = self.parse_cluster_data(cluster_data, offset_size)
                 blobs_per_cluster[cluster_count] = len(blobs) - 1
             else:
@@ -150,7 +147,7 @@ class ZimUnpackParser(UnpackParser):
 
             # sanity check: a redirect should point to
             # a valid index
-            if type(entry.entry.body) == zim.Zim.Redirect:
+            if isinstance(entry.entry.body, zim.Zim.Redirect):
                 check_condition(entry.entry.body.redirect_index <= num_entries,
                                 "invalid redirect index")
             else:
@@ -204,7 +201,7 @@ class ZimUnpackParser(UnpackParser):
 
         entry_counter = 0
         for entry in self.data.url_pointers.entries:
-            if type(entry.entry.body) == zim.Zim.Redirect:
+            if isinstance(entry.entry.body, zim.Zim.Redirect):
                 if entry.entry.body.url != '':
                     name = entry.entry.body.url
                 elif entry.entry.body.title != '':

@@ -8,28 +8,31 @@ that needs to be able to do the following:
 3. unpack the parsed data
 4. determine labels and metadata
 
-A new parser derives from the `UnpackParser` class. To implement the
-functionality mentioned above several methods need to be redefined.
+A new parser derives from the `UnpackParser` base class. To implement the
+functionality mentioned above several methods need to be (possibly) redefined.
 
 ## First: an important word about offsets
 
 To make it easier for the parsers the file that is presented to the parser and
-unpacker is not the real file. Instead, it has been wrapped in a so called
-`OffsetInputFile` wrapper, that takes care of offsets. This is so the parser
-does not need to worry too much about where in the file it actually is reading
-and what offsets need to be taken care off (which is always a source of bugs).
-This makes the parser easier and cleaner, as it always seems as if the parser
-starts at offset `0`. When using Kaitai Struct based parsers this usually does
-not matter at all (unless the Kaitai Struct specification uses file size
-checks, which some unfortunately do) as Kaitai Struct will read from a stream
-of bytes and all that is needed is that the file pointer is pointing at the
-right offset.
+unpacker is not the real file. Instead, it has been wrapped in a wrapper called
+`OffsetInputFile` wrapper. This wrapper makes it look as if the file that is
+being opened starts at offset `0`. This makes it much easier and cleaner to
+write a parser and the parser does not need to worry about where in the file it
+actually is reading and what offsets need to be taken care off (which has been
+a source of bugs in the past).
+
+When using Kaitai Struct based parsers this usually does not matter at all
+(unless the Kaitai Struct specification uses file size checks, which some
+unfortunately do) as Kaitai Struct will read from a stream of bytes and all
+that is needed is that the file pointer is pointing at the right offset in the
+file.
 
 The offset of the signature in the *original* file can still be accessed
 through `self.offset`. The original file can be accessed (if needed) via
 `self.infile.infile`. In an ideal case these are never needed, but there are
 exceptions, for example when using external tools, or when writing data in
-bulk using `sendfile()`.
+bulk using `sendfile()` which needs to have the original offset or it will
+write data in the wrong location.
 
 There are various modules that are using `sendfile()`, for example:
 
@@ -107,8 +110,8 @@ more contextual information is needed. An example is `base64`, where there is a
 check to see if the file was unpacked from a Chrome PAK file to avoid needless
 false positives.
 
-Another example is `CbfsUnpackParser` because there the wrapped file should
-not be used.
+Another example is `CbfsUnpackParser` because for that file format the wrapped
+file (using `OffsetInputFile`) should actually not be used.
 
 ## `parse()`
 

@@ -2,30 +2,28 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 import os
 import uuid
 import pathlib
-from . import gpt_partition_table
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
+from . import gpt_partition_table
 
 class GptPartitionTableUnpackParser(UnpackParser):
     pretty_name = 'gpt'
@@ -39,7 +37,7 @@ class GptPartitionTableUnpackParser(UnpackParser):
                 partition_start = e.first_lba * self.data.sector_size
                 partition_end = (e.last_lba + 1) * self.data.sector_size
         except BaseException as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def calculate_unpacked_size(self):
         # According to https://web.archive.org/web/20080321063028/http://technet2.microsoft.com/windowsserver/en/library/bdeda920-1f08-4683-9ffb-7b4b50df0b5a1033.mspx?mfr=true
@@ -58,7 +56,7 @@ class GptPartitionTableUnpackParser(UnpackParser):
         try:
             self.unpacked_size = (self.data.primary.backup_lba+1)*self.data.sector_size
         except BaseException as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         all_entries_size = self.data.primary.entries_size * self.data.primary.entries_count
         self.unpacked_size = max(self.unpacked_size, self.data.primary.entries_start * self.data.sector_size + all_entries_size)
@@ -79,7 +77,7 @@ class GptPartitionTableUnpackParser(UnpackParser):
             partition_end = (e.last_lba + 1) * self.data.sector_size
             partition_ext = 'part'
 
-            outfile = "unpacked.gpt-partition%d.%s" % (partition_number, partition_ext)
+            outfile = f"unpacked.gpt-partition{partition_number,}.{partition_ext}"
             with meta_directory.unpack_regular_file(pathlib.Path(outfile)) as (unpacked_md, f):
                 os.sendfile(f.fileno(), self.infile.fileno(), partition_start, partition_end - partition_start)
                 with unpacked_md.open(open_file=False):
@@ -100,4 +98,3 @@ class GptPartitionTableUnpackParser(UnpackParser):
             metadata['partitions'].append({'uuid': guid, 'name': e.name.split('\x00')[0]})
 
         return metadata
-

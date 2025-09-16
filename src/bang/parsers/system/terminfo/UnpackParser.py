@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 import re
 
@@ -37,14 +35,16 @@ class TerminfoUnpackParser(UnpackParser):
     pretty_name = 'terminfo'
 
     def parse(self):
+        '''Parse terminfo files in both extended format and regular format'''
         try:
             self.data = terminfo_extended.TerminfoExtended.from_io(self.infile)
-        except (Exception, ValidationFailedError) as e:
+        except (Exception, ValidationFailedError):
             self.infile.infile.seek(self.infile.offset)
+
             try:
                 self.data = terminfo.Terminfo.from_io(self.infile)
-            except (Exception, ValidationFailedError) as e:
-                raise UnpackParserException(e.args)
+            except (Exception, ValidationFailedError) as ex:
+                raise UnpackParserException(ex.args) from ex
 
         # sanity checks for the names
         check_condition(len(self.data.names_section.names) > 0,
@@ -55,7 +55,7 @@ class TerminfoUnpackParser(UnpackParser):
                         "invalid terminal name")
 
         for string_offset in self.data.strings_section.string_offset:
-            if string_offset == 0xffff or string_offset == 0xfffe:
+            if string_offset in [0xffff, 0xfffe]:
                 continue
             check_condition(string_offset <= self.data.len_string_table,
                             "invalid offset into string table")

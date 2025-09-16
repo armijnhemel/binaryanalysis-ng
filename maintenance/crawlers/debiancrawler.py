@@ -3,8 +3,8 @@
 # Binary Analysis Next Generation (BANG!)
 #
 # Copyright 2018-2021 - Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# Licensed under the terms of the GNU General Public License version 3
+# SPDX-License-Identifier: GPL-3.0-only
 
 '''
 Script to crawl the release ls-lR.gz from Debian (or derivates) and store
@@ -89,10 +89,10 @@ class Config:
 
         # Check if the base unpack directory exists
         if not self.storedirectory.exists():
-            raise ConfigError("Store directory %s does not exist" % self.storedirectory)
+            raise ConfigError(f"Store directory {self.storedirectory} does not exist")
 
         if not self.storedirectory.is_dir():
-            raise ConfigError("Store directory %s is not a directory" % self.storedirectory)
+            raise ConfigError(f"Store directory {self.storedirectory} is not a directory")
 
         # Check if the base unpack directory can be written to
         try:
@@ -190,7 +190,7 @@ class Lslr:
                             if '-dev_' in downloadpath and not self.repository.download_dev:
                                 continue
                             for arch in self.repository.architectures:
-                                arch_ext = '_%s%s' % (arch, ext)
+                                arch_ext = f'_{arch}{ext}'
                                 if downloadpath.endswith(arch_ext):
                                     self.debs.append((curdir, downloadpath, filesize))
                                     self.deb_counter += 1
@@ -269,7 +269,7 @@ def downloadfile(download_queue, fail_queue, debian_mirror):
 
         storeparts = debiandir.parts
         resultfilename = pathlib.Path(basestoredirectory, storeparts[1], debianfile)
-        downloadurl = '%s/%s/%s' % (debian_mirror, debiandir, debianfile)
+        downloadurl = f'{debian_mirror}/{debiandir}/{debianfile}'
 
         # first check if the file already exists and is the right size
         if resultfilename.exists():
@@ -389,11 +389,11 @@ def create_repositories(config):
         try:
             mirror_parts = urllib.parse.urlparse(mirror)
             if mirror_parts.scheme not in ['http', 'https', 'ftp', 'ftps']:
-                print("Invalid URL '%s' for '%s', skipping entry" % (mirror, repo_entry),
+                print(f"Invalid URL '{mirror}' for '{repo_entry}', skipping entry",
                       file=sys.stderr)
                 continue
             if mirror_parts.netloc == '':
-                print("Invalid URL '%s' for '%s', skipping entry" % (mirror, repo_entry),
+                print(f"Invalid URL '{mirror}' for '{repo_entry}', skipping entry",
                       file=sys.stderr)
                 continue
         except Exception:
@@ -433,16 +433,17 @@ def create_repositories(config):
 
 @click.group()
 def main():
-   pass
+    pass
 
 @main.command(short_help='download Debian files')
-@click.option('--config', '-c', required=True, help='path to configuration file', type=click.File('r'))
+@click.option('--config', '-c', required=True, help='path to configuration file',
+              type=click.File('r'))
 @click.option('--force', '-f', help='run if metadata hasn\'t changed', is_flag=True)
 def download(config, force):
     try:
         crawler_config = Config(config)
     except Exception as e:
-        print("Cannot open or process configuration file: %s. Exiting." % e, file=sys.stderr)
+        print(f"Cannot open or process configuration file: {e}. Exiting.", file=sys.stderr)
         sys.exit(1)
 
     repositories = create_repositories(crawler_config)
@@ -458,19 +459,19 @@ def download(config, force):
         logging.basicConfig(filename=pathlib.Path(debian_dirs['log_directory'], 'download.log'),
                             level=logging.INFO, format='%(asctime)s %(message)s')
 
-        download_date = datetime.datetime.utcnow()
+        download_date = datetime.datetime.now(datetime.UTC)
         meta_outname = pathlib.Path(debian_dirs['meta_data_directory'],
                                     "ls-lR.gz-%s" % download_date.strftime("%Y%m%d-%H%M%S"))
 
         if meta_outname.exists():
-            print("metadata file %s already exists. Skipping entry." % meta_outname,
+            print(f"metadata file {meta_outname} already exists. Skipping entry.",
                   file=sys.stderr)
 
         # first download the ls-lR.gz file and see if it needs to be
         # processed by comparing it to the hash of the previously
         # downloaded file.
         try:
-            req = requests.get('%s/ls-lR.gz' % repository.mirror)
+            req = requests.get(f'{repository.mirror}/ls-lR.gz')
         except requests.exceptions.RequestException:
             print("Could not connect to Debian mirror, continuing.", file=sys.stderr)
             continue
@@ -497,7 +498,7 @@ def download(config, force):
             oldhashdata = hashfile.read()
             hashfile.close()
             if oldhashdata == filehash and not force:
-                print("Metadata for '%s' has not changed, skipping entry." % repository.name)
+                print(f"Metadata for '{repository.name}' has not changed, skipping entry.")
                 os.unlink(meta_outname)
                 continue
 
@@ -559,12 +560,13 @@ def download(config, force):
         if crawler_config.verbose:
             len_failed = len(failed_files)
             downloaded_files = (lslr.deb_counter + lslr.src_counter + lslr.dsc_counter + lslr.diff_counter) - len_failed
-            print("Successfully downloaded: %d files" % downloaded_files)
-            print("Failed to download: %d files" % len_failed)
+            print(f"Successfully downloaded: {downloaded_files} files")
+            print(f"Failed to download: {len_failed} files")
 
 
 @main.command(short_help='download binaries from a single Debian repository')
-@click.option('--config', '-c', required=True, help='path to configuration file', type=click.File('r'))
+@click.option('--config', '-c', required=True, help='path to configuration file',
+              type=click.File('r'))
 @click.option('--repository', '-r', required=True, help='repository to download from')
 @click.option('--distribution', '-d', required=True, help='specific distribution to download')
 @click.option('--force', '-f', help='run if metadata hasn\'t changed', is_flag=True)
@@ -572,7 +574,7 @@ def download_single_version(config, force, repository, distribution):
     try:
         crawler_config = Config(config)
     except Exception as e:
-        print("Cannot open or process configuration file: %s. Exiting." % e, file=sys.stderr)
+        print(f"Cannot open or process configuration file: {e}. Exiting.", file=sys.stderr)
         sys.exit(1)
 
     repositories = create_repositories(crawler_config)
@@ -581,7 +583,7 @@ def download_single_version(config, force, repository, distribution):
         if repo.name != repository:
             continue
         # check if the distribution exists on the mirror
-        download_url = '%s/dists/%s' % (repo.mirror, distribution)
+        download_url = f'{repo.mirror}/dists/{distribution}'
 
         try:
             req = requests.get(download_url)
@@ -604,7 +606,7 @@ def download_single_version(config, force, repository, distribution):
         # grab the Packages files for the defined architectures per directory
         for d in repo.directories:
             for arch in repo.architectures:
-                download_url = '%s/dists/%s/%s/binary-%s/Packages.gz' % (repo.mirror, distribution, d, arch)
+                download_url = f'{repo.mirror}/dists/{distribution}/{d}/binary-{arch}/Packages.gz'
 
                 try:
                     req = requests.get(download_url)
@@ -614,7 +616,7 @@ def download_single_version(config, force, repository, distribution):
                 if req.status_code != 200:
                     continue
 
-                download_date = datetime.datetime.utcnow()
+                download_date = datetime.datetime.now(datetime.UTC)
                 meta_directory = debian_dirs['meta_data_directory'] / d
                 if not meta_directory.exists():
                     meta_directory.mkdir()
@@ -622,7 +624,7 @@ def download_single_version(config, force, repository, distribution):
                 meta_outname = meta_directory / ("Packages.gz-%s" % download_date.strftime("%Y%m%d-%H%M%S"))
 
                 if meta_outname.exists():
-                    print("metadata file %s already exists. Skipping entry." % meta_outname,
+                    print(f"metadata file {meta_outname} already exists. Skipping entry.",
                           file=sys.stderr)
 
                 # now store the Packages.gz file for future reference

@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 # Android backup files
 #
@@ -85,7 +83,7 @@ class AndroidBackupUnpackParser(UnpackParser):
         except Exception as e:
             os.fdopen(self.temporary_file[0]).close()
             os.unlink(self.temporary_file[1])
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         os.fdopen(self.temporary_file[0]).close()
 
         # check the if the file is a valid tar file
@@ -94,9 +92,9 @@ class AndroidBackupUnpackParser(UnpackParser):
             members = android_tar.getmembers()
             for member in members:
                 pass
-        except TarError as e:
+        except tarfile.TarError as e:
             os.unlink(self.temporary_file[1])
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         android_tar = tarfile.open(self.temporary_file[1], mode='r')
@@ -128,7 +126,7 @@ class AndroidBackupUnpackParser(UnpackParser):
                 pass
 
         os.unlink(self.temporary_file[1])
-            
+
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
         pass

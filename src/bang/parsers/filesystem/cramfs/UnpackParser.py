@@ -2,30 +2,27 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 # cramfs: no support for holes or uncompressed data
 
 import os
 import pathlib
 import shutil
-import stat
 import subprocess
 import tempfile
 import zlib
@@ -58,7 +55,7 @@ class CramfsUnpackParser(UnpackParser):
         try:
             self.data = cramfs.Cramfs.from_io(self.infile)
         except ValidationFailedError as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # currently only version 2 is supported
         check_condition(self.data.header.version == 2, "unsupported cramfs version")
@@ -73,7 +70,7 @@ class CramfsUnpackParser(UnpackParser):
         inode_counter = 0
         for inode in self.data.data.inodes:
             # only use valid modes
-            if type(inode.file_mode) == int:
+            if isinstance(inode.file_mode, int):
                 raise UnpackParserException("unsupported file mode")
 
             # the data cannot be outside of the file
@@ -84,7 +81,7 @@ class CramfsUnpackParser(UnpackParser):
                 check_condition(inode.len_name != 0, "cannot have zero length filename")
 
             # sanity checks for block pointers
-            if inode.file_mode == cramfs.Cramfs.Modes.regular or inode.file_mode == cramfs.Cramfs.Modes.link:
+            if inode.file_mode in [cramfs.Cramfs.Modes.regular, cramfs.Cramfs.Modes.link]:
                 start_offset = inode.ofs_data + inode.nblocks * 4
                 for block_pointer in inode.block_pointers.block_pointers:
                     check_condition(block_pointer <= self.infile.size,
@@ -97,7 +94,7 @@ class CramfsUnpackParser(UnpackParser):
                         try:
                             zlib.decompress(buf)
                         except zlib.error as e:
-                            raise UnpackParserException(e.args)
+                            raise UnpackParserException(e.args) from e
                     else:
                         # holes?
                         pass
@@ -136,7 +133,7 @@ class CramfsUnpackParser(UnpackParser):
         shutil.rmtree(self.cramfs_unpack_directory)
 
         if self.offset == 0 and self.data.header.len_cramfs == self.infile.size:
-            p = subprocess.Popen(['fsck.cramfs', '--extract=%s' % self.cramfs_unpack_directory, self.infile.name],
+            p = subprocess.Popen(['fsck.cramfs', f'--extract={self.cramfs_unpack_directory}', self.infile.name],
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             (outputmsg, errormsg) = p.communicate()
         else:
@@ -144,7 +141,7 @@ class CramfsUnpackParser(UnpackParser):
             os.sendfile(temporaryfile[0], self.infile.fileno(), self.offset, self.data.header.len_cramfs)
             os.fdopen(temporaryfile[0]).close()
 
-            p = subprocess.Popen(['fsck.cramfs', '--extract=%s' % self.cramfs_unpack_directory, temporaryfile[1]],
+            p = subprocess.Popen(['fsck.cramfs', f'--extract={self.cramfs_unpack_directory}', temporaryfile[1]],
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             (outputmsg, errormsg) = p.communicate()
             os.unlink(temporaryfile[1])

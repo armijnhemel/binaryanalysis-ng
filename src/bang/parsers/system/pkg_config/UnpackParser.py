@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 # verify pkg-config files
 # man 5 pc
@@ -49,7 +47,7 @@ class PkgConfigUnpackParser(UnpackParser):
             pkg_config_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
             pkg_config_file.close()
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.keywords_found = set()
 
@@ -83,10 +81,9 @@ class PkgConfigUnpackParser(UnpackParser):
                     if k == fields[0]:
                         self.keywords_found.add(k)
                         keyword_found = True
+                        continued = False
                         if line.endswith('\\'):
                             continued = True
-                        else:
-                            continued = False
                         break
                 if keyword_found:
                     len_unpacked += len(pkg_config_line)
@@ -105,7 +102,7 @@ class PkgConfigUnpackParser(UnpackParser):
                 len_unpacked += len(pkg_config_line)
                 data_unpacked = True
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             pkg_config_file.close()
 

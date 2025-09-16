@@ -2,28 +2,26 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 import bz2
 import pathlib
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import bzip2
@@ -49,7 +47,7 @@ class Bzip2UnpackParser(UnpackParser):
         try:
             self.data = bzip2.Bzip2.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # the header parsed cleanly, so test unpack the data
         # First reset the offset
@@ -67,10 +65,10 @@ class Bzip2UnpackParser(UnpackParser):
         while bz2data != b'':
             try:
                 bz2decompressor.decompress(bz2data)
-            except EOFError as e:
+            except EOFError:
                 break
             except Exception as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
             # there is no more compressed data
             self.unpacked_size += len(bz2data) - len(bz2decompressor.unused_data)
@@ -108,7 +106,7 @@ class Bzip2UnpackParser(UnpackParser):
                 try:
                     unpacked_data = bz2decompressor.decompress(bz2data)
                     outfile.write(unpacked_data)
-                except EOFError as e:
+                except EOFError:
                     break
 
                 # there is no more compressed data

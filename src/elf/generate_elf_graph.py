@@ -33,9 +33,9 @@
 # https://android.googlesource.com/platform/art/+/master/runtime/elf.h
 # https://docs.oracle.com/cd/E19683-01/816-1386/chapter6-43405/index.html
 #
-# Licensed under the terms of the Affero General Public License version 3
+# Licensed under the terms of the General Public License version 3
 #
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 #
 # Copyright - Armijn Hemel, Tjaldur Software Governance Solutions
 
@@ -67,9 +67,9 @@ def createtext(outputdir, binaries, linked_libraries,
     # * list of dependencies
     pass
 
-def createdot(outputdir, binaries, linked_libraries,
-              filename_to_full_path, elf_to_exported_symbols,
-              elf_to_imported_symbols, hashes):
+def create_dot(outputdir, binaries, linked_libraries,
+               filename_to_full_path, elf_to_exported_symbols,
+               elf_to_imported_symbols, hashes):
     '''Create a Graphviz dot output for each set of ELF files that belongs together'''
     for filename in binaries:
         graph = pydot.Dot(graph_type='digraph')
@@ -114,8 +114,8 @@ def createdot(outputdir, binaries, linked_libraries,
             except Exception as e:
                 break
 
-        graph_filename_png = "%s-%s.png" % (filename.name, hashes[filename])
-        graph_filename_svg = "%s-%s.svg" % (filename.name, hashes[filename])
+        graph_filename_png = f"{filename.name}-{hashes[filename]}.png"
+        graph_filename_svg = f"{filename.name}-{hashes[filename]}.svg"
 
         # write graph as PNG and SVG
         graph.write_png(outputdir / graph_filename_png)
@@ -251,8 +251,10 @@ def createcypher(outputdir, binaries, linked_libraries,
 
 
 @click.command(short_help='process BANG result files and output ELF graphs')
-@click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
-@click.option('--directory', '-d', 'result_directory', required=True, help='BANG result directory', type=click.Path(exists=True))
+@click.option('--config-file', '-c', required=True, help='configuration file',
+              type=click.File('r'))
+@click.option('--directory', '-d', 'result_directory', required=True,
+              help='BANG result directory', type=click.Path(exists=True))
 @click.option('--output', '-o', help='output format')
 def main(config_file, result_directory, output):
 
@@ -269,7 +271,7 @@ def main(config_file, result_directory, output):
     outputformat = 'cypher'
     if output is not None:
         if output not in supported_formats:
-            print("Unsupported output format %s" % output)
+            print(f"Unsupported output format {output}", file=sys.stderr)
             sys.exit(1)
         outputformat = output
 
@@ -463,68 +465,68 @@ def main(config_file, result_directory, output):
 
     for bang_result in bang_results['scantree']:
 
-            # store machine specific information
-            machine_info = {'endian': result['metadata']['endian'],
-                            'machine': result['metadata']['machine_name'],
-                            'bits': result['metadata']['bits'],
-                            'abi': result['metadata']['abi_name']}
-            binary_to_machine[binary_name] = machine_info
+        # store machine specific information
+        machine_info = {'endian': result['metadata']['endian'],
+                        'machine': result['metadata']['machine_name'],
+                        'bits': result['metadata']['bits'],
+                        'abi': result['metadata']['abi_name']}
+        binary_to_machine[binary_name] = machine_info
 
-            # store the dependencies
-            linked_libraries[binary_name] = result['metadata']['needed']
+        # store the dependencies
+        linked_libraries[binary_name] = result['metadata']['needed']
 
-            # store the symbols from the dynamic symbol table
-            elf_to_imported_symbols[binary_name] = []
-            elf_to_exported_symbols[binary_name] = []
-            for s in result['metadata']['dynamic_symbols']:
-                # ignore everything but functions and variables
-                if s['type'] not in ['func', 'object']:
-                    continue
-                # ignore symbols that have a local binding, only
-                # look at global and weak symbols
-                if s['binding'] == 'local':
-                    continue
-                # ignore ABS section
-                if s['section_index'] == 0xfff1:
-                    continue
-                if s['section_index'] == 0:
-                    if not s in elf_to_imported_symbols[binary_name]:
-                        elf_to_imported_symbols[binary_name].append(s)
-                else:
-                    # TODO: this isn't quite correct, as it also includes
-                    # symbols from for example ABS
-                    if not s in elf_to_exported_symbols[binary_name]:
-                        elf_to_exported_symbols[binary_name].append(s)
+        # store the symbols from the dynamic symbol table
+        elf_to_imported_symbols[binary_name] = []
+        elf_to_exported_symbols[binary_name] = []
+        for s in result['metadata']['dynamic_symbols']:
+            # ignore everything but functions and variables
+            if s['type'] not in ['func', 'object']:
+                continue
+            # ignore symbols that have a local binding, only
+            # look at global and weak symbols
+            if s['binding'] == 'local':
+                continue
+            # ignore ABS section
+            if s['section_index'] == 0xfff1:
+                continue
+            if s['section_index'] == 0:
+                if not s in elf_to_imported_symbols[binary_name]:
+                    elf_to_imported_symbols[binary_name].append(s)
+            else:
+                # TODO: this isn't quite correct, as it also includes
+                # symbols from for example ABS
+                if not s in elf_to_exported_symbols[binary_name]:
+                    elf_to_exported_symbols[binary_name].append(s)
 
-            # store the symbols from the symbol table (if any)
-            for s in result['metadata']['symbols']:
-                # ignore everything but functions and variables
-                if s['type'] not in ['func', 'object']:
-                    continue
-                # ignore symbols that have a local binding, only
-                # look at global and weak symbols
-                if s['binding'] == 'local':
-                    continue
-                # ignore ABS section
-                if s['section_index'] == 0xfff1:
-                    continue
+        # store the symbols from the symbol table (if any)
+        for s in result['metadata']['symbols']:
+            # ignore everything but functions and variables
+            if s['type'] not in ['func', 'object']:
+                continue
+            # ignore symbols that have a local binding, only
+            # look at global and weak symbols
+            if s['binding'] == 'local':
+                continue
+            # ignore ABS section
+            if s['section_index'] == 0xfff1:
+                continue
 
-                if s['section_index'] == 0:
-                    if not s in elf_to_imported_symbols[binary_name]:
-                        elf_to_imported_symbols[binary_name].append(s)
-                else:
-                    # TODO: this isn't quite correct, as it also includes
-                    # symbols from for example ABS
-                    if not s in elf_to_exported_symbols[binary_name]:
-                        elf_to_exported_symbols[binary_name].append(s)
+            if s['section_index'] == 0:
+                if not s in elf_to_imported_symbols[binary_name]:
+                    elf_to_imported_symbols[binary_name].append(s)
+            else:
+                # TODO: this isn't quite correct, as it also includes
+                # symbols from for example ABS
+                if not s in elf_to_exported_symbols[binary_name]:
+                    elf_to_exported_symbols[binary_name].append(s)
     if 'symbolic link' in bang_results['scantree'][bang_result]['labels']:
-            # It could be that a name of a dependency in an ELF file
-            # is the name of a symbolic link, instead of the actual
-            # ELF file. This is why we also need to (recursively)
-            # look at symbolic links and store the target.
-            symlink_to_target[binary_name] = str(bang_results['scantree'][bang_result]['target'])
-            parent = bang_results['scantree'][bang_result]['parent']
-            file_to_parent[binary_name] = parent
+        # It could be that a name of a dependency in an ELF file
+        # is the name of a symbolic link, instead of the actual
+        # ELF file. This is why we also need to (recursively)
+        # look at symbolic links and store the target.
+        symlink_to_target[binary_name] = str(bang_results['scantree'][bang_result]['target'])
+        parent = bang_results['scantree'][bang_result]['parent']
+        file_to_parent[binary_name] = parent
 
     # split the files into separate sets (per abi, endian, etc.)
     file_sets = {}
@@ -559,9 +561,9 @@ def main(config_file, result_directory, output):
                                      filename_to_full_path, elf_to_exported_symbols,
                                      elf_to_imported_symbols)
                     elif outputformat == 'dot':
-                        createdot(outputdir, binaries, linked_libraries,
-                                  filename_to_full_path, elf_to_exported_symbols,
-                                  elf_to_imported_symbols, hashes)
+                        create_dot(outputdir, binaries, linked_libraries,
+                                   filename_to_full_path, elf_to_exported_symbols,
+                                   elf_to_imported_symbols, hashes)
 
 if __name__ == "__main__":
     main()

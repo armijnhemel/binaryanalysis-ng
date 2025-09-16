@@ -418,6 +418,12 @@ enums:
     277:
       id: verity_signature_algo
       -orig-id: RPMTAG_VERITYSIGNATUREALGO
+    278:
+      id: openpgp
+      -orig-id: RPMTAG_OPENPGP
+    279:
+      id: sha3_256
+      -orig-id: RPMTAG_SHA3_256HEADER
     1000:
       id: size
       -orig-id: RPMSIGTAG_SIZE
@@ -1428,11 +1434,11 @@ enums:
       id: file_signature_length
       -orig-id: RPMTAG_FILESIGNATURELENGTH
     5092:
-      id: payload_digest
-      -orig-id: RPMTAG_PAYLOADDIGEST
+      id: payload_sha256
+      -orig-id: RPMTAG_PAYLOADSHA256
     5093:
-      id: payload_digest_algo
-      -orig-id: RPMTAG_PAYLOADDIGESTALGO
+      id: payload_sha256_algo
+      -orig-id: RPMTAG_PAYLOADSHA256ALGO
     5094:
       id: auto_installed_unimplemented
       -orig-id: RPMTAG_AUTOINSTALLED
@@ -1443,8 +1449,8 @@ enums:
       id: modularity_label
       -orig-id: RPMTAG_MODULARITYLABEL
     5097:
-      id: payload_digest_alt
-      -orig-id: RPMTAG_PAYLOADDIGESTALT
+      id: payload_sha256_alt
+      -orig-id: RPMTAG_PAYLOADSHA256ALT
     5098:
       id: arch_suffix
       -orig-id: RPMTAG_ARCHSUFFIX
@@ -1496,6 +1502,36 @@ enums:
     5114:
       id: rpm_format
       -orig-id: RPMTAG_RPMFORMAT
+    5115:
+      id: file_mime_index
+      -orig-id: RPMTAG_FILEMIMEINDEX
+    5116:
+      id: mime_dict
+      -orig-id: RPMTAG_MIMEDICT
+    5117:
+      id: file_mimes
+      -orig-id: RPMTAG_FILEMIMES
+    5118:
+      id: package_digests
+      -orig-id: RPMTAG_PACKAGEDIGESTS
+    5119:
+      id: package_digest_algos
+      -orig-id: RPMTAG_PACKAGEDIGESTALGOS
+    5120:
+      id: source_nevr
+      -orig-id: RPMTAG_SOURCENEVR
+    5121:
+      id: payload_sha512
+      -orig-id: RPMTAG_PAYLOADSHA512
+    5122:
+      id: payload_sha512_alt
+      -orig-id: RPMTAG_PAYLOADSHA512ALT
+    5123:
+      id: payload_sha3_256
+      -orig-id: RPMTAG_PAYLOADSHA3_256
+    5124:
+      id: payload_sha3_256_alt
+      -orig-id: RPMTAG_PAYLOADSHA3_256ALT
   record_types:
     # from LSB
     0: not_implemented

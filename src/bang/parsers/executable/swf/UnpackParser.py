@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 import lzma
 import zlib
@@ -42,7 +40,7 @@ class SwfUnpackParser(UnpackParser):
         try:
             self.data = swf.Swf.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.unpacked_size = self.infile.tell()
 
@@ -68,8 +66,8 @@ class SwfUnpackParser(UnpackParser):
                     self.unpacked_size += len(checkbytes) - len(decompressor.unused_data)
                     if len(decompressor.unused_data) != 0:
                         break
-                except:
-                    raise UnpackParserException('zlib decompression failure')
+                except Exception as e:
+                    raise UnpackParserException('zlib decompression failure') from e
 
             check_condition(len_decompressed + 8 == self.data.header.len_file,
                             "length of decompressed data does not match declared length")
@@ -123,8 +121,8 @@ class SwfUnpackParser(UnpackParser):
 
             try:
                 decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=swf_filters)
-            except:
-                raise UnpackParserException('unsupported LZMA properties')
+            except Exception as e:
+                raise UnpackParserException('unsupported LZMA properties') from e
 
             # read 1 MB chunks
             checkbytes = bytearray(chunksize)
@@ -139,8 +137,8 @@ class SwfUnpackParser(UnpackParser):
                     self.unpacked_size += len(checkbytes) - len(decompressor.unused_data)
                     if len(decompressor.unused_data) != 0:
                         break
-                except:
-                    raise UnpackParserException('lzma decompression failure')
+                except Exception as e:
+                    raise UnpackParserException('lzma decompression failure') from e
 
             check_condition(len_decompressed + 8 == self.data.header.len_file,
                             "length of decompressed data does not match declared length")

@@ -2,27 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
-
-# https://en.wikipedia.org/wiki/Intel_HEX
-# It is assumed that only files that are completely text
-# files can be IHex files.
+# SPDX-License-Identifier: GPL-3.0-only
 
 import base64
 import json
@@ -45,9 +39,9 @@ class Px4UnpackParser(UnpackParser):
         try:
             self.data = json.load(self.infile)
         except (json.JSONDecodeError, UnicodeError) as e:
-            raise UnpackParserException("cannot decode PX4 JSON")
+            raise UnpackParserException("cannot decode PX4 JSON") from e
 
-        check_condition(type(self.data) == dict, "invalid format for PX4")
+        check_condition(isinstance(self.data, dict), "invalid format for PX4")
         check_condition('image' in self.data, "firmware image data not found")
         check_condition('parameter_xml' in self.data, "parameter.xml data not found")
         check_condition('airframe_xml' in self.data, "airframe.xml data not found")
@@ -58,19 +52,19 @@ class Px4UnpackParser(UnpackParser):
         try:
             self.image = zlib.decompress(base64.b64decode(self.data['image']))
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         try:
             self.parameter_xml = zlib.decompress(base64.b64decode(self.data['parameter_xml']))
             defusedxml.minidom.parseString(self.parameter_xml)
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         try:
             self.airframe_xml = zlib.decompress(base64.b64decode(self.data['airframe_xml']))
             defusedxml.minidom.parseString(self.airframe_xml)
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         file_path = pathlib.Path('image')

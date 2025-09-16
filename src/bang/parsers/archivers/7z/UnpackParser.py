@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 import binascii
 import os
@@ -60,7 +58,8 @@ class SevenzipUnpackParser(UnpackParser):
             self.data = sevenzip.Sevenzip.from_io(self.infile)
             computed_crc = binascii.crc32(self.data.header.start_header.next_header)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
+
         check_condition(self.data.header.start_header.next_header_crc == computed_crc,
                         "invalid next header CRC")
 
@@ -109,9 +108,9 @@ class SevenzipUnpackParser(UnpackParser):
             self.unpack_directory = pathlib.Path(tempfile.mkdtemp(dir=self.configuration.temporary_directory))
 
             if self.havetmpfile:
-                p = subprocess.Popen(['7z', '-o%s' % self.unpack_directory, '-y', 'x', self.temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                p = subprocess.Popen(['7z', f'-o{self.unpack_directory}', '-y', 'x', self.temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             else:
-                p = subprocess.Popen(['7z', '-o%s' % self.unpack_directory, '-y', 'x', self.infile.name], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                p = subprocess.Popen(['7z', f'-o{self.unpack_directory}', '-y', 'x', self.infile.name], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             (outputmsg, errormsg) = p.communicate()
 
@@ -127,25 +126,26 @@ class SevenzipUnpackParser(UnpackParser):
         pass
 
     def unpack(self, meta_directory):
-        # walk the results directory
-        for result in self.unpack_directory.glob('**/*'):
-            # first change the permissions
-            result.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+        if not self.encrypted:
+            # walk the results directory
+            for result in self.unpack_directory.glob('**/*'):
+                # first change the permissions
+                result.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
-            file_path = result.relative_to(self.unpack_directory)
+                file_path = result.relative_to(self.unpack_directory)
 
-            if result.is_symlink():
-                meta_directory.unpack_symlink(file_path, result.readlink())
-            elif result.is_dir():
-                meta_directory.unpack_directory(file_path)
-            elif result.is_file():
-                with meta_directory.unpack_regular_file_no_open(file_path) as (unpacked_md, outfile):
-                    self.local_copy2(result, outfile)
-                    yield unpacked_md
-            else:
-                continue
+                if result.is_symlink():
+                    meta_directory.unpack_symlink(file_path, result.readlink())
+                elif result.is_dir():
+                    meta_directory.unpack_directory(file_path)
+                elif result.is_file():
+                    with meta_directory.unpack_regular_file_no_open(file_path) as (unpacked_md, outfile):
+                        self.local_copy2(result, outfile)
+                        yield unpacked_md
+                else:
+                    continue
 
-        shutil.rmtree(self.unpack_directory)
+            shutil.rmtree(self.unpack_directory)
 
     # a wrapper around shutil.copy2 to copy symbolic links instead of
     # following them and copying the data.

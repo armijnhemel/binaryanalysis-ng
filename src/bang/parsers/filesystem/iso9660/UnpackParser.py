@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 # Process ISO9660 file systems. It should be noted that this is not
 # a complete implementation and there are quite a few different ways to
@@ -68,10 +66,10 @@ class Iso9660UnpackParser(UnpackParser):
                 if descriptor.type == iso9660.Iso9660.VolumeType.primary:
                     # sanity checks: dates. This does not apply
                     # to all dates used in the specification.
-                    check_condition(descriptor.volume.volume_creation_date_and_time.valid_date,
+                    check_condition(descriptor.volume.volume_creation_date_and_time.is_empty or descriptor.volume.volume_creation_date_and_time.datetime.valid_date,
                                     "invalid creation date")
 
-                    check_condition(descriptor.volume.volume_modification_date_and_time.valid_date,
+                    check_condition(descriptor.volume.volume_modification_date_and_time.is_empty or descriptor.volume.volume_modification_date_and_time.datetime.valid_date,
                                     "invalid modification date")
 
                     self.block_size = descriptor.volume.logical_block_size.value
@@ -227,8 +225,8 @@ class Iso9660UnpackParser(UnpackParser):
                                 # sanity checks for zisofs files
                                 try:
                                     zisofs_file = zisofs.Zisofs.from_bytes(record.body.file_content)
-                                except ValidationFailedError:
-                                    raise UnpackParserException(e.args)
+                                except ValidationFailedError as e:
+                                    raise UnpackParserException(e.args) from e
 
                                 # extra sanity checks
                                 check_condition(original_size == zisofs_file.header.uncompressed_size,
@@ -246,7 +244,7 @@ class Iso9660UnpackParser(UnpackParser):
                                         try:
                                             zlib.decompress(block.data)
                                         except zlib.error as e:
-                                            raise UnpackParserException(e.args)
+                                            raise UnpackParserException(e.args) from e
 
                         if record.body.directory_records is None:
                             continue
@@ -264,7 +262,7 @@ class Iso9660UnpackParser(UnpackParser):
                     # there should be at least one volume descriptor set terminator
                     has_terminator = True
         except (Exception, ValidationFailedError, UndecidedEndiannessError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         check_condition(has_primary, "no primary volume descriptor found")
         check_condition(has_terminator, "no volume descriptor set terminator found")
@@ -410,7 +408,7 @@ class Iso9660UnpackParser(UnpackParser):
                                 original_size = entry.susp_data.uncompressed_size.value
                                 zisofs_header_size_susp = entry.susp_data.header_size
 
-                        if symbolic_link_components != []:
+                        if symbolic_link_components:
                             symbolic_target_name = pathlib.Path(*symbolic_link_components)
                     except AttributeError:
                         # there are no entries in the system use

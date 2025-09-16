@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 # parse Subversion *wcprops files
 # file `subversion/libsvn_subr/hash.c` in the Subversion source code has
@@ -42,7 +40,7 @@ class SubversionHashUnpackParser(UnpackParser):
             svn_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
             svn_file.close()
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         data_unpacked = False
         len_unpacked = 0
@@ -91,15 +89,14 @@ class SubversionHashUnpackParser(UnpackParser):
                         len_unpacked += len(svn_line)
                         end_of_previous_kv = len_unpacked
                         continue
-                    else:
-                        lineres = re.match(r'V (\d+)$', line)
-                        if lineres is None:
-                            break
-                        linelength = int(lineres.groups()[0])
-                        next_action = 'data'
+                    lineres = re.match(r'V (\d+)$', line)
+                    if lineres is None:
+                        break
+                    linelength = int(lineres.groups()[0])
+                    next_action = 'data'
                 len_unpacked += len(svn_line)
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             svn_file.close()
 

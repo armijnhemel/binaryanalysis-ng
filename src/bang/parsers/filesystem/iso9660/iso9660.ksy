@@ -74,6 +74,17 @@ types:
     instances:
       value:
         value: le
+  datetime_long_or_empty:
+    doc-ref: ecma-119 8.4.26.1
+    seq:
+      - id: datetime_str
+        size: 17
+    instances:
+      is_empty:
+        value: datetime_str == [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+      datetime:
+        pos: 0
+        type: datetime_long
   datetime_long:
     doc-ref: ecma-119 8.4.26.1
     seq:
@@ -264,16 +275,20 @@ types:
             type: text37
           - id: volume_creation_date_and_time
             doc-ref: ecma-119 8.4.26
-            type: datetime_long
+            size: 17
+            type: datetime_long_or_empty
           - id: volume_modification_date_and_time
             doc-ref: ecma-119 8.4.27
-            type: datetime_long
+            size: 17
+            type: datetime_long_or_empty
           - id: volume_expiration_date_and_time
             doc-ref: ecma-119 8.4.28
-            type: datetime_long
+            size: 17
+            type: datetime_long_or_empty
           - id: volume_effective_date_and_time
             doc-ref: ecma-119 8.4.29
-            type: datetime_long
+            size: 17
+            type: datetime_long_or_empty
           - id: file_structure_version
             doc-ref: ecma-119 8.4.31
             type: s1
@@ -364,16 +379,20 @@ types:
             type: text37
           - id: volume_creation_date_and_time
             doc-ref: ecma-119 8.5
-            type: datetime_long
+            size: 17
+            type: datetime_long_or_empty
           - id: volume_modification_date_and_time
             doc-ref: ecma-119 8.5
-            type: datetime_long
+            size: 17
+            type: datetime_long_or_empty
           - id: volume_expiration_date_and_time
             doc-ref: ecma-119 8.5
-            type: datetime_long
+            size: 17
+            type: datetime_long_or_empty
           - id: volume_effective_date_and_time
             doc-ref: ecma-119 8.5
-            type: datetime_long
+            size: 17
+            type: datetime_long_or_empty
           - id: file_structure_version
             doc-ref: ecma-119 8.5
             type: s1
@@ -871,25 +890,25 @@ types:
                               Multiple dates can be set.
                             seq:
                               - id: creation
-                                type: datetime_long
+                                type: datetime_long_or_empty
                                 if: _parent.creation
                               - id: modify
-                                type: datetime_long
+                                type: datetime_long_or_empty
                                 if: _parent.modify
                               - id: access
-                                type: datetime_long
+                                type: datetime_long_or_empty
                                 if: _parent.access
                               - id: attributes
-                                type: datetime_long
+                                type: datetime_long_or_empty
                                 if: _parent.attributes
                               - id: backup
-                                type: datetime_long
+                                type: datetime_long_or_empty
                                 if: _parent.backup
                               - id: expiration
-                                type: datetime_long
+                                type: datetime_long_or_empty
                                 if: _parent.expiration
                               - id: effective
-                                type: datetime_long
+                                type: datetime_long_or_empty
                                 if: _parent.effective
                       rrzf_zf:
                         doc-ref: rrzf

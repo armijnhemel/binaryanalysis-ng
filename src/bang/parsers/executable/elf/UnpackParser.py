@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 import binascii
 import hashlib
@@ -32,9 +30,9 @@ import pwnlib
 import tlsh
 import telfhash
 
+from kaitaistruct import ValidationFailedError, UndecidedEndiannessError
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationFailedError, UndecidedEndiannessError
 from . import elf
 from . import zdebug
 
@@ -110,6 +108,9 @@ class ElfUnpackParser(UnpackParser):
             else:
                 self.have_section_headers = True
 
+            self.unpacked_size = 0
+
+            '''
             # calculate size, also read all the data to catch EOF
             # This isn't always accurate, for example when debugging
             # data is stored in ELF files as a compressed ELF file.
@@ -166,6 +167,7 @@ class ElfUnpackParser(UnpackParser):
 
                             # restore the file pointer, just in case
                             self.infile.seek(cur_ptr)
+            '''
 
             # TODO: Qualcomm DSP6 (Hexagon) files, as found on many
             # Android devices.
@@ -286,7 +288,7 @@ class ElfUnpackParser(UnpackParser):
                                     name = self.dynstr.read().split(b'\x00')[0].decode()
                                     check_condition(name != '', "empty name")
                                 except UnicodeDecodeError as e:
-                                    raise UnpackParserException(e.args)
+                                    raise UnpackParserException(e.args) from e
 
                                 self.dependencies_to_versions[name] = []
 
@@ -297,7 +299,7 @@ class ElfUnpackParser(UnpackParser):
                                         a_name = self.dynstr.read().split(b'\x00')[0].decode()
                                         check_condition(name != '', "empty name")
                                     except UnicodeDecodeError as e:
-                                        raise UnpackParserException(e.args)
+                                        raise UnpackParserException(e.args) from e
                                     self.version_to_name[aux_entry.object_file_version] = a_name
                                     self.dependencies_to_versions[name].append(a_name)
 
@@ -325,7 +327,7 @@ class ElfUnpackParser(UnpackParser):
                                             aux_name = a_name
                                         check_condition(name != '', "empty name")
                                     except UnicodeDecodeError as e:
-                                        raise UnpackParserException(e.args)
+                                        raise UnpackParserException(e.args) from e
 
                                 self.version_to_name[ctr] = aux_name
                                 ctr += 1
@@ -344,16 +346,27 @@ class ElfUnpackParser(UnpackParser):
                 # TODO linux kernel module signatures
                 # see scripts/sign-file.c in Linux kernel
 
-            # parse the ELF file with pwntools, but only if the
+            # Parse the ELF file with pwntools, but only if the
             # original offset of the file is 0 (i.e. not a carved file).
             # This is because pwntools can only work with file names
-            # and not byte streams
+            # and not byte streams.
+            #
+            # This does not seem to work well for older MIPS files,
+            # which lead to a segmentation fault, which BANG currently
+            # silently ignores, so MIPS files are not processed.
+            #
+            # Related: https://github.com/Gallopsled/pwntools/issues/2560
+            machine = ''
+            if not isinstance(self.data.header.machine, int):
+                machine = self.data.header.machine.name
+
             self.elf = None
             if self.infile.offset == 0:
-                self.elf = pwn.ELF(self.infile.name, checksec=False)
+                if machine not in ['mips']:
+                    self.elf = pwn.ELF(self.infile.name, checksec=False)
 
         except (Exception, ValidationFailedError, UndecidedEndiannessError, elftools.common.exceptions.ELFError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def calculate_unpacked_size(self):
         pass
@@ -377,7 +390,8 @@ class ElfUnpackParser(UnpackParser):
                 # * .BTF and .BTF.ext: eBPF related files
                 # * .rom_info: Mediatek preloader(?)
                 # * .init.data: Linux kernel init data, sometimes contains initial ramdisk
-                if header.name in ['.gnu_debugdata', '.qtmimedatabase', '.BTF', '.BTF.ext', '.rom_info', '.init.data']:
+                if header.name in ['.gnu_debugdata', '.qtmimedatabase', '.BTF', '.BTF.ext',
+                                   '.rom_info', '.init.data', '.esstra']:
                     interesting = True
 
                 # GNOME/glib GVariant database
@@ -457,7 +471,7 @@ class ElfUnpackParser(UnpackParser):
             self.metadata['type'] = 'processor specific'
 
         # store the machine type, both numerical and pretty printed
-        if type(self.data.header.machine) == int:
+        if isinstance(self.data.header.machine, int):
             self.metadata['machine_name'] = "unknown architecture"
             self.metadata['machine'] = self.data.header.machine
         else:
@@ -615,7 +629,7 @@ class ElfUnpackParser(UnpackParser):
                                 if 'depends' not in linux_kernel_module_info:
                                     linux_kernel_module_info['depends'] = []
                                 linux_kernel_module_info['depends'].append(self.module_name)
-                except Exception as e:
+                except Exception:
                     pass
             elif header.name in ['.oat_patches', '.text.oat_patches', '.dex']:
                 # OAT information has been stored in various sections
@@ -745,7 +759,7 @@ class ElfUnpackParser(UnpackParser):
                             comments.append(comment)
                         except UnicodeDecodeError:
                             pass
-                    if comments != []:
+                    if comments:
                         metadata['comment'] = comments
                 elif header.name == '.gcc_except_table':
                     # debug information from GCC
@@ -767,7 +781,7 @@ class ElfUnpackParser(UnpackParser):
                             gcc_command_line_strings.append(s.decode())
                         except UnicodeDecodeError:
                             pass
-                    if gcc_command_line_strings != []:
+                    if gcc_command_line_strings:
                         metadata['.GCC.command.line'] = gcc_command_line_strings
                 elif header.name in RODATA_SECTIONS:
                     for s in header.body.split(b'\x00'):
@@ -857,6 +871,7 @@ class ElfUnpackParser(UnpackParser):
                     elf_types.add('zephyr')
                 elif header.name == 'protodesc_cold':
                     # Protobuf
+                    # example /lib64/libcompizconfig.so.0.0.0
                     elf_types.add('protobuf')
 
             if header.type == elf.Elf.ShType.dynamic:
@@ -937,14 +952,21 @@ class ElfUnpackParser(UnpackParser):
                         elif entry.type == 0x101:
                             # LINUX_ELFNOTE_LTO_INFO
                             pass
-                    elif entry.name == b'FDO' and entry.type == 0xcafe1a7e:
-                        # https://fedoraproject.org/wiki/Changes/Package_information_on_ELF_objects
-                        # https://systemd.io/COREDUMP_PACKAGE_METADATA/
-                        # extract JSON and store it
-                        try:
-                            metadata['package note'] = json.loads(entry.descriptor.decode().split('\x00')[0].strip())
-                        except:
-                            pass
+                    elif entry.name == b'FDO':
+                        if entry.type == 0xcafe1a7e:
+                            # https://fedoraproject.org/wiki/Changes/Package_information_on_ELF_objects
+                            # https://systemd.io/COREDUMP_PACKAGE_METADATA/
+                            # extract JSON and store it
+                            try:
+                                metadata['package note'] = json.loads(entry.descriptor.decode().split('\x00')[0].strip())
+                            except:
+                                pass
+                        elif entry.type == 0x407c0c0a:
+                            # https://systemd.io/ELF_DLOPEN_METADATA/
+                            try:
+                                metadata['dlopen note'] = json.loads(entry.descriptor.decode().split('\x00')[0].strip())
+                            except:
+                                pass
                     elif entry.name == b'FreeBSD':
                         elf_types.add('freebsd')
                     elif entry.name == b'OpenBSD':
@@ -972,26 +994,26 @@ class ElfUnpackParser(UnpackParser):
                         # https://reviews.llvm.org/D65770
                         pass
 
-        if dynamic_symbols != []:
+        if dynamic_symbols:
             metadata['dynamic_symbols'] = dynamic_symbols
 
-        if guile_symbols != []:
+        if guile_symbols:
             metadata['guile_symbols'] = guile_symbols
 
-        if needed != []:
+        if needed:
             metadata['needed'] = needed
 
         metadata['notes'] = notes
 
-        if data_strings != []:
+        if data_strings:
             metadata['strings'] = data_strings
 
-        if symbols != []:
+        if symbols:
             metadata['symbols'] = symbols
 
         metadata['sections'] = sections
 
-        if linux_kernel_module_info != {}:
+        if linux_kernel_module_info:
             metadata['Linux kernel module'] = linux_kernel_module_info
 
         metadata['elf_type'] = sorted(elf_types)
@@ -1011,7 +1033,7 @@ class ZdebugUnpackParser(UnpackParser):
             check_condition(self.data.len_data == len(self.data.data),
                             "declared length does not match length of uncompressed data")
         except (Exception, ValidationFailedError, UndecidedEndiannessError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         file_path = pathlib.Path(pathlib.Path(self.infile.name).name[2:])

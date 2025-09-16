@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 import collections
 import math
@@ -68,7 +66,7 @@ class Ext2UnpackParser(UnpackParser):
         try:
             self.superblock = ext2.Ext2.SuperBlockStruct.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         check_condition(self.superblock.block_size * self.superblock.blocks_count <= self.infile.size,
                         "declared file system size larger than file size")
@@ -131,7 +129,7 @@ class Ext2UnpackParser(UnpackParser):
                 try:
                     superblock = ext2.Ext2.SuperBlockStruct.from_io(self.infile)
                 except (Exception, ValidationFailedError) as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
 
         # now some extra sanity checks: run tune2fs and other tools to see
         # if the file system can be read. These tools can work with trailing
@@ -203,12 +201,12 @@ class Ext2UnpackParser(UnpackParser):
                     # ignore deleted files
                     if d.strip().startswith(b'>'):
                         continue
-                    dirsplit = re.split(b'\s+', d.strip(), 7)
+                    dirsplit = re.split(rb'\s+', d.strip(), 7)
                     if len(dirsplit) != 8:
                         failure = True
                         break
 
-                    (inode, filemode, userid, groupid, size, filedate, filetime, ext2name) = re.split(b'\s+', d.strip(), 7)
+                    (inode, filemode, userid, groupid, size, filedate, filetime, ext2name) = re.split(rb'\s+', d.strip(), 7)
 
                     try:
                         filemode = int(filemode, base=8)
@@ -248,7 +246,7 @@ class Ext2UnpackParser(UnpackParser):
                     if stat.S_ISDIR(filemode):
                         # It is a directory, so create it and then add
                         # it to the scanning queue, unless it is . or ..
-                        if ext2name == '.' or ext2name == '..':
+                        if ext2name in set(['.', '..']):
                             continue
                         newext2dir = os.path.join(ext2dir, ext2name)
                         ext2_dirs_to_scan.append(newext2dir)

@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 # Some Android firmware updates are distributed as sparse data images.
 # Given a data image and a transfer list data on an Android device is
@@ -37,7 +35,6 @@
 
 import os
 import pathlib
-import sys
 import tempfile
 import time
 
@@ -89,7 +86,7 @@ class AndroidSparseDataUnpackParser(UnpackParser):
         try:
             version_number = int(transferlistlines[0])
         except ValueError as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         check_condition(version_number <= 4, "invalid version number")
         check_condition(version_number >= 2, "only transfer list version 2-4 supported")
@@ -101,7 +98,7 @@ class AndroidSparseDataUnpackParser(UnpackParser):
         try:
             output_blocks = int(transferlistlines[1])
         except ValueError as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # then two lines related to stash entries which are only used by
         # Android during updates to prevent flash space from overflowing,
@@ -109,12 +106,12 @@ class AndroidSparseDataUnpackParser(UnpackParser):
         try:
             stash_needed = int(transferlistlines[2])
         except ValueError as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         try:
             max_stash = int(transferlistlines[2])
         except ValueError as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # a list of commands recognized
         valid_transfer_commands = set(['new', 'zero', 'erase', 'free', 'stash'])
@@ -140,7 +137,7 @@ class AndroidSparseDataUnpackParser(UnpackParser):
             try:
                 transferblockcount = int(transferblockssplit[0])
             except ValueError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
             check_condition(transferblockcount == len(transferblockssplit[1:]),
                             "invalid transfer block list in transfer list")
@@ -153,7 +150,7 @@ class AndroidSparseDataUnpackParser(UnpackParser):
                     blocks.append(blocknr)
                     self.maxblock = max(self.maxblock, blocknr)
             except ValueError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
             # store the transfer commands
             self.transfercommands.append((transfercommand, blocks))
@@ -181,7 +178,7 @@ class AndroidSparseDataUnpackParser(UnpackParser):
                     # no data could be successfully unpacked
                     os.fdopen(self.temporary_file[0]).close()
                     os.unlink(self.temporary_file[1])
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
 
                 if decompressor.is_finished():
                     # there is no more compressed data

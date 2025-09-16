@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 # verify Unix securetty
 # man 5 securetty
@@ -28,7 +26,7 @@ import re
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 
-RE_TTY = re.compile(r'(ttyS?\d+|pts/\d+)$')
+RE_TTY = re.compile(r'(console|[hx]vc\d+|tty[a-zA-Z]*\d+|pts/\d+|tts/\d+|vc/\d+)$')
 
 
 class SecureTTYUnpackParser(UnpackParser):
@@ -43,7 +41,7 @@ class SecureTTYUnpackParser(UnpackParser):
             securetty_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
             securetty_file.close()
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.entries = []
 
@@ -54,16 +52,22 @@ class SecureTTYUnpackParser(UnpackParser):
                 line = securetty_line.rstrip()
                 match_result = RE_TTY.match(line)
                 if not match_result:
+                    if line.startswith('#'):
+                        len_unpacked += len(securetty_line)
+                    elif line.strip() == '':
+                        len_unpacked += len(securetty_line)
+                    else:
+                        break
                     continue
                 len_unpacked += len(securetty_line)
                 self.entries.append(match_result.groups()[0])
                 data_unpacked = True
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             securetty_file.close()
 
-        check_condition(data_unpacked, "no fstab file data could be unpacked")
+        check_condition(data_unpacked, "no securetty file data could be unpacked")
         self.unpacked_size = len_unpacked
 
     # make sure that self.unpacked_size is not overwritten

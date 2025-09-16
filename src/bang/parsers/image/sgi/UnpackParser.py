@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 import io
 
@@ -52,7 +50,7 @@ class SgiUnpackParser(UnpackParser):
             else:
                 self.unpacked_size = self.infile.tell()
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         if self.unpacked_size == self.infile.size:
             # now load the file using PIL as an extra sanity check
@@ -62,7 +60,7 @@ class SgiUnpackParser(UnpackParser):
                 testimg.load()
                 testimg.close()
             except OSError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
         else:
             # load the SGI data into memory
             self.infile.seek(0)
@@ -74,9 +72,9 @@ class SgiUnpackParser(UnpackParser):
                 testimg.load()
                 testimg.close()
             except OSError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
             except PIL.Image.DecompressionBombError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
@@ -87,6 +85,6 @@ class SgiUnpackParser(UnpackParser):
     @property
     def metadata(self):
         metadata = {}
-        if self.data.header.name != '' and self.data.header.name != 'no name':
+        if self.data.header.name not in ['', 'no name']:
             metadata['name'] = self.data.header.name
         return metadata

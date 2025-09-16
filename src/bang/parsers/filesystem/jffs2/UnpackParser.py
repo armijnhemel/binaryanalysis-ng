@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 # JFFS2 https://en.wikipedia.org/wiki/JFFS2
 # JFFS2 is a file system that was used on earlier embedded Linux
@@ -63,14 +61,14 @@ class Jffs2UnpackParser(UnpackParser):
         try:
             root_inode = jffs2.Jffs2.from_io(self.infile)
         except (ValidationFailedError, ValueError, EOFError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # store endianness, as it is needed in some cases (dirty nodes)
         self.bigendian = False
-        byteorder = 'little'
+        self.byteorder = 'little'
         if root_inode.magic == jffs2.Jffs2.Magic.be:
             self.bigendian = True
-            byteorder = 'big'
+            self.byteorder = 'big'
 
         # keep a list of inodes to file names
         # the root inode (1) always has ''
@@ -149,7 +147,7 @@ class Jffs2UnpackParser(UnpackParser):
                 if len(buf) != 4:
                     break
 
-                len_inode = int.from_bytes(buf, byteorder=byteorder)
+                len_inode = int.from_bytes(buf, byteorder=self.byteorder)
                 if len_inode == 0:
                     break
                 if cur_offset + len_inode > self.infile.size:
@@ -170,15 +168,15 @@ class Jffs2UnpackParser(UnpackParser):
 
             try:
                 jffs2_inode = jffs2.Jffs2.from_io(self.infile)
-            except (ValidationFailedError , ValueError, EOFError) as e:
+            except (ValidationFailedError , ValueError, EOFError):
                 break
 
-            if jffs2_inode.magic != root_inode.magic and jffs2_inode.magic != jffs2.Jffs2.Magic.dirty:
+            if jffs2_inode.magic not in [root_inode.magic,  jffs2.Jffs2.Magic.dirty]:
                 break
 
             # check if the inode type is actually valid
             # or perhaps contains padding.
-            if type(jffs2_inode.header.inode_type) == int:
+            if isinstance(jffs2_inode.header.inode_type, int):
                 if jffs2_inode.header.inode_type == 0:
                     if prev_is_padding:
                         break
@@ -218,8 +216,7 @@ class Jffs2UnpackParser(UnpackParser):
             crc_bytes = self.infile.read(8)
             self.infile.seek(stored_offset)
 
-            if jffs2_inode.header.inode_type == jffs2.Jffs2.InodeType.dirent or \
-                jffs2_inode.header.inode_type == jffs2.Jffs2.InodeType.inode:
+            if jffs2_inode.header.inode_type in [jffs2.Jffs2.InodeType.dirent, jffs2.Jffs2.InodeType.inode]:
                 computedcrc = (zlib.crc32(crc_bytes, -1) ^ -1) & 0xffffffff
                 if not computedcrc == jffs2_inode.data.header_crc:
                     break
@@ -331,7 +328,7 @@ class Jffs2UnpackParser(UnpackParser):
                         try:
                             zlib.decompress(jffs2_inode.data.body.data)
                             data_unpacked = True
-                        except Exception as e:
+                        except Exception:
                             break
                     elif jffs2_inode.data.body.compression == jffs2.Jffs2.Compression.lzma:
                         # The data is LZMA compressed, so create a
@@ -347,7 +344,7 @@ class Jffs2UnpackParser(UnpackParser):
                         try:
                             decompressor.decompress(jffs2_inode.data.body.data)
                             data_unpacked = True
-                        except Exception as e:
+                        except Exception:
                             break
                     elif jffs2_inode.data.body.compression == jffs2.Jffs2.Compression.rtime:
                         # From: https://github.com/sviehb/jefferson/blob/master/src/jefferson/rtime.py
@@ -387,8 +384,8 @@ class Jffs2UnpackParser(UnpackParser):
                     elif jffs2_inode.data.body.compression == jffs2.Jffs2.Compression.lzo:
                         try:
                             lzo.decompress(jffs2_inode.data.body.data, False, jffs2_inode.data.body.len_decompressed)
-                        except:
-                            raise UnpackParserException("invalid lzo compressed data")
+                        except Exception as e:
+                            raise UnpackParserException("invalid lzo compressed data") from e
                     else:
                         break
 
@@ -454,7 +451,7 @@ class Jffs2UnpackParser(UnpackParser):
                 if len(buf) != 4:
                     break
 
-                len_inode = int.from_bytes(buf, byteorder=byteorder)
+                len_inode = int.from_bytes(buf, byteorder=self.byteorder)
                 if cur_offset + len_inode > self.infile.size:
                     break
 
@@ -475,7 +472,7 @@ class Jffs2UnpackParser(UnpackParser):
 
             # check if the inode type is actually valid
             # or perhaps contains padding.
-            if type(jffs2_inode.header.inode_type) == int:
+            if isinstance(jffs2_inode.header.inode_type, int):
                 if jffs2_inode.header.inode_type == 0:
                     if prev_is_padding:
                         break
@@ -666,8 +663,7 @@ class Jffs2UnpackParser(UnpackParser):
                         inode_to_write_offset[inode_number] = writeoffset + decompressed_size
                         outfile.flush()
 
-                        # unsure what to do here now
-                        pass
+                        # unsure what to do here now.
 
             unpackedsize = self.infile.tell()
             if unpackedsize % 4 != 0:

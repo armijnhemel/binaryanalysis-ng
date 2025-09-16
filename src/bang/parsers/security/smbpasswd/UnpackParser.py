@@ -2,23 +2,21 @@
 #
 # This file is part of BANG.
 #
-# BANG is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License, version 3,
-# as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# BANG is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public
-# License, version 3, along with BANG.  If not, see
-# <http://www.gnu.org/licenses/>
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright Armijn Hemel
-# Licensed under the terms of the GNU Affero General Public License
-# version 3
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 # verify smbpasswd files
 # man 5 smbpasswd
@@ -41,7 +39,7 @@ class SmbPasswdUnpackParser(UnpackParser):
             smbpasswd_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
             smbpasswd_file.close()
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.entries = []
 
@@ -56,9 +54,9 @@ class SmbPasswdUnpackParser(UnpackParser):
 
                 check_condition(len(fields) >= 6, "invalid number of entries")
                 try:
-                   uid = int(fields[1])
+                    uid = int(fields[1])
                 except ValueError as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
 
                 # next field is the LANMAN password hash, 32 hex digits, or all X
                 check_condition(len(fields[2]) == 32, "invalid LANMAN hash (wrong length)")
@@ -66,15 +64,15 @@ class SmbPasswdUnpackParser(UnpackParser):
                 if fields[2] != 32 * 'X':
                     try:
                         binascii.unhexlify(fields[2])
-                    except binascii.Error:
-                        raise UnpackParserException("invalid LANMAN hash")
+                    except binascii.Error as e:
+                        raise UnpackParserException("invalid LANMAN hash") from e
 
                 # next field is the NT password hash, 32 hex digits
                 check_condition(len(fields[3]) == 32, "invalid NT password hash (wrong length)")
                 try:
                     binascii.unhexlify(fields[3])
-                except binascii.Error:
-                    raise UnpackParserException("invalid NT password hash")
+                except binascii.Error as e:
+                    raise UnpackParserException("invalid NT password hash") from e
 
                 # next field is accountflags, always 13 characters
                 check_condition(len(fields[4]) == 13, "invalid account flags (wrong length)")
@@ -100,7 +98,7 @@ class SmbPasswdUnpackParser(UnpackParser):
                 len_unpacked += len(shadow_line)
                 data_unpacked = True
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             smbpasswd_file.close()
 
