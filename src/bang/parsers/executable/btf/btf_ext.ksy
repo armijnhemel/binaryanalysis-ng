@@ -13,7 +13,7 @@ seq:
     type: func_info
   - id: line_info_section
     size: header.rest_of_header.len_line_info_section
-    type: func_info
+    type: line_info
 types:
   header:
     seq:
