@@ -357,7 +357,7 @@ class ElfUnpackParser(UnpackParser):
             #
             # Related: https://github.com/Gallopsled/pwntools/issues/2560
             machine = ''
-            if not isinstance(self.data.header.machine, int):
+            if isinstance(self.data.header.machine, int):
                 machine = self.data.header.machine.name
 
             self.elf = None
