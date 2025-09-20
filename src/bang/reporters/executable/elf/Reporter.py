@@ -112,7 +112,7 @@ class ElfReporter(Reporter):
                     section_nr = metadata['sections'][s]['nr']
                     section_type = metadata['sections'][s]['type']
 
-                    if metadata['sections'][s]['type'] == 'nobits':
+                    if metadata['sections'][s]['type'].name == 'nobits':
                         new_markdown += f"{section_nr}|{s}|{section_type}| | |\n"
                         continue
 
