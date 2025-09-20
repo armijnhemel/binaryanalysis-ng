@@ -14,7 +14,7 @@ meta:
     pronom: x-fmt/140
     wikidata: Q7514956
   license: CC0-1.0
-  ks-version: 0.9
+  ks-version: 0.11
   encoding: ASCII
   endian: be
 doc-ref: https://media.xiph.org/svt/SGIIMAGESPEC
@@ -61,11 +61,7 @@ types:
         type: u4
         enum: colormap
         valid:
-          any-of:
-            - colormap::normal
-            - colormap::dithered
-            - colormap::screen
-            - colormap::colormap
+          in-enum: true
       - id: ignored
         type: padding(404)
   padding:

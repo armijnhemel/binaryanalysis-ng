@@ -11,6 +11,7 @@ meta:
       - fmt/3 # GIF 87a
       - fmt/4 # GIF 89a
     wikidata: Q2192
+  ks-version: 0.11
   license: CC0-1.0
   endian: le
 doc: |
@@ -97,10 +98,7 @@ types:
         type: u1
         enum: block_type
         valid:
-          any-of:
-            - block_type::extension
-            - block_type::local_image_descriptor
-            - block_type::end_of_file
+          in-enum: true
       - id: body
         type:
           switch-on: block_type

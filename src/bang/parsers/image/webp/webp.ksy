@@ -2,6 +2,7 @@ meta:
   id: webp
   title: WebP
   license: CC0-1.0
+  ks-version: 0.11
   endian: le
   encoding: UTF-8
 doc-ref:
@@ -28,18 +29,7 @@ types:
         type: u4
         enum: chunk_names
         valid:
-          any-of:
-            - chunk_names::alph
-            - chunk_names::anim
-            - chunk_names::anmf
-            - chunk_names::exif
-            - chunk_names::frgm
-            - chunk_names::iccp
-            - chunk_names::vp8l
-            - chunk_names::vp8
-            - chunk_names::vp8x
-            - chunk_names::xmp
-            - chunk_names::xmp_var
+          in-enum: true
       - id: len_data
         type: u4
       - id: data
