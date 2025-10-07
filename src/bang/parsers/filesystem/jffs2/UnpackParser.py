@@ -176,7 +176,7 @@ class Jffs2UnpackParser(UnpackParser):
 
             # check if the inode type is actually valid
             # or perhaps contains padding.
-            if isinstance(jffs2_inode.header.inode_type, int):
+            if not isinstance(jffs2_inode.header.inode_type, jffs2.Jffs2.InodeType):
                 if jffs2_inode.header.inode_type == 0:
                     if prev_is_padding:
                         break
@@ -472,7 +472,7 @@ class Jffs2UnpackParser(UnpackParser):
 
             # check if the inode type is actually valid
             # or perhaps contains padding.
-            if isinstance(jffs2_inode.header.inode_type, int):
+            if not isinstance(jffs2_inode.header.inode_type, jffs2.Jffs2.InodeType):
                 if jffs2_inode.header.inode_type == 0:
                     if prev_is_padding:
                         break
