@@ -112,14 +112,15 @@ class ElfReporter(Reporter):
                     section_nr = metadata['sections'][s]['nr']
                     section_type = metadata['sections'][s]['type']
 
-                    if metadata['sections'][s]['type'].name == 'nobits':
-                        new_markdown += f"{section_nr}|{s}|{section_type}| | |\n"
-                        continue
+                    if metadata['sections'][s]['defined_type']:
+                        if metadata['sections'][s]['type'] == 'nobits':
+                            new_markdown += f"{section_nr}|{s}|{section_type}| | |\n"
+                            continue
 
                     section_size = metadata['sections'][s]['size']
                     section_offset = metadata['sections'][s]['offset']
 
-                    if isinstance(metadata['sections'][s]['type'], int):
+                    if not metadata['sections'][s]['defined_type']:
                         new_markdown += f"{section_nr}|{s}|{hex(section_type)}|{section_size}|{section_offset}|\n"
                     else:
                         new_markdown += f"{section_nr}|{s}|{section_type}|{section_size}|{section_offset}|\n"
