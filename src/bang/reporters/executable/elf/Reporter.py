@@ -64,7 +64,7 @@ class ElfReporter(Reporter):
             if 'gnu debuglink crc' in metadata:
                 new_markdown += f"**GNU debug link CRC** | {metadata['gnu debuglink crc']}|\n"
             if 'comment' in metadata:
-                comm = "\n".join(metadata['comment'])
+                comm = "\n".join(sorted(set(metadata['comment'])))
                 new_markdown += f"**Comment** | {comm}|\n"
             if 'strings' in metadata:
                 if metadata['strings'] != []:
@@ -112,14 +112,15 @@ class ElfReporter(Reporter):
                     section_nr = metadata['sections'][s]['nr']
                     section_type = metadata['sections'][s]['type']
 
-                    if metadata['sections'][s]['type'].name == 'nobits':
-                        new_markdown += f"{section_nr}|{s}|{section_type}| | |\n"
-                        continue
+                    if metadata['sections'][s]['defined_type']:
+                        if metadata['sections'][s]['type'] == 'nobits':
+                            new_markdown += f"{section_nr}|{s}|{section_type}| | |\n"
+                            continue
 
                     section_size = metadata['sections'][s]['size']
                     section_offset = metadata['sections'][s]['offset']
 
-                    if isinstance(metadata['sections'][s]['type'], int):
+                    if not metadata['sections'][s]['defined_type']:
                         new_markdown += f"{section_nr}|{s}|{hex(section_type)}|{section_size}|{section_offset}|\n"
                     else:
                         new_markdown += f"{section_nr}|{s}|{section_type}|{section_size}|{section_offset}|\n"
