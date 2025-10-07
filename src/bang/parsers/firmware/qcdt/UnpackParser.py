@@ -73,10 +73,13 @@ class QcdtUnpackParser(UnpackParser):
                 'soc_revision': entry.soc_revision
             }
 
-            if isinstance(entry.platform_id, int):
-                metadata['device'][ctr]['platform_id']: entry.platform_id
+            if not isinstance(entry.platform_id, qcdt.Qcdt.SocIds):
+                metadata['device'][ctr]['platform_id'] = entry.platform_id
+                metadata['device'][ctr]['platform_id_num'] = entry.platform_id
+
             else:
-                metadata['device'][ctr]['platform_id']: entry.platform_id.name
+                metadata['device'][ctr]['platform_id'] = entry.platform_id.name
+                metadata['device'][ctr]['platform_id_num'] = entry.platform_id.value
 
             if self.data.version > 1:
                 metadata['device'][ctr] = {}
