@@ -357,12 +357,12 @@ class ElfUnpackParser(UnpackParser):
             #
             # Related: https://github.com/Gallopsled/pwntools/issues/2560
             machine = ''
-            if isinstance(self.data.header.machine, int):
+            if isinstance(self.data.header.machine, elf.Elf.Machine):
                 machine = self.data.header.machine.name
 
             self.elf = None
             if self.infile.offset == 0:
-                if machine not in ['mips']:
+                if machine and machine not in ['mips']:
                     self.elf = pwn.ELF(self.infile.name, checksec=False)
 
         except (Exception, ValidationFailedError, UndecidedEndiannessError, elftools.common.exceptions.ELFError) as e:
