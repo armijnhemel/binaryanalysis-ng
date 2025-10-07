@@ -64,7 +64,7 @@ class ElfReporter(Reporter):
             if 'gnu debuglink crc' in metadata:
                 new_markdown += f"**GNU debug link CRC** | {metadata['gnu debuglink crc']}|\n"
             if 'comment' in metadata:
-                comm = "\n".join(metadata['comment'])
+                comm = "\n".join(sorted(set(metadata['comment'])))
                 new_markdown += f"**Comment** | {comm}|\n"
             if 'strings' in metadata:
                 if metadata['strings'] != []:
