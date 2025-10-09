@@ -261,7 +261,7 @@ class ExtractingParser(UnpackParser):
         '''TODO: write any data about the parent MetaDirectory here.'''
         pass
 
-class HashParser(UnpackParser):
+class TlshParser(UnpackParser):
     def __init__(self, from_meta_directory, offset, configuration):
         super().__init__(from_meta_directory, offset, configuration)
         self.from_md = from_meta_directory

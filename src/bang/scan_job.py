@@ -25,7 +25,7 @@ import traceback
 import time
 from dataclasses import dataclass
 from .meta_directory import *
-from .UnpackParser import SynthesizingParser, ExtractedParser, ExtractingParser, PaddingParser, HashParser, compute_hashes
+from .UnpackParser import SynthesizingParser, ExtractedParser, ExtractingParser, PaddingParser, TlshParser, compute_hashes
 from .UnpackParserException import UnpackParserException
 from .log import log
 
@@ -106,7 +106,7 @@ def compute_tlsh_hash(scan_environment, checking_meta_directory):
         if scan_environment.tlsh_minimum <= checking_meta_directory.size <= scan_environment.tlsh_maximum:
             labels = checking_meta_directory.info.get('labels', [])
             if scan_environment.tlsh_ignore.intersection(labels) == set():
-                unpack_parser = HashParser(checking_meta_directory, 0, scan_environment.configuration)
+                unpack_parser = TlshParser(checking_meta_directory, 0, scan_environment.configuration)
                 log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
 
                 checking_meta_directory.unpack_parser = unpack_parser
