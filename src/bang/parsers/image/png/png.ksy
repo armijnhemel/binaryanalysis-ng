@@ -25,7 +25,7 @@ meta:
       - Q178051 # PNG
       - Q433224 # APNG
   license: CC0-1.0
-  ks-version: 0.9
+  ks-version: 0.11
   endian: be
 doc: |
   Test files for APNG can be found at the following locations:
@@ -486,9 +486,7 @@ types:
         type: u1
         enum: compression_attach_methods
         valid:
-          any-of:
-            - compression_attach_methods::no_compression
-            - compression_attach_methods::zlib
+          in-enum: true
       - id: data
         size-eos: true
     enums:
