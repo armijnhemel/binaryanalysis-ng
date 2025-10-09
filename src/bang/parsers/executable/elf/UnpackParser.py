@@ -357,12 +357,12 @@ class ElfUnpackParser(UnpackParser):
             #
             # Related: https://github.com/Gallopsled/pwntools/issues/2560
             machine = ''
-            if not isinstance(self.data.header.machine, int):
+            if isinstance(self.data.header.machine, elf.Elf.Machine):
                 machine = self.data.header.machine.name
 
             self.elf = None
             if self.infile.offset == 0:
-                if machine not in ['mips']:
+                if machine and machine not in ['mips']:
                     self.elf = pwn.ELF(self.infile.name, checksec=False)
 
         except (Exception, ValidationFailedError, UndecidedEndiannessError, elftools.common.exceptions.ELFError) as e:
@@ -471,12 +471,12 @@ class ElfUnpackParser(UnpackParser):
             self.metadata['type'] = 'processor specific'
 
         # store the machine type, both numerical and pretty printed
-        if isinstance(self.data.header.machine, int):
-            self.metadata['machine_name'] = "unknown architecture"
-            self.metadata['machine'] = self.data.header.machine
-        else:
+        if isinstance(self.data.header.machine, elf.Elf.Machine):
             self.metadata['machine_name'] = self.data.header.machine.name
             self.metadata['machine'] = self.data.header.machine.value
+        else:
+            self.metadata['machine_name'] = "unknown architecture"
+            self.metadata['machine'] = self.data.header.machine
 
         # store the ABI, both numerical and pretty printed
         self.metadata['abi_name'] = self.data.abi.name
@@ -575,12 +575,14 @@ class ElfUnpackParser(UnpackParser):
             sections[header.name]['nr'] = section_ctr
             sections[header.name]['address'] = header.addr
 
-            if isinstance(header.type, int):
-                sections[header.name]['type'] = header.type
-            else:
+            if isinstance(header.type, elf.Elf.ShType):
                 sections[header.name]['type'] = header.type.name
+                sections[header.name]['defined_type'] = True
+            else:
+                sections[header.name]['type'] = header.type
+                sections[header.name]['defined_type'] = False
 
-            if header.type != elf.Elf.ShType.nobits:
+            if not(isinstance(header.type, elf.Elf.ShType) and header.type == elf.Elf.ShType.nobits):
                 sections[header.name]['size'] = header.len_body
                 sections[header.name]['offset'] = header.ofs_body
                 if header.body != b'':

@@ -20,7 +20,7 @@ meta:
     - executable
     - linux
   license: CC0-1.0
-  ks-version: 0.9
+  ks-version: 0.11
 doc-ref:
   - https://sourceware.org/git/?p=glibc.git;a=blob;f=elf/elf.h;hb=0f62fe0532
   - https://refspecs.linuxfoundation.org/elf/gabi4+/contents.html
@@ -282,6 +282,8 @@ types:
       - id: machine
         type: u2
         enum: machine
+        valid:
+          in-enum: true
       - id: e_version
         type: u4
       # e_entry

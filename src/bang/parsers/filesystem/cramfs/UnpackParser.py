@@ -70,7 +70,7 @@ class CramfsUnpackParser(UnpackParser):
         inode_counter = 0
         for inode in self.data.data.inodes:
             # only use valid modes
-            if isinstance(inode.file_mode, int):
+            if not isinstance(inode.file_mode, cramfs.Cramfs.Modes):
                 raise UnpackParserException("unsupported file mode")
 
             # the data cannot be outside of the file
