@@ -329,7 +329,7 @@ class StringExtractingParser(UnpackParser):
         return metadata
 
 
-class HashParser(UnpackParser):
+class TlshParser(UnpackParser):
     def __init__(self, from_meta_directory, offset, configuration):
         super().__init__(from_meta_directory, offset, configuration)
         self.from_md = from_meta_directory
