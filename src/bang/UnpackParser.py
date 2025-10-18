@@ -175,8 +175,9 @@ class ExtractedParser(UnpackParser):
     metadata = {}
 
     def unpack(self, to_meta_directory):
-        # synthesized files must be scanned again (with featureless parsers), so let them unpack themselves
-        # but first, write the info data before the meta directory is queued.
+        # synthesized files must be scanned again (with featureless parsers),
+        # so let them unpack themselves  but first, write the info data before
+        # the meta directory is queued.
         to_meta_directory.write_ahead()
         yield to_meta_directory
 
@@ -200,8 +201,9 @@ class SynthesizingParser(UnpackParser):
     metadata = {}
 
     def unpack(self, to_meta_directory):
-        # synthesized files must be scanned again (with featureless parsers), so let them unpack themselves
-        # but first, write the info data before the meta directory is queued.
+        # synthesized files must be scanned again (with featureless parsers),
+        # so let them unpack themselves # but first, write the info data before
+        # the meta directory is queued.
         to_meta_directory.write_ahead()
         yield to_meta_directory
 
@@ -313,7 +315,7 @@ class StringExtractingParser(UnpackParser):
             # read more bytes
             bytes_read = self.file.readinto(scanbytes)
 
-        if self.strings != []:
+        if self.strings:
             self.update_metadata(self.from_md)
             self.from_md.write_ahead()
 
