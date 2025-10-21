@@ -78,8 +78,8 @@ def extract_file(checking_meta_directory, in_file, offset, file_size):
 
 #####
 #
-# Iterator that checks if the file for checking_meta_directory is a padding file. Yields
-# checking_meta_directory if this is the case.
+# Iterator that checks if the file for checking_meta_directory is a padding file.
+# Yields checking_meta_directory if this is the case.
 #
 def check_for_padding(scan_environment, checking_meta_directory):
     try:
@@ -115,7 +115,7 @@ def compute_tlsh_hash(scan_environment, checking_meta_directory):
                 log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: parsed_size = {unpack_parser.parsed_size}/{checking_meta_directory.size}')
                 yield checking_meta_directory
 
-    except UnpackParserException as e:
+    except UnpackParserException:
         # there will be a "parser resulted in zero length file"
         # warning, but ignore that.
         pass
@@ -150,8 +150,8 @@ def check_with_suggested_parsers(scan_environment, checking_meta_directory):
                 yield checking_meta_directory
             else:
                 log.debug(f'check_with_suggested_parsers[{checking_meta_directory.md_path}]: parser parsed [0:{unpack_parser.parsed_size}], leaving [{unpack_parser.parsed_size}:{checking_meta_directory.size}] ({checking_meta_directory.size - unpack_parser.parsed_size} bytes)')
-                # yield the checking_meta_directory with a ExtractingUnpackParser, in
-                # case we want to record metadata about it.
+                # yield the checking_meta_directory with a ExtractingUnpackParser,
+                # in case we want to record metadata about it.
                 checking_meta_directory.unpack_parser = ExtractingParser.with_parts(
                     checking_meta_directory,
                     [ (0,unpack_parser.parsed_size),
@@ -207,8 +207,8 @@ def check_by_extension(scan_environment, checking_meta_directory):
                     return
 
                 log.debug(f'check_by_extension[{checking_meta_directory.md_path}]: parser parsed [0:{unpack_parser.parsed_size}], leaving [{unpack_parser.parsed_size}:{checking_meta_directory.size}] ({checking_meta_directory.size - unpack_parser.parsed_size} bytes)')
-                # yield the checking_meta_directory with a ExtractingUnpackParser, in
-                # case we want to record metadata about it.
+                # yield the checking_meta_directory with a ExtractingUnpackParser,
+                # in case we want to record metadata about it.
                 checking_meta_directory.unpack_parser = ExtractingParser.with_parts(
                     checking_meta_directory,
                     [ (0,unpack_parser.parsed_size),
@@ -312,7 +312,8 @@ def find_signature_parsers(scan_environment, open_file, file_scan_state, file_si
             # this was the last chunk
             file_scan_state.chunk_start += len(s)
         else:
-            # set chunk_start to before the actual chunk to detect overlapping patterns in the next chunk
+            # set chunk_start to before the actual chunk to
+            # detect overlapping patterns in the next chunk
             file_scan_state.chunk_start += len(s) - chunk_overlap
 
         # unless the unpackparser advanced us
@@ -584,6 +585,7 @@ def pipe_with(context, pipe):
 #
 
 def make_scan_pipeline():
+    '''Helper function to create scan pipelines'''
     stop_if_scanned = pipe_cond(cond_if_scanned, pipe_fail, pipe_pass)
 
     pipe_padding = pipe_seq(pipe_exec(check_for_padding), stop_if_scanned)
@@ -670,7 +672,7 @@ def process_jobs(pipeline, scan_environment):
             pipeline(scanjob.scan_environment, scanjob.meta_directory)
 
             log.debug(f'process_jobs[{scanjob.meta_directory.md_path}]: end job [{time.time_ns()}]')
-        except queue.Empty as e:
+        except queue.Empty:
             log.debug('process_jobs: scan queue is empty')
             try:
                 # A thread will block here and wait until either *all*
