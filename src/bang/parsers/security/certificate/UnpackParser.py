@@ -147,7 +147,7 @@ class CertificateUnpackParser(UnpackParser):
         # check the certificate
         self.infile.seek(0)
         cert = self.infile.read(end_of_certificate)
-        check_condition(list(filter(lambda x: chr(x) not in string.printable, cert)),
+        check_condition(not list(filter(lambda x: chr(x) not in string.printable, cert)),
                         "text cert can only contain ASCII printable characters")
         (res, self.cert_labels) = self.extract_certificate(cert)
         check_condition(res, "not a valid certificate")
