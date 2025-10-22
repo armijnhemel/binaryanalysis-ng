@@ -25,7 +25,7 @@ import traceback
 import time
 from dataclasses import dataclass
 from .meta_directory import *
-from .UnpackParser import SynthesizingParser, ExtractedParser, ExtractingParser, PaddingParser, TlshParser, compute_hashes
+from .UnpackParser import SynthesizingParser, ExtractedParser, ExtractingParser, PaddingParser, StringExtractingParser, TlshParser, compute_hashes
 from .UnpackParserException import UnpackParserException
 from .log import log
 
@@ -114,6 +114,27 @@ def compute_tlsh_hash(scan_environment, checking_meta_directory):
                 log.debug(f'compute_tlsh_hash[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
                 log.debug(f'compute_tlsh_hash[{checking_meta_directory.md_path}]: parsed_size = {unpack_parser.parsed_size}/{checking_meta_directory.size}')
                 yield checking_meta_directory
+
+    except UnpackParserException:
+        # there will be a "parser resulted in zero length file"
+        # warning, but ignore that.
+        pass
+
+#####
+# Extracts strings from binaries and writes to the meta_directory
+#
+def extract_strings(scan_environment, checking_meta_directory):
+    try:
+        labels = checking_meta_directory.info.get('labels', [])
+        if not labels:
+            unpack_parser = StringExtractingParser(checking_meta_directory, 0, scan_environment.configuration)
+            log.debug(f'extract_strings[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
+
+            checking_meta_directory.unpack_parser = unpack_parser
+            unpack_parser.parse_from_offset()
+            log.debug(f'extract_strings[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
+            log.debug(f'extract_strings[{checking_meta_directory.md_path}]: parsed_size = {unpack_parser.parsed_size}/{checking_meta_directory.size}')
+            yield checking_meta_directory
 
     except UnpackParserException:
         # there will be a "parser resulted in zero length file"
@@ -591,6 +612,7 @@ def make_scan_pipeline():
     pipe_padding = pipe_seq(pipe_exec(check_for_padding), stop_if_scanned)
 
     pipe_hashes = pipe_exec(compute_tlsh_hash)
+    pipe_strings = pipe_exec(extract_strings)
 
     pipe_checks_if_not_synthesized = pipe_cond(
             cond_not_synthesized,
@@ -613,7 +635,8 @@ def make_scan_pipeline():
     pipe_root = pipe_or(pipe_cond(
         cond_scannable,
         pipe_with(ctx_open_md_for_writing, pipe_scan),
-        pipe_fail), pipe_with(ctx_open_md_for_writing, pipe_hashes)
+        pipe_fail), pipe_with(ctx_open_md_for_writing, pipe_strings)
+        #pipe_fail), pipe_with(ctx_open_md_for_writing, pipe_hashes)
     )
     return pipe_root
 
