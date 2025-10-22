@@ -635,8 +635,8 @@ def make_scan_pipeline():
     pipe_root = pipe_or(pipe_cond(
         cond_scannable,
         pipe_with(ctx_open_md_for_writing, pipe_scan),
-        pipe_fail), pipe_with(ctx_open_md_for_writing, pipe_strings)
-        #pipe_fail), pipe_with(ctx_open_md_for_writing, pipe_hashes)
+        pipe_fail), pipe_with(ctx_open_md_for_writing, pipe_hashes),
+        pipe_with(ctx_open_md_for_writing, pipe_strings)
     )
     return pipe_root
 
