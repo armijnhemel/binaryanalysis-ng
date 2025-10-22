@@ -338,7 +338,6 @@ class StringExtractingParser(UnpackParser):
 
             # read more bytes
             bytes_read = self.infile.readinto(scanbytes)
-            print(self.strings)
 
         if self.strings:
             self.update_metadata(self.from_md)
