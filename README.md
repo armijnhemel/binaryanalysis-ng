@@ -311,6 +311,7 @@ larger file, unless stated otherwise.
 211. ANJVision IP camera firmware files
 212. Linux `securetty` files (whole file)
 213. EOT fonts
+214. crontab files (subset)
 
 ## Getting started
 
