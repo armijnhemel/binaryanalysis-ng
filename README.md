@@ -312,6 +312,7 @@ larger file, unless stated otherwise.
 212. Linux `securetty` files (whole file)
 213. EOT fonts
 214. crontab files (subset)
+215. modules.dep files
 
 ## Getting started
 
