@@ -316,6 +316,7 @@ larger file, unless stated otherwise.
 216. host.conf files
 217. lld2d.conf files (from old Realtek SDKs)
 218. inittab files
+219. /etc/services files
 
 ## Getting started
 
