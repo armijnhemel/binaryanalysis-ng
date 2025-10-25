@@ -47,18 +47,19 @@ class ModulesDep(UnpackParser):
         try:
             for modules_dep_line in modules_dep_file:
                 line = modules_dep_line.rstrip()
+                len_modules_dep_line = len(modules_dep_line)
                 if line.strip() == '':
-                    len_unpacked += len(modules_dep_line)
+                    len_unpacked += len_modules_dep_line
                     continue
 
                 if line.startswith('#'):
-                    len_unpacked += len(modules_dep_line)
+                    len_unpacked += len_modules_dep_line
                     continue
 
                 match_result = RE_MODULES_DEP.match(line)
                 if not match_result:
                     break
-                len_unpacked += len(modules_dep_line)
+                len_unpacked += len_modules_dep_line
                 data_unpacked = True
         except Exception as e:
             raise UnpackParserException(e.args) from e

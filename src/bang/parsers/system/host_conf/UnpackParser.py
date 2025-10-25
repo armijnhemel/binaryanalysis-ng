@@ -50,13 +50,13 @@ class HostConf(UnpackParser):
         try:
             for host_conf_line in host_conf_file:
                 line = host_conf_line.rstrip()
-                host_conf_line_len = len(host_conf_line)
+                len_host_conf_line = len(host_conf_line)
                 if line.strip() == '':
-                    len_unpacked += host_conf_line_len
+                    len_unpacked += len_host_conf_line
                     continue
 
                 if line.startswith('#'):
-                    len_unpacked += host_conf_line_len
+                    len_unpacked += len_host_conf_line
                     continue
 
                 keyword, value = line.split(maxsplit=1)
@@ -74,7 +74,7 @@ class HostConf(UnpackParser):
                     case 'trip':
                         pass
 
-                len_unpacked += host_conf_line_len
+                len_unpacked += len_host_conf_line
                 data_unpacked = True
         except Exception as e:
             raise UnpackParserException(e.args) from e

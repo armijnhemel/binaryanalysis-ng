@@ -31,7 +31,7 @@ CRONTAB_KEYS = set(['CRON_TZ', 'HOME', 'LOGNAME', 'MAILFROM', 'MAILTO', 'PATH', 
 RE_CRONTAB = re.compile(r'(\d+|\*)\s+(\d+|\*)\s+(\d+|\*)\s+(\d+|\*)\s+(\d+|\*)\s+\w+\s+.*')
 
 
-class SecureTTYUnpackParser(UnpackParser):
+class CrontabParser(UnpackParser):
     extensions = ['crontab']
     signatures = [
     ]
@@ -50,26 +50,27 @@ class SecureTTYUnpackParser(UnpackParser):
         try:
             for crontab_line in crontab_file:
                 line = crontab_line.rstrip()
+                len_crontab_line = len(crontab_line)
                 if line.strip() == '':
-                    len_unpacked += len(crontab_line)
+                    len_unpacked += len_crontab_line
                     continue
 
                 if line.startswith('#'):
-                    len_unpacked += len(crontab_line)
+                    len_unpacked += len_crontab_line
                     continue
 
                 if '=' in line:
                     cron_key, _ = line.split('=', maxsplit=1)
                     if cron_key not in CRONTAB_KEYS:
                         break
-                    len_unpacked += len(crontab_line)
+                    len_unpacked += len_crontab_line
                     data_unpacked = True
                     continue
 
                 match_result = RE_CRONTAB.match(line)
                 if not match_result:
                     break
-                len_unpacked += len(crontab_line)
+                len_unpacked += len_crontab_line
                 data_unpacked = True
         except Exception as e:
             raise UnpackParserException(e.args) from e
