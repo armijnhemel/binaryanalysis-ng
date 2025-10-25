@@ -18,71 +18,60 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
-# verify Unix crontab
-# man 5 crontab
+# $ man 5 modules.dep
 
 import re
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 
-CRONTAB_KEYS = set(['CRON_TZ', 'HOME', 'LOGNAME', 'MAILFROM', 'MAILTO', 'PATH', 'SHELL'])
-
-RE_CRONTAB = re.compile(r'(\d+|\*)\s+(\d+|\*)\s+(\d+|\*)\s+(\d+|\*)\s+(\d+|\*)\s+\w+\s+.*')
+RE_MODULES_DEP = re.compile(r'/[\w\d\.\-_/]+:(.*)')
 
 
-class CrontabParser(UnpackParser):
-    extensions = ['crontab']
+class ModulesDep(UnpackParser):
+    extensions = ['modules.dep']
     signatures = [
     ]
-    pretty_name = 'crontab'
+    pretty_name = 'modules.dep'
 
     def parse(self):
         # open the file again, but then in text mode
         try:
-            crontab_file = open(self.infile.name, 'r', newline='')
+            modules_dep_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
-            crontab_file.close()
+            modules_dep_file.close()
             raise UnpackParserException(e.args) from e
 
         data_unpacked = False
         len_unpacked = 0
         try:
-            for crontab_line in crontab_file:
-                line = crontab_line.rstrip()
-                len_crontab_line = len(crontab_line)
+            for modules_dep_line in modules_dep_file:
+                line = modules_dep_line.rstrip()
+                len_modules_dep_line = len(modules_dep_line)
                 if line.strip() == '':
-                    len_unpacked += len_crontab_line
+                    len_unpacked += len_modules_dep_line
                     continue
 
                 if line.startswith('#'):
-                    len_unpacked += len_crontab_line
+                    len_unpacked += len_modules_dep_line
                     continue
 
-                if '=' in line:
-                    cron_key, _ = line.split('=', maxsplit=1)
-                    if cron_key not in CRONTAB_KEYS:
-                        break
-                    len_unpacked += len_crontab_line
-                    data_unpacked = True
-                    continue
-
-                match_result = RE_CRONTAB.match(line)
+                match_result = RE_MODULES_DEP.match(line)
                 if not match_result:
                     break
-                len_unpacked += len_crontab_line
+                len_unpacked += len_modules_dep_line
                 data_unpacked = True
         except Exception as e:
             raise UnpackParserException(e.args) from e
         finally:
-            crontab_file.close()
+            modules_dep_file.close()
 
-        check_condition(data_unpacked, "no crontab file data could be unpacked")
+        check_condition(data_unpacked, "no modules.dep file data could be unpacked")
         self.unpacked_size = len_unpacked
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
         pass
 
-    labels = ['crontab']
+    labels = ['modules.dep']
     metadata = {}

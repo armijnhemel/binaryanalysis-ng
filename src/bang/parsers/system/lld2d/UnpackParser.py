@@ -18,71 +18,64 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
-# verify Unix crontab
-# man 5 crontab
+# configuration file for proprietary lltd daemon as found in (amongst
+# others) older Realtek based devices
+# https://web.archive.org/web/20210303145227/https://www.osslab.com.tw/wp-content/uploads/2017/01/Kernel-2_6-SDK-User-Guide-v1_12.pdf
 
 import re
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 
-CRONTAB_KEYS = set(['CRON_TZ', 'HOME', 'LOGNAME', 'MAILFROM', 'MAILTO', 'PATH', 'SHELL'])
+RE_FILE_LOCATION = re.compile(r'/[\w\d\.\-_/]*\.ico$')
 
-RE_CRONTAB = re.compile(r'(\d+|\*)\s+(\d+|\*)\s+(\d+|\*)\s+(\d+|\*)\s+(\d+|\*)\s+\w+\s+.*')
-
-
-class CrontabParser(UnpackParser):
-    extensions = ['crontab']
+class Lld2d_conf(UnpackParser):
+    extensions = ['lld2d.conf']
     signatures = [
     ]
-    pretty_name = 'crontab'
+    pretty_name = 'lld2d.conf'
 
     def parse(self):
         # open the file again, but then in text mode
         try:
-            crontab_file = open(self.infile.name, 'r', newline='')
+            lld2d_conf_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
-            crontab_file.close()
+            lld2d_conf_file.close()
             raise UnpackParserException(e.args) from e
 
         data_unpacked = False
         len_unpacked = 0
         try:
-            for crontab_line in crontab_file:
-                line = crontab_line.rstrip()
-                len_crontab_line = len(crontab_line)
+            for conf_line in lld2d_conf_file:
+                line = conf_line.rstrip()
+                len_conf_line = len(conf_line)
                 if line.strip() == '':
-                    len_unpacked += len_crontab_line
+                    len_unpacked += len_conf_line
                     continue
 
                 if line.startswith('#'):
-                    len_unpacked += len_crontab_line
+                    len_unpacked += len_conf_line
                     continue
 
-                if '=' in line:
-                    cron_key, _ = line.split('=', maxsplit=1)
-                    if cron_key not in CRONTAB_KEYS:
-                        break
-                    len_unpacked += len_crontab_line
-                    data_unpacked = True
-                    continue
-
-                match_result = RE_CRONTAB.match(line)
-                if not match_result:
+                keyword, value = line.split('=', maxsplit=1)
+                if keyword.strip() not in ['icon', 'jumbo-icon']:
                     break
-                len_unpacked += len_crontab_line
+                if not RE_FILE_LOCATION.match(value.strip()):
+                    break
+
+                len_unpacked += len_conf_line
                 data_unpacked = True
         except Exception as e:
             raise UnpackParserException(e.args) from e
         finally:
-            crontab_file.close()
+            lld2d_conf_file.close()
 
-        check_condition(data_unpacked, "no crontab file data could be unpacked")
+        check_condition(data_unpacked, "no host.conf file data could be unpacked")
         self.unpacked_size = len_unpacked
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
         pass
 
-    labels = ['crontab']
+    labels = ['lld2d.conf']
     metadata = {}

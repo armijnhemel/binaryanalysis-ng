@@ -175,8 +175,9 @@ class ExtractedParser(UnpackParser):
     metadata = {}
 
     def unpack(self, to_meta_directory):
-        # synthesized files must be scanned again (with featureless parsers), so let them unpack themselves
-        # but first, write the info data before the meta directory is queued.
+        # synthesized files must be scanned again (with featureless parsers),
+        # so let them unpack themselves  but first, write the info data before
+        # the meta directory is queued.
         to_meta_directory.write_ahead()
         yield to_meta_directory
 
@@ -200,8 +201,9 @@ class SynthesizingParser(UnpackParser):
     metadata = {}
 
     def unpack(self, to_meta_directory):
-        # synthesized files must be scanned again (with featureless parsers), so let them unpack themselves
-        # but first, write the info data before the meta directory is queued.
+        # synthesized files must be scanned again (with featureless parsers),
+        # so let them unpack themselves # but first, write the info data before
+        # the meta directory is queued.
         to_meta_directory.write_ahead()
         yield to_meta_directory
 
@@ -260,6 +262,98 @@ class ExtractingParser(UnpackParser):
     def write_info(self, to_meta_directory):
         '''TODO: write any data about the parent MetaDirectory here.'''
         pass
+
+class StringExtractingParser(UnpackParser):
+    '''Parser to extract human readable ASCII strings from binaries'''
+    # characters to be removed when extracting strings
+    REMOVE_CHARACTERS = ['\a', '\b', '\v', '\f', '\x01', '\x02', '\x03', '\x04',
+                         '\x05', '\x06', '\x0e', '\x0f', '\x10', '\x11', '\x12',
+                         '\x13', '\x14', '\x15', '\x16', '\x17', '\x18', '\x19',
+                         '\x1a', '\x1b', '\x1c', '\x1d', '\x1e', '\x1f', '\x7f']
+
+    REMOVE_CHARACTERS_TABLE = str.maketrans({'\a': '', '\b': '', '\v': '',
+                                             '\f': '', '\x01': '', '\x02': '',
+                                             '\x03': '', '\x04': '', '\x05': '',
+                                             '\x06': '', '\x0e': '', '\x0f': '',
+                                             '\x10': '', '\x11': '', '\x12': '',
+                                             '\x13': '', '\x14': '', '\x15': '',
+                                             '\x16': '', '\x17': '', '\x18': '',
+                                             '\x19': '', '\x1a': '', '\x1b': '',
+                                             '\x1c': '', '\x1d': '', '\x1e': '',
+                                             '\x1f': '', '\x7f': ''
+                                            })
+
+    # translation table for ASCII strings for the string
+    # to pass the isascii() test
+    STRING_TRANSLATION_TABLE = str.maketrans({'\t': ' '})
+
+    def __init__(self, from_meta_directory, offset, configuration):
+        super().__init__(from_meta_directory, offset, configuration)
+        self.from_md = from_meta_directory
+        self.offset = offset
+        self.strings = []
+
+    pretty_name = 'stringextractingparser'
+
+    def parse(self):
+        # reset the file pointer to extract strings
+        self.infile.seek(self.offset)
+
+        # start reading data in chunks of 10 MiB
+        read_size = 10485760
+        string_cutoff_length = 4
+
+        # then read the data
+        scanbytes = bytearray(read_size)
+        bytes_read = self.infile.readinto(scanbytes)
+
+        while bytes_read != 0:
+            #data = memoryview(scanbytes[:bytes_read])
+            data = scanbytes[:bytes_read]
+            # first see if there is a \x00 in the data
+
+            # split the read data and extract the strings
+            for s in data.split(b'\x00'):
+                try:
+                    decoded_strings = s.decode().splitlines()
+                    for decoded_string in decoded_strings:
+                        for rc in self.REMOVE_CHARACTERS:
+                            if rc in decoded_string:
+                                decoded_string = decoded_string.translate(self.REMOVE_CHARACTERS_TABLE)
+
+                        if len(decoded_string) < string_cutoff_length:
+                            continue
+                        if decoded_string.isspace():
+                            continue
+
+                        translated_string = decoded_string.translate(self.STRING_TRANSLATION_TABLE)
+                        if decoded_string.isascii():
+                            # test the translated string
+                            if translated_string.isprintable():
+                                self.strings.append(decoded_string)
+                        else:
+                            self.strings.append(decoded_string)
+                except UnicodeDecodeError:
+                    pass
+
+            # read more bytes
+            bytes_read = self.infile.readinto(scanbytes)
+
+        if self.strings:
+            self.update_metadata(self.from_md)
+            self.from_md.write_ahead()
+
+    def calculate_unpacked_size(self):
+        self.unpacked_size = 0
+
+    labels = []
+
+    @property
+    def metadata(self):
+        metadata = self.from_md.info.get('metadata', {})
+        metadata['strings'] = self.strings
+        return metadata
+
 
 class TlshParser(UnpackParser):
     def __init__(self, from_meta_directory, offset, configuration):

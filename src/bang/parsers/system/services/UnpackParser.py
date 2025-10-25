@@ -17,72 +17,61 @@
 #
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
-
-# verify Unix crontab
-# man 5 crontab
+#
+# $ man 5 services
 
 import re
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 
-CRONTAB_KEYS = set(['CRON_TZ', 'HOME', 'LOGNAME', 'MAILFROM', 'MAILTO', 'PATH', 'SHELL'])
+RE_SERVICES = re.compile(r'[\w\d_\-+\.]*\s+\d+/(?P<protocol>\w+)')
 
-RE_CRONTAB = re.compile(r'(\d+|\*)\s+(\d+|\*)\s+(\d+|\*)\s+(\d+|\*)\s+(\d+|\*)\s+\w+\s+.*')
-
-
-class CrontabParser(UnpackParser):
-    extensions = ['crontab']
+class Services(UnpackParser):
+    extensions = ['services']
     signatures = [
     ]
-    pretty_name = 'crontab'
+    pretty_name = 'services'
 
     def parse(self):
         # open the file again, but then in text mode
         try:
-            crontab_file = open(self.infile.name, 'r', newline='')
+            conf_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
-            crontab_file.close()
+            conf_file.close()
             raise UnpackParserException(e.args) from e
 
         data_unpacked = False
         len_unpacked = 0
         try:
-            for crontab_line in crontab_file:
-                line = crontab_line.rstrip()
-                len_crontab_line = len(crontab_line)
+            for conf_line in conf_file:
+                line = conf_line.rstrip()
+                len_conf_line = len(conf_line)
                 if line.strip() == '':
-                    len_unpacked += len_crontab_line
+                    len_unpacked += len_conf_line
                     continue
 
                 if line.startswith('#'):
-                    len_unpacked += len_crontab_line
+                    len_unpacked += len_conf_line
                     continue
 
-                if '=' in line:
-                    cron_key, _ = line.split('=', maxsplit=1)
-                    if cron_key not in CRONTAB_KEYS:
-                        break
-                    len_unpacked += len_crontab_line
-                    data_unpacked = True
-                    continue
-
-                match_result = RE_CRONTAB.match(line)
-                if not match_result:
+                protocol = RE_SERVICES.match(line).group('protocol')
+                if protocol not in ['tcp', 'udp', 'ddp']:
                     break
-                len_unpacked += len_crontab_line
+
+                len_unpacked += len_conf_line
                 data_unpacked = True
         except Exception as e:
             raise UnpackParserException(e.args) from e
         finally:
-            crontab_file.close()
+            conf_file.close()
 
-        check_condition(data_unpacked, "no crontab file data could be unpacked")
+        check_condition(data_unpacked, "no services file data could be unpacked")
         self.unpacked_size = len_unpacked
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
         pass
 
-    labels = ['crontab']
+    labels = ['services']
     metadata = {}
