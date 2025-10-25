@@ -315,6 +315,7 @@ larger file, unless stated otherwise.
 215. modules.dep files
 216. host.conf files
 217. lld2d.conf files (from old Realtek SDKs)
+218. inittab files
 
 ## Getting started
 
