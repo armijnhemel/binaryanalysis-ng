@@ -313,6 +313,7 @@ larger file, unless stated otherwise.
 213. EOT fonts
 214. crontab files (subset)
 215. modules.dep files
+216. host.conf files
 
 ## Getting started
 
