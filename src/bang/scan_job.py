@@ -99,9 +99,10 @@ def check_for_padding(scan_environment, checking_meta_directory):
         log.debug(f'check_for_padding[{checking_meta_directory.md_path}]: {unpack_parser.__class__} parser exception: {e}')
 
 #####
-# Computes and write a TLSH hash to the meta_directory
+# Computes and writes a TLSH hash to the meta_directory
 #
 def compute_tlsh_hash(scan_environment, checking_meta_directory):
+    '''Compute and write a TLSH hash to the meta_directory'''
     try:
         if scan_environment.tlsh_minimum <= checking_meta_directory.size <= scan_environment.tlsh_maximum:
             labels = checking_meta_directory.info.get('labels', [])
@@ -124,6 +125,7 @@ def compute_tlsh_hash(scan_environment, checking_meta_directory):
 # Extracts strings from binaries and writes to the meta_directory
 #
 def extract_strings(scan_environment, checking_meta_directory):
+    '''Extracts strings from binaries and writes to the meta_directory'''
     try:
         labels = checking_meta_directory.info.get('labels', [])
         if not labels:
@@ -171,7 +173,7 @@ def check_with_suggested_parsers(scan_environment, checking_meta_directory):
                 yield checking_meta_directory
             else:
                 log.debug(f'check_with_suggested_parsers[{checking_meta_directory.md_path}]: parser parsed [0:{unpack_parser.parsed_size}], leaving [{unpack_parser.parsed_size}:{checking_meta_directory.size}] ({checking_meta_directory.size - unpack_parser.parsed_size} bytes)')
-                # yield the checking_meta_directory with a ExtractingUnpackParser,
+                # yield the checking_meta_directory with an ExtractingUnpackParser,
                 # in case we want to record metadata about it.
                 checking_meta_directory.unpack_parser = ExtractingParser.with_parts(
                     checking_meta_directory,
