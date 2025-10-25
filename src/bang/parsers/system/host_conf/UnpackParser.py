@@ -35,8 +35,6 @@ class HostConf(UnpackParser):
     ]
     pretty_name = 'host.conf'
 
-    KEYWORDS = ['multi', 'order', 'reorder', 'trim']
-
     def parse(self):
         # open the file again, but then in text mode
         try:
