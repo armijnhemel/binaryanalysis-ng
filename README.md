@@ -314,6 +314,7 @@ larger file, unless stated otherwise.
 214. crontab files (subset)
 215. modules.dep files
 216. host.conf files
+217. lld2d.conf files (from old Realtek SDKs)
 
 ## Getting started
 
