@@ -18,6 +18,7 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
+# $ man 5 modules.dep
 
 import re
 
@@ -48,6 +49,7 @@ class ModulesDep(UnpackParser):
                 line = modules_dep_line.rstrip()
                 if line.strip() == '':
                     len_unpacked += len(modules_dep_line)
+                    continue
 
                 if line.startswith('#'):
                     len_unpacked += len(modules_dep_line)
@@ -55,11 +57,7 @@ class ModulesDep(UnpackParser):
 
                 match_result = RE_MODULES_DEP.match(line)
                 if not match_result:
-                    if line.strip() == '':
-                        len_unpacked += len(modules_dep_line)
-                    else:
-                        break
-                    continue
+                    break
                 len_unpacked += len(modules_dep_line)
                 data_unpacked = True
         except Exception as e:

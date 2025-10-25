@@ -18,8 +18,8 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
-# verify Unix securetty
-# man 5 securetty
+# verify Unix crontab
+# man 5 crontab
 
 import re
 
@@ -52,6 +52,7 @@ class SecureTTYUnpackParser(UnpackParser):
                 line = crontab_line.rstrip()
                 if line.strip() == '':
                     len_unpacked += len(crontab_line)
+                    continue
 
                 if line.startswith('#'):
                     len_unpacked += len(crontab_line)
@@ -67,11 +68,7 @@ class SecureTTYUnpackParser(UnpackParser):
 
                 match_result = RE_CRONTAB.match(line)
                 if not match_result:
-                    if line.strip() == '':
-                        len_unpacked += len(crontab_line)
-                    else:
-                        break
-                    continue
+                    break
                 len_unpacked += len(crontab_line)
                 data_unpacked = True
         except Exception as e:

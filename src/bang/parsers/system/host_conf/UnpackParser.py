@@ -53,6 +53,7 @@ class HostConf(UnpackParser):
                 host_conf_line_len = len(host_conf_line)
                 if line.strip() == '':
                     len_unpacked += host_conf_line_len
+                    continue
 
                 if line.startswith('#'):
                     len_unpacked += host_conf_line_len
