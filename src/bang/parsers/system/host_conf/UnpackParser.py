@@ -21,12 +21,8 @@
 # $ man 5 host.conf
 
 
-import re
-
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
-
-RE_MODULES_DEP = re.compile(r'/[\w\d\.\-_/]+:(.*)')
 
 
 class HostConf(UnpackParser):
@@ -46,15 +42,15 @@ class HostConf(UnpackParser):
         data_unpacked = False
         len_unpacked = 0
         try:
-            for host_conf_line in host_conf_file:
-                line = host_conf_line.rstrip()
-                len_host_conf_line = len(host_conf_line)
+            for conf_line in host_conf_file:
+                line = conf_line.rstrip()
+                len_conf_line = len(conf_line)
                 if line.strip() == '':
-                    len_unpacked += len_host_conf_line
+                    len_unpacked += len_conf_line
                     continue
 
                 if line.startswith('#'):
-                    len_unpacked += len_host_conf_line
+                    len_unpacked += len_conf_line
                     continue
 
                 keyword, value = line.split(maxsplit=1)
@@ -72,7 +68,7 @@ class HostConf(UnpackParser):
                     case 'trip':
                         pass
 
-                len_unpacked += len_host_conf_line
+                len_unpacked += len_conf_line
                 data_unpacked = True
         except Exception as e:
             raise UnpackParserException(e.args) from e
