@@ -129,14 +129,26 @@ def extract_strings(scan_environment, checking_meta_directory):
     try:
         labels = checking_meta_directory.info.get('labels', [])
         if not labels:
-            unpack_parser = StringExtractingParser(checking_meta_directory, 0, scan_environment.configuration)
-            log.debug(f'extract_strings[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
+            has_subfiles = False
+            if checking_meta_directory.info.get('extracted_files', {}):
+                has_subfiles = True
+            elif checking_meta_directory.info.get('unpacked_absolute_files', {}):
+                has_subfiles = True
+            elif checking_meta_directory.info.get('unpacked_relative_files', {}):
+                has_subfiles = True
+            elif checking_meta_directory.info.get('unpacked_symlinks', {}):
+                has_subfiles = True
+            elif checking_meta_directory.info.get('unpacked_hardlinks', {}):
+                has_subfiles = True
+            if not has_subfiles:
+                unpack_parser = StringExtractingParser(checking_meta_directory, 0, scan_environment.configuration)
+                log.debug(f'extract_strings[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
 
-            checking_meta_directory.unpack_parser = unpack_parser
-            unpack_parser.parse_from_offset()
-            log.debug(f'extract_strings[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
-            log.debug(f'extract_strings[{checking_meta_directory.md_path}]: parsed_size = {unpack_parser.parsed_size}/{checking_meta_directory.size}')
-            yield checking_meta_directory
+                checking_meta_directory.unpack_parser = unpack_parser
+                unpack_parser.parse_from_offset()
+                log.debug(f'extract_strings[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
+                log.debug(f'extract_strings[{checking_meta_directory.md_path}]: parsed_size = {unpack_parser.parsed_size}/{checking_meta_directory.size}')
+                yield checking_meta_directory
 
     except UnpackParserException:
         # there will be a "parser resulted in zero length file"
