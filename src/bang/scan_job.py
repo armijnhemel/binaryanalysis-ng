@@ -128,7 +128,7 @@ def extract_strings(scan_environment, checking_meta_directory):
     '''Extracts strings from binaries and writes to the meta_directory'''
     try:
         labels = checking_meta_directory.info.get('labels', [])
-        if not labels:
+        if not labels or 'synthesized' in labels:
             has_subfiles = False
             if checking_meta_directory.info.get('extracted_files', {}):
                 has_subfiles = True
