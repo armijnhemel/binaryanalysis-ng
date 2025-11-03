@@ -318,6 +318,7 @@ larger file, unless stated otherwise.
 218. inittab files
 219. /etc/services files
 220. /etc/hosts files
+221. pppoe.conf files
 
 ## Getting started
 
