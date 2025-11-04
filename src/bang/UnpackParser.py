@@ -263,6 +263,45 @@ class ExtractingParser(UnpackParser):
         '''TODO: write any data about the parent MetaDirectory here.'''
         pass
 
+class HintParser(UnpackParser):
+    '''Parser to record hints for files, based on:
+
+       * extensions
+       * parsing partial content (after checking extensions)
+
+       This is useful for files for which there is a strong
+       suspicion that a file is a certain type of file.'''
+
+    def __init__(self, from_meta_directory, offset, configuration):
+        super().__init__(from_meta_directory, offset, configuration)
+        self.from_md = from_meta_directory
+        self.offset = offset
+        self.hints = []
+
+    pretty_name = 'hintparser'
+
+    def parse(self):
+        # reset the file pointer to extract strings
+        self.infile.seek(self.offset)
+
+        # start reading data in chunks of 10 MiB
+        read_size = 10485760
+
+        if self.hints:
+            self.update_metadata(self.from_md)
+            self.from_md.write_ahead()
+
+    def calculate_unpacked_size(self):
+        self.unpacked_size = 0
+
+    labels = []
+
+    @property
+    def metadata(self):
+        metadata = self.from_md.info.get('metadata', {})
+        metadata['hints'] = self.hints
+        return metadata
+
 class StringExtractingParser(UnpackParser):
     '''Parser to extract human readable ASCII strings from binaries'''
     # characters to be removed when extracting strings
