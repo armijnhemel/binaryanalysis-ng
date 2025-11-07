@@ -156,6 +156,20 @@ def extract_strings(scan_environment, checking_meta_directory):
         pass
 
 #####
+# Finds hints about files and writes to the meta_directory
+#
+def find_hints(scan_environment, checking_meta_directory):
+    '''Finds hints about files and writes to the meta_directory'''
+    try:
+        labels = checking_meta_directory.info.get('labels', [])
+        if not labels:
+            pass
+    except UnpackParserException:
+        # there will be a "parser resulted in zero length file"
+        # warning, but ignore that.
+        pass
+
+#####
 #
 # Iterator that yields all combinations of extensions and UnpackParsers.
 # We cannot do a direct lookup, since we do not know the extension in advance, for example

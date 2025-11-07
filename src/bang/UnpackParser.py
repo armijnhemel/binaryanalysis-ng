@@ -270,7 +270,19 @@ class HintParser(UnpackParser):
        * parsing partial content (after checking extensions)
 
        This is useful for files for which there is a strong
-       suspicion that a file is a certain type of file.'''
+       suspicion that a file is a certain type of file.
+
+       Instead of trying to be generic (and for example leveraging
+       mime types) this is hand crafted to increase fidelity and to
+       be able do do a few extra checks.
+    '''
+
+    # a mapping of extensions to file type
+    EXTENSIONS = {'.sh': 'shell script',
+                  '.css': 'CSS',
+                  '.html': 'HTML',
+                  '.js': 'JavaScript',
+                  '.php': 'PHP'}
 
     def __init__(self, from_meta_directory, offset, configuration):
         super().__init__(from_meta_directory, offset, configuration)
@@ -281,7 +293,9 @@ class HintParser(UnpackParser):
     pretty_name = 'hintparser'
 
     def parse(self):
-        # reset the file pointer to extract strings
+        extension = self.infile.name.suffix
+
+        # reset the file pointer to the start of the file
         self.infile.seek(self.offset)
 
         # start reading data in chunks of 10 MiB
