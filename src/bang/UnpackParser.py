@@ -19,7 +19,6 @@
 
 import hashlib
 import os
-import pathlib
 
 import tlsh
 
@@ -202,13 +201,18 @@ class SynthesizingParser(UnpackParser):
 
     def unpack(self, to_meta_directory):
         # synthesized files must be scanned again (with featureless parsers),
-        # so let them unpack themselves # but first, write the info data before
-        # the meta directory is queued.
+        # so let them unpack themselves, but first write the info data before
+        # the meta directory is queued in the scan queue.
         to_meta_directory.write_ahead()
         yield to_meta_directory
 
 
 class PaddingParser(UnpackParser):
+    '''Parser to determine if a file contains padding. Padding means
+       one or more copies of a character from valid_padding_chars.
+       A padding file can only contain a single unique character (meaning
+       that different padding characters cannot be mixed).
+    '''
 
     valid_padding_chars = [b'\x00', b'\xff']
 
