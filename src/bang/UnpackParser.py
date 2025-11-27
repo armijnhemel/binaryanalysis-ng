@@ -282,10 +282,26 @@ class HintParser(UnpackParser):
        be able do do a few extra checks.
     '''
 
-    # a mapping of extensions to file type
+    # a mapping of extensions to possible file type
     EXTENSIONS = {'.sh': 'shell script', '.css': 'CSS',
                   '.html': 'HTML', '.js': 'JavaScript',
-                  '.php': 'PHP', '.h': 'C/C++ header file'}
+                  '.php': 'PHP', '.h': 'C/C++ header file',
+                  '.py': 'Python', '.pyc': 'Python (compiled)',
+                  '.la': 'libtool', '.m4': 'M4 macros'}
+
+    # a mapping of full file names to possible file type
+    FILE_NAMES = {'debian-binary': 'Debian packaging',
+                  'conffiles': 'Debian packaging',
+                  'control': 'Debian packaging',
+                  'postinst': 'Debian packaging',
+                  'postrm': 'Debian packaging',
+                  'preinst': 'Debian packaging',
+                  'prerm': 'Debian packaging',
+                  'ChangeLog': 'changelog',
+                  'COPYING': 'license',
+                  'LICENCE': 'license',
+                  'LICENSE.txt': 'license',
+                  'LICENSE': 'license'}
 
     def __init__(self, from_meta_directory, offset, configuration):
         super().__init__(from_meta_directory, offset, configuration)
@@ -297,6 +313,7 @@ class HintParser(UnpackParser):
 
     def parse(self):
         extension = pathlib.Path(self.infile.name).suffix
+        file_name = pathlib.Path(self.infile.name).name
 
         # reset the file pointer to the start of the file
         self.infile.seek(self.offset)
@@ -306,6 +323,9 @@ class HintParser(UnpackParser):
 
         if extension in self.EXTENSIONS:
             self.hints['extension'] = self.EXTENSIONS[extension]
+
+        if file_name in self.FILE_NAMES:
+            self.hints['file name'] = self.FILE_NAMES[file_name]
 
         if self.hints:
             self.update_metadata(self.from_md)
