@@ -283,11 +283,9 @@ class HintParser(UnpackParser):
     '''
 
     # a mapping of extensions to file type
-    EXTENSIONS = {'.sh': 'shell script',
-                  '.css': 'CSS',
-                  '.html': 'HTML',
-                  '.js': 'JavaScript',
-                  '.php': 'PHP'}
+    EXTENSIONS = {'.sh': 'shell script', '.css': 'CSS',
+                  '.html': 'HTML', '.js': 'JavaScript',
+                  '.php': 'PHP', '.h': 'C/C++ header file'}
 
     def __init__(self, from_meta_directory, offset, configuration):
         super().__init__(from_meta_directory, offset, configuration)
