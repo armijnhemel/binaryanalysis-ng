@@ -19,6 +19,7 @@
 
 import hashlib
 import os
+import pathlib
 
 import tlsh
 
@@ -292,18 +293,21 @@ class HintParser(UnpackParser):
         super().__init__(from_meta_directory, offset, configuration)
         self.from_md = from_meta_directory
         self.offset = offset
-        self.hints = []
+        self.hints = {}
 
     pretty_name = 'hintparser'
 
     def parse(self):
-        extension = self.infile.name.suffix
+        extension = pathlib.Path(self.infile.name).suffix
 
         # reset the file pointer to the start of the file
         self.infile.seek(self.offset)
 
         # start reading data in chunks of 10 MiB
         read_size = 10485760
+
+        if extension in self.EXTENSIONS:
+            self.hints['extension'] = self.EXTENSIONS[extension]
 
         if self.hints:
             self.update_metadata(self.from_md)

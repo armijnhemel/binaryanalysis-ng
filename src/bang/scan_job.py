@@ -25,7 +25,7 @@ import traceback
 import time
 from dataclasses import dataclass
 from .meta_directory import *
-from .UnpackParser import SynthesizingParser, ExtractedParser, ExtractingParser, PaddingParser, StringExtractingParser, TlshParser, compute_hashes
+from .UnpackParser import SynthesizingParser, ExtractedParser, ExtractingParser, HintParser, PaddingParser, StringExtractingParser, TlshParser, compute_hashes
 from .UnpackParserException import UnpackParserException
 from .log import log
 
@@ -163,7 +163,14 @@ def find_hints(scan_environment, checking_meta_directory):
     try:
         labels = checking_meta_directory.info.get('labels', [])
         if not labels:
-            pass
+            unpack_parser = HintParser(checking_meta_directory, 0, scan_environment.configuration)
+            log.debug(f'find_hints[{checking_meta_directory.md_path}]: trying parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
+
+            checking_meta_directory.unpack_parser = unpack_parser
+            unpack_parser.parse_from_offset()
+            log.debug(f'find_hints[{checking_meta_directory.md_path}]: successful parse for {checking_meta_directory.file_path} with {unpack_parser.__class__} [{time.time_ns()}]')
+            log.debug(f'find_hints[{checking_meta_directory.md_path}]: parsed_size = {unpack_parser.parsed_size}/{checking_meta_directory.size}')
+            yield checking_meta_directory
     except UnpackParserException:
         # there will be a "parser resulted in zero length file"
         # warning, but ignore that.
@@ -641,6 +648,7 @@ def make_scan_pipeline():
 
     pipe_hashes = pipe_exec(compute_tlsh_hash)
     pipe_strings = pipe_exec(extract_strings)
+    pipe_hints = pipe_exec(find_hints)
 
     pipe_checks_if_not_synthesized = pipe_cond(
             cond_not_synthesized,
@@ -664,6 +672,7 @@ def make_scan_pipeline():
         cond_scannable,
         pipe_with(ctx_open_md_for_writing, pipe_scan),
         pipe_fail), pipe_with(ctx_open_md_for_writing, pipe_hashes),
+        pipe_with(ctx_open_md_for_writing, pipe_hints),
         pipe_with(ctx_open_md_for_writing, pipe_strings)
     )
     return pipe_root
