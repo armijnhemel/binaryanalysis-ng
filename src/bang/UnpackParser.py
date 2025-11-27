@@ -202,13 +202,18 @@ class SynthesizingParser(UnpackParser):
 
     def unpack(self, to_meta_directory):
         # synthesized files must be scanned again (with featureless parsers),
-        # so let them unpack themselves # but first, write the info data before
-        # the meta directory is queued.
+        # so let them unpack themselves, but first write the info data before
+        # the meta directory is queued in the scan queue.
         to_meta_directory.write_ahead()
         yield to_meta_directory
 
 
 class PaddingParser(UnpackParser):
+    '''Parser to determine if a file contains padding. Padding means
+       one or more copies of a character from valid_padding_chars.
+       A padding file can only contain a single unique character (meaning
+       that different padding characters cannot be mixed).
+    '''
 
     valid_padding_chars = [b'\x00', b'\xff']
 
@@ -262,6 +267,60 @@ class ExtractingParser(UnpackParser):
     def write_info(self, to_meta_directory):
         '''TODO: write any data about the parent MetaDirectory here.'''
         pass
+
+class HintParser(UnpackParser):
+    '''Parser to record hints for files, based on:
+
+       * extensions
+       * parsing partial content (after checking extensions)
+
+       This is useful for files for which there is a strong
+       suspicion that a file is a certain type of file.
+
+       Instead of trying to be generic (and for example leveraging
+       mime types) this is hand crafted to increase fidelity and to
+       be able do do a few extra checks.
+    '''
+
+    # a mapping of extensions to file type
+    EXTENSIONS = {'.sh': 'shell script', '.css': 'CSS',
+                  '.html': 'HTML', '.js': 'JavaScript',
+                  '.php': 'PHP', '.h': 'C/C++ header file'}
+
+    def __init__(self, from_meta_directory, offset, configuration):
+        super().__init__(from_meta_directory, offset, configuration)
+        self.from_md = from_meta_directory
+        self.offset = offset
+        self.hints = {}
+
+    pretty_name = 'hintparser'
+
+    def parse(self):
+        extension = pathlib.Path(self.infile.name).suffix
+
+        # reset the file pointer to the start of the file
+        self.infile.seek(self.offset)
+
+        # start reading data in chunks of 10 MiB
+        read_size = 10485760
+
+        if extension in self.EXTENSIONS:
+            self.hints['extension'] = self.EXTENSIONS[extension]
+
+        if self.hints:
+            self.update_metadata(self.from_md)
+            self.from_md.write_ahead()
+
+    def calculate_unpacked_size(self):
+        self.unpacked_size = 0
+
+    labels = []
+
+    @property
+    def metadata(self):
+        metadata = self.from_md.info.get('metadata', {})
+        metadata['hints'] = self.hints
+        return metadata
 
 class StringExtractingParser(UnpackParser):
     '''Parser to extract human readable ASCII strings from binaries'''
