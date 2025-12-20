@@ -175,8 +175,9 @@ class ExtractedParser(UnpackParser):
     metadata = {}
 
     def unpack(self, to_meta_directory):
-        # synthesized files must be scanned again (with featureless parsers), so let them unpack themselves
-        # but first, write the info data before the meta directory is queued.
+        # synthesized files must be scanned again (with featureless parsers),
+        # so let them unpack themselves  but first, write the info data before
+        # the meta directory is queued.
         to_meta_directory.write_ahead()
         yield to_meta_directory
 
@@ -200,13 +201,19 @@ class SynthesizingParser(UnpackParser):
     metadata = {}
 
     def unpack(self, to_meta_directory):
-        # synthesized files must be scanned again (with featureless parsers), so let them unpack themselves
-        # but first, write the info data before the meta directory is queued.
+        # synthesized files must be scanned again (with featureless parsers),
+        # so let them unpack themselves, but first write the info data before
+        # the meta directory is queued in the scan queue.
         to_meta_directory.write_ahead()
         yield to_meta_directory
 
 
 class PaddingParser(UnpackParser):
+    '''Parser to determine if a file contains padding. Padding means
+       one or more copies of a character from valid_padding_chars.
+       A padding file can only contain a single unique character (meaning
+       that different padding characters cannot be mixed).
+    '''
 
     valid_padding_chars = [b'\x00', b'\xff']
 
@@ -261,7 +268,173 @@ class ExtractingParser(UnpackParser):
         '''TODO: write any data about the parent MetaDirectory here.'''
         pass
 
-class HashParser(UnpackParser):
+class HintParser(UnpackParser):
+    '''Parser to record hints for files, based on:
+
+       * extensions
+       * parsing partial content (after checking extensions)
+
+       This is useful for files for which there is a strong
+       suspicion that a file is a certain type of file.
+
+       Instead of trying to be generic (and for example leveraging
+       mime types) this is hand crafted to increase fidelity and to
+       be able do do a few extra checks.
+    '''
+
+    # a mapping of extensions to possible file type
+    EXTENSIONS = {'.sh': 'shell script', '.css': 'CSS',
+                  '.html': 'HTML', '.js': 'JavaScript',
+                  '.php': 'PHP', '.h': 'C/C++ header file',
+                  '.py': 'Python', '.pyc': 'Python (compiled)',
+                  '.la': 'libtool', '.m4': 'M4 macros'}
+
+    # a mapping of full file names to possible file type
+    FILE_NAMES = {'debian-binary': 'Debian packaging',
+                  'conffiles': 'Debian packaging',
+                  'control': 'Debian packaging',
+                  'postinst': 'Debian packaging',
+                  'postrm': 'Debian packaging',
+                  'preinst': 'Debian packaging',
+                  'prerm': 'Debian packaging',
+                  'ChangeLog': 'changelog',
+                  'COPYING': 'license',
+                  'LICENCE': 'license',
+                  'LICENSE.txt': 'license',
+                  'LICENSE': 'license'}
+
+    def __init__(self, from_meta_directory, offset, configuration):
+        super().__init__(from_meta_directory, offset, configuration)
+        self.from_md = from_meta_directory
+        self.offset = offset
+        self.hints = {}
+
+    pretty_name = 'hintparser'
+
+    def parse(self):
+        extension = pathlib.Path(self.infile.name).suffix
+        file_name = pathlib.Path(self.infile.name).name
+
+        # reset the file pointer to the start of the file
+        self.infile.seek(self.offset)
+
+        # start reading data in chunks of 10 MiB
+        read_size = 10485760
+
+        if extension in self.EXTENSIONS:
+            self.hints['extension'] = self.EXTENSIONS[extension]
+
+        if file_name in self.FILE_NAMES:
+            self.hints['file name'] = self.FILE_NAMES[file_name]
+
+        if self.hints:
+            self.update_metadata(self.from_md)
+            self.from_md.write_ahead()
+
+    def calculate_unpacked_size(self):
+        self.unpacked_size = 0
+
+    labels = []
+
+    @property
+    def metadata(self):
+        metadata = self.from_md.info.get('metadata', {})
+        metadata['hints'] = self.hints
+        return metadata
+
+class StringExtractingParser(UnpackParser):
+    '''Parser to extract human readable ASCII strings from binaries'''
+    # characters to be removed when extracting strings
+    REMOVE_CHARACTERS = ['\a', '\b', '\v', '\f', '\x01', '\x02', '\x03', '\x04',
+                         '\x05', '\x06', '\x0e', '\x0f', '\x10', '\x11', '\x12',
+                         '\x13', '\x14', '\x15', '\x16', '\x17', '\x18', '\x19',
+                         '\x1a', '\x1b', '\x1c', '\x1d', '\x1e', '\x1f', '\x7f']
+
+    REMOVE_CHARACTERS_TABLE = str.maketrans({'\a': '', '\b': '', '\v': '',
+                                             '\f': '', '\x01': '', '\x02': '',
+                                             '\x03': '', '\x04': '', '\x05': '',
+                                             '\x06': '', '\x0e': '', '\x0f': '',
+                                             '\x10': '', '\x11': '', '\x12': '',
+                                             '\x13': '', '\x14': '', '\x15': '',
+                                             '\x16': '', '\x17': '', '\x18': '',
+                                             '\x19': '', '\x1a': '', '\x1b': '',
+                                             '\x1c': '', '\x1d': '', '\x1e': '',
+                                             '\x1f': '', '\x7f': ''
+                                            })
+
+    # translation table for ASCII strings for the string
+    # to pass the isascii() test
+    STRING_TRANSLATION_TABLE = str.maketrans({'\t': ' '})
+
+    def __init__(self, from_meta_directory, offset, configuration):
+        super().__init__(from_meta_directory, offset, configuration)
+        self.from_md = from_meta_directory
+        self.offset = offset
+        self.strings = []
+
+    pretty_name = 'stringextractingparser'
+
+    def parse(self):
+        # reset the file pointer to extract strings
+        self.infile.seek(self.offset)
+
+        # start reading data in chunks of 10 MiB
+        read_size = 10485760
+        string_cutoff_length = 4
+
+        # then read the data
+        scanbytes = bytearray(read_size)
+        bytes_read = self.infile.readinto(scanbytes)
+
+        while bytes_read != 0:
+            #data = memoryview(scanbytes[:bytes_read])
+            data = scanbytes[:bytes_read]
+            # first see if there is a \x00 in the data
+
+            # split the read data and extract the strings
+            for s in data.split(b'\x00'):
+                try:
+                    decoded_strings = s.decode().splitlines()
+                    for decoded_string in decoded_strings:
+                        for rc in self.REMOVE_CHARACTERS:
+                            if rc in decoded_string:
+                                decoded_string = decoded_string.translate(self.REMOVE_CHARACTERS_TABLE)
+
+                        if len(decoded_string) < string_cutoff_length:
+                            continue
+                        if decoded_string.isspace():
+                            continue
+
+                        translated_string = decoded_string.translate(self.STRING_TRANSLATION_TABLE)
+                        if decoded_string.isascii():
+                            # test the translated string
+                            if translated_string.isprintable():
+                                self.strings.append(decoded_string)
+                        else:
+                            self.strings.append(decoded_string)
+                except UnicodeDecodeError:
+                    pass
+
+            # read more bytes
+            bytes_read = self.infile.readinto(scanbytes)
+
+        if self.strings:
+            self.update_metadata(self.from_md)
+            self.from_md.write_ahead()
+
+    def calculate_unpacked_size(self):
+        self.unpacked_size = 0
+
+    labels = []
+
+    @property
+    def metadata(self):
+        metadata = self.from_md.info.get('metadata', {})
+        metadata['strings'] = self.strings
+        return metadata
+
+
+class TlshParser(UnpackParser):
     def __init__(self, from_meta_directory, offset, configuration):
         super().__init__(from_meta_directory, offset, configuration)
         self.from_md = from_meta_directory

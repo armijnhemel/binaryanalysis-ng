@@ -32,6 +32,8 @@ from bang.UnpackParserException import UnpackParserException
 class XmlUnpackParser(UnpackParser):
     extensions = ['.xml', '.xsd', '.ncx', '.opf', '.svg', '.rss']
     signatures = [
+        (0, b'<?xml version="1.0"'),
+        (0, b'\xef\xbb\xbb<?xml version="1.0"'),
     ]
     pretty_name = 'xml'
 

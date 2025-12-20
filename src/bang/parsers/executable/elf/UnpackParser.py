@@ -114,7 +114,7 @@ class ElfUnpackParser(UnpackParser):
             # calculate size, also read all the data to catch EOF
             # This isn't always accurate, for example when debugging
             # data is stored in ELF files as a compressed ELF file.
-            phoff = self.data.header.program_header_offset
+            phoff = self.data.header.ofs_program_headers
             self.unpacked_size = phoff
             for header in self.data.header.program_headers:
                 # calculate the maximum offset
@@ -173,8 +173,8 @@ class ElfUnpackParser(UnpackParser):
             # Android devices.
 
             # typically the section header is at the end of the ELF file
-            shoff = self.data.header.section_header_offset
-            self.unpacked_size = max(self.unpacked_size, shoff + self.data.header.qty_section_header
+            shoff = self.data.header.ofs_section_headers
+            self.unpacked_size = max(self.unpacked_size, shoff + self.data.header.num_section_headers
                                      * self.data.header.section_header_entry_size)
             check_condition(self.unpacked_size <= self.infile.size,
                             "section header cannot be outside of file")
