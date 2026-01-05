@@ -39,9 +39,9 @@ class Px4UnpackParser(UnpackParser):
         try:
             self.data = json.load(self.infile)
         except (json.JSONDecodeError, UnicodeError) as e:
-            raise UnpackParserException("cannot decode PX4 JSON")
+            raise UnpackParserException("cannot decode PX4 JSON") from e
 
-        check_condition(type(self.data) == dict, "invalid format for PX4")
+        check_condition(isinstance(self.data, dict), "invalid format for PX4")
         check_condition('image' in self.data, "firmware image data not found")
         check_condition('parameter_xml' in self.data, "parameter.xml data not found")
         check_condition('airframe_xml' in self.data, "airframe.xml data not found")
@@ -52,19 +52,19 @@ class Px4UnpackParser(UnpackParser):
         try:
             self.image = zlib.decompress(base64.b64decode(self.data['image']))
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         try:
             self.parameter_xml = zlib.decompress(base64.b64decode(self.data['parameter_xml']))
             defusedxml.minidom.parseString(self.parameter_xml)
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         try:
             self.airframe_xml = zlib.decompress(base64.b64decode(self.data['airframe_xml']))
             defusedxml.minidom.parseString(self.airframe_xml)
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         file_path = pathlib.Path('image')

@@ -20,7 +20,7 @@
 
 import pathlib
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import aapt
@@ -40,20 +40,20 @@ class AaptParser(UnpackParser):
         try:
             self.data = aapt.Aapt.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         for entry in self.data.entries:
             if entry.entry_type == aapt.Aapt.EntryTypes.file:
                 try:
                     entry_file = ResourcesInternal_pb2.CompiledFile()
                     entry_file.ParseFromString(entry.data.header)
                 except Exception as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
             elif entry.entry_type == aapt.Aapt.EntryTypes.table:
                 try:
                     table = Resources_pb2.ResourceTable()
                     table.ParseFromString(entry.data.data)
                 except Exception as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         counter = 1

@@ -58,7 +58,8 @@ class SevenzipUnpackParser(UnpackParser):
             self.data = sevenzip.Sevenzip.from_io(self.infile)
             computed_crc = binascii.crc32(self.data.header.start_header.next_header)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
+
         check_condition(self.data.header.start_header.next_header_crc == computed_crc,
                         "invalid next header CRC")
 
@@ -107,9 +108,9 @@ class SevenzipUnpackParser(UnpackParser):
             self.unpack_directory = pathlib.Path(tempfile.mkdtemp(dir=self.configuration.temporary_directory))
 
             if self.havetmpfile:
-                p = subprocess.Popen(['7z', '-o%s' % self.unpack_directory, '-y', 'x', self.temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                p = subprocess.Popen(['7z', f'-o{self.unpack_directory}', '-y', 'x', self.temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             else:
-                p = subprocess.Popen(['7z', '-o%s' % self.unpack_directory, '-y', 'x', self.infile.name], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                p = subprocess.Popen(['7z', f'-o{self.unpack_directory}', '-y', 'x', self.infile.name], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             (outputmsg, errormsg) = p.communicate()
 
@@ -125,25 +126,26 @@ class SevenzipUnpackParser(UnpackParser):
         pass
 
     def unpack(self, meta_directory):
-        # walk the results directory
-        for result in self.unpack_directory.glob('**/*'):
-            # first change the permissions
-            result.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+        if not self.encrypted:
+            # walk the results directory
+            for result in self.unpack_directory.glob('**/*'):
+                # first change the permissions
+                result.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
-            file_path = result.relative_to(self.unpack_directory)
+                file_path = result.relative_to(self.unpack_directory)
 
-            if result.is_symlink():
-                meta_directory.unpack_symlink(file_path, result.readlink())
-            elif result.is_dir():
-                meta_directory.unpack_directory(file_path)
-            elif result.is_file():
-                with meta_directory.unpack_regular_file_no_open(file_path) as (unpacked_md, outfile):
-                    self.local_copy2(result, outfile)
-                    yield unpacked_md
-            else:
-                continue
+                if result.is_symlink():
+                    meta_directory.unpack_symlink(file_path, result.readlink())
+                elif result.is_dir():
+                    meta_directory.unpack_directory(file_path)
+                elif result.is_file():
+                    with meta_directory.unpack_regular_file_no_open(file_path) as (unpacked_md, outfile):
+                        self.local_copy2(result, outfile)
+                        yield unpacked_md
+                else:
+                    continue
 
-        shutil.rmtree(self.unpack_directory)
+            shutil.rmtree(self.unpack_directory)
 
     # a wrapper around shutil.copy2 to copy symbolic links instead of
     # following them and copying the data.

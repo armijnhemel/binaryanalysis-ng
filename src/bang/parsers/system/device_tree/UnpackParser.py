@@ -37,7 +37,8 @@ class DeviceTreeUnpackParser(UnpackParser):
         try:
             self.data = dtb.Dtb.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
+
         check_condition(self.infile.size >= self.data.total_size, "not enough data")
         if self.data.version > 16:
             check_condition(self.data.min_compatible_version, "invalid compatible version")
@@ -142,7 +143,7 @@ class DeviceTreeUnpackParser(UnpackParser):
         self.is_fit = False
 
         # walk the nodes and write data for FIT images
-        if self.images != {}:
+        if self.images:
             for image in self.images:
                 file_path = pathlib.Path(image)
                 with to_meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):

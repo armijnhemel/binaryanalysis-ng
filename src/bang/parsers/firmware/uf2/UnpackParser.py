@@ -37,7 +37,8 @@ class Uf2UnpackParser(UnpackParser):
         try:
             self.data = uf2.Uf2.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
+
         check_condition(self.data.uf2_block_start.block_number == 0,
                         'invalid start block')
 

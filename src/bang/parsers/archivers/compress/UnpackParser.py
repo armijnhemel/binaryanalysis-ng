@@ -30,7 +30,6 @@ import shutil
 import tempfile
 
 from bang.UnpackParser import UnpackParser, check_condition
-from bang.UnpackParserException import UnpackParserException
 
 
 class CompressUnpackParser(UnpackParser):

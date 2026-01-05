@@ -35,7 +35,7 @@ class LlvmIrWrapperUnpackParser(UnpackParser):
         try:
             self.data = llvm_ir_wrapper.LlvmIrWrapper.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         self.unpacked_size = self.data.ofs_bytecode + self.data.len_bytecode
         check_condition(self.infile.size >= self.unpacked_size, "not enough data")
 

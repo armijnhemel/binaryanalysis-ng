@@ -45,7 +45,7 @@ class ChmUnpackParser(UnpackParser):
             # force parsing because Kaitai Struct evaluates lazily
             content = self.data.content
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # run a test with 7z
         self.havetmpfile = False
@@ -71,10 +71,10 @@ class ChmUnpackParser(UnpackParser):
         self.unpack_directory = pathlib.Path(tempfile.mkdtemp(dir=self.configuration.temporary_directory))
 
         if self.havetmpfile:
-            p = subprocess.Popen(['7z', '-o%s' % self.unpack_directory, '-y', 'x', self.temporary_file[1]],
+            p = subprocess.Popen(['7z', f'-o{self.unpack_directory}', '-y', 'x', self.temporary_file[1]],
                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         else:
-            p = subprocess.Popen(['7z', '-o%s' % self.unpack_directory, '-y', 'x', self.infile.name],
+            p = subprocess.Popen(['7z', f'-o{self.unpack_directory}', '-y', 'x', self.infile.name],
                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         (outputmsg, errormsg) = p.communicate()

@@ -20,7 +20,7 @@
 
 import configparser
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 
 
@@ -38,7 +38,7 @@ class IniUnpackParser(UnpackParser):
             with open(self.infile.name, 'r') as ini_file:
                 ini_config.read_file(ini_file)
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def calculate_unpacked_size(self):
         self.unpacked_size = self.infile.size

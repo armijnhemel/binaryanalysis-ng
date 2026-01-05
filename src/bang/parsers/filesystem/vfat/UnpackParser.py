@@ -21,13 +21,14 @@
 import os
 import struct
 import pathlib
-from . import vfat
-from . import vfat_directory
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from bang.log import log
 from kaitaistruct import ValidationFailedError
+
+from . import vfat
+from . import vfat_directory
 
 # https://en.wikipedia.org/wiki/File_Allocation_Table
 # https://en.wikipedia.org/wiki/Design_of_the_FAT_file_system
@@ -62,10 +63,8 @@ class VfatUnpackParser(UnpackParser):
         try:
             self.data = vfat.Vfat.from_io(self.infile)
         # TODO: decide what exceptions to catch
-        except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
-        except BaseException as e:
-            raise UnpackParserException(e.args)
+        except (ValidationFailedError, Exception, BaseException) as e:
+            raise UnpackParserException(e.args) from e
         bpb = self.data.boot_sector.bpb
         check_condition(bpb.ls_per_clus > 0, "invalid bpb value: ls_per_clus")
         check_condition(bpb.bytes_per_ls > 0, "invalid bpb value: bytes_per_ls")
@@ -145,12 +144,13 @@ class VfatUnpackParser(UnpackParser):
                     pass # keep long filename
             log.debug(f'vfat_parser: {fn=} {lfn=}')
             if not lfn:
-                if fn[0] == '\0': continue
+                if fn[0] == '\0':
+                    continue
                 log.debug(f'vfat_parser: {record.attr_subdirectory=}')
                 # get other attributes
                 if record.attr_subdirectory:
-                    if fn != '.' and fn != '..':
-                        log.debug(f'vfat:unpack_directory: get dir_entries')
+                    if fn not in ['.', '..']:
+                        log.debug('vfat:unpack_directory: get dir_entries')
                         dir_entries = self.get_dir_entries(record.start_clus)
                         # We are just extracting the directory, not creating a
                         # MetaDirectory for it.

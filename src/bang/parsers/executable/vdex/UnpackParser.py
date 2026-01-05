@@ -18,7 +18,7 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import vdex
@@ -43,7 +43,7 @@ class VdexUnpackParser(UnpackParser):
                     if section.len_section != 0:
                         self.unpacked_size = max(self.unpacked_size, section.ofs_section + len(section.section))
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def calculate_unpacked_size(self):
         if self.data.version != '027':

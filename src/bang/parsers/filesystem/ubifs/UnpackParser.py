@@ -18,15 +18,15 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
-import pathlib
-import zlib
 import collections
+import pathlib
 import socket
+import zlib
 
 import lzo
 import zstandard
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import ubifs
@@ -40,16 +40,17 @@ class UbifsUnpackParser(UnpackParser):
     pretty_name = 'ubifs'
 
     def parse(self):
+        '''Parse ubifs data structure'''
         try:
             self.data = ubifs.Ubifs.from_io(self.infile)
 
             # store the highest inode number, forces evaluation
             self.highest_inum = self.data.master_1.node_header.highest_inum
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
-        # traverse the tree, starting with the root inode
+        '''Unpack ubifs data by traversing the tree, starting with the root node'''
         node_blocks = collections.deque()
         node_blocks.append(self.data.index_root)
 
@@ -63,10 +64,10 @@ class UbifsUnpackParser(UnpackParser):
             # grab a node to process
             try:
                 process_node = node_blocks.popleft()
-                if type(process_node.node_header) == ubifs.Ubifs.IndexHeader:
+                if isinstance(process_node.node_header, ubifs.Ubifs.IndexHeader):
                     for branch in process_node.node_header.branches:
                         node_blocks.append(branch.branch_target)
-                elif type(process_node.node_header) == ubifs.Ubifs.DirectoryHeader:
+                elif isinstance(process_node.node_header, ubifs.Ubifs.DirectoryHeader):
                     # TODO: use the key for some verification of the inode
                     parent_inode_nr = process_node.node_header.key.inode_number
                     if parent_inode_nr not in parent_to_inodes:
@@ -116,10 +117,10 @@ class UbifsUnpackParser(UnpackParser):
         while True:
             try:
                 process_node = node_blocks.popleft()
-                if type(process_node.node_header) == ubifs.Ubifs.IndexHeader:
+                if isinstance(process_node.node_header, ubifs.Ubifs.IndexHeader):
                     for branch in process_node.node_header.branches:
                         node_blocks.append(branch.branch_target)
-                elif type(process_node.node_header) == ubifs.Ubifs.InodeHeader:
+                elif isinstance(process_node.node_header, ubifs.Ubifs.InodeHeader):
                     inode = process_node.node_header.key.inode_number
                     if inode in inode_to_type:
                         file_path = pathlib.Path(inode_to_path[inode])
@@ -133,11 +134,11 @@ class UbifsUnpackParser(UnpackParser):
                             pass
                         elif inode_to_type[inode] == ubifs.Ubifs.InodeTypes.link:
                             try:
-                                 target = process_node.node_header.data.decode()
-                                 meta_directory.unpack_symlink(file_path, target)
-                                 # No meta directory for symlinks
-                            except Exception as e:
-                                 continue
+                                target = process_node.node_header.data.decode()
+                                meta_directory.unpack_symlink(file_path, target)
+                                # No meta directory for symlinks
+                            except Exception:
+                                continue
                         elif inode_to_type[inode] == ubifs.Ubifs.InodeTypes.block_device:
                             # skip block devices
                             pass
@@ -157,7 +158,7 @@ class UbifsUnpackParser(UnpackParser):
                             pass
                             #ubi_socket = socket.socket(socket.AF_UNIX)
                             #ubi_socket.bind(outfile)
-                elif type(process_node.node_header) == ubifs.Ubifs.DataHeader:
+                elif isinstance(process_node.node_header, ubifs.Ubifs.DataHeader):
                     inode = process_node.node_header.key.inode_number
                     unpacked_md = unpacked_mds[inode]
                     with open(unpacked_md.abs_file_path, 'ab') as outfile:

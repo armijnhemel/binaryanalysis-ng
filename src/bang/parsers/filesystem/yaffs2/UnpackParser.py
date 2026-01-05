@@ -64,7 +64,6 @@ import os
 import pathlib
 
 from bang.UnpackParser import UnpackParser, check_condition
-from bang.UnpackParserException import UnpackParserException
 
 # the different yaffs2 chunk types
 YAFFS_OBJECT_TYPE_UNKNOWN = 0
@@ -435,7 +434,7 @@ class Yaffs2UnpackParser(UnpackParser):
                 break
 
         check_condition(data_unpacked, "no valid/suppported yaffs2 image found")
-        check_condition(self.yaffs2_metadata != {}, "no valid/suppported yaffs2 image found")
+        check_condition(self.yaffs2_metadata, "no valid/suppported yaffs2 image found")
 
     def unpack(self, meta_directory):
         unpacked_mds = {}

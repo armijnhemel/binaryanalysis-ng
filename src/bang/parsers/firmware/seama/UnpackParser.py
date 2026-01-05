@@ -20,7 +20,7 @@
 
 import pathlib
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import seama
@@ -37,7 +37,7 @@ class SeamaUnpackParser(UnpackParser):
         try:
             self.data = seama.Seama.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         file_path = pathlib.Path('image')
@@ -60,6 +60,6 @@ class SeamaUnpackParser(UnpackParser):
                     metadata_strings.append(meta_string)
         except:
             pass
-        if metadata_strings != []:
+        if metadata_strings:
             metadata['metadata'] = metadata_strings
         return metadata

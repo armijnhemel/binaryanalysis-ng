@@ -1,6 +1,7 @@
 meta:
   id: uimage
   title: U-Boot Image wrapper
+  ks-version: 0.11
   license: CC0-1.0
   endian: be
 doc: |
@@ -20,11 +21,7 @@ types:
         type: u4
         enum: magic_types
         valid:
-          any-of:
-            - magic_types::uimage
-            - magic_types::bix
-            - magic_types::bix2
-            - magic_types::bix3
+          in-enum: true
       - id: header_crc
         type: u4
       - id: timestamp
@@ -41,37 +38,7 @@ types:
         type: u1
         enum: uimage_os
         valid:
-          any-of:
-            - uimage_os::invalid
-            - uimage_os::openbsd
-            - uimage_os::netbsd
-            - uimage_os::freebsd
-            - uimage_os::bsd4_4
-            - uimage_os::linux
-            - uimage_os::svr4
-            - uimage_os::esix
-            - uimage_os::solaris
-            - uimage_os::irix
-            - uimage_os::sco
-            - uimage_os::dell
-            - uimage_os::ncr
-            - uimage_os::lynxos
-            - uimage_os::vxworks
-            - uimage_os::psos
-            - uimage_os::qnx
-            - uimage_os::u_boot
-            - uimage_os::rtems
-            - uimage_os::artos
-            - uimage_os::unity
-            - uimage_os::integrity
-            - uimage_os::ose
-            - uimage_os::plan9
-            - uimage_os::openrtos
-            - uimage_os::arm_trusted_firmware
-            - uimage_os::tee
-            - uimage_os::opensbi
-            - uimage_os::efi
-            - uimage_os::elf
+          in-enum: true
       - id: architecture
         type: u1
         enum: uimage_arch
@@ -82,14 +49,7 @@ types:
         type: u1
         enum: uimage_comp
         valid:
-          any-of:
-            - uimage_comp::none
-            - uimage_comp::gzip
-            - uimage_comp::bzip2
-            - uimage_comp::lzma
-            - uimage_comp::lzo
-            - uimage_comp::lz4
-            - uimage_comp::zstd
+          in-enum: true
       - id: name_or_asus_info
         size: 32
         type: name_or_asus_info

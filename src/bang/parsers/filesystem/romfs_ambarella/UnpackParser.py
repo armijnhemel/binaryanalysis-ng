@@ -37,7 +37,7 @@ class RomfsAmbarellaUnpackParser(UnpackParser):
         try:
             self.data = romfs_ambarella.RomfsAmbarella.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.unpacked_size = 0
         for entry in self.data.file_headers:

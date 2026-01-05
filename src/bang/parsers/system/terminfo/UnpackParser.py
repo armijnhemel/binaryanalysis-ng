@@ -35,14 +35,16 @@ class TerminfoUnpackParser(UnpackParser):
     pretty_name = 'terminfo'
 
     def parse(self):
+        '''Parse terminfo files in both extended format and regular format'''
         try:
             self.data = terminfo_extended.TerminfoExtended.from_io(self.infile)
-        except (Exception, ValidationFailedError) as e:
+        except (Exception, ValidationFailedError):
             self.infile.infile.seek(self.infile.offset)
+
             try:
                 self.data = terminfo.Terminfo.from_io(self.infile)
-            except (Exception, ValidationFailedError) as e:
-                raise UnpackParserException(e.args)
+            except (Exception, ValidationFailedError) as ex:
+                raise UnpackParserException(ex.args) from ex
 
         # sanity checks for the names
         check_condition(len(self.data.names_section.names) > 0,
@@ -53,7 +55,7 @@ class TerminfoUnpackParser(UnpackParser):
                         "invalid terminal name")
 
         for string_offset in self.data.strings_section.string_offset:
-            if string_offset == 0xffff or string_offset == 0xfffe:
+            if string_offset in [0xffff, 0xfffe]:
                 continue
             check_condition(string_offset <= self.data.len_string_table,
                             "invalid offset into string table")

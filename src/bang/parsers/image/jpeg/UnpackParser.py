@@ -343,7 +343,7 @@ class JpegUnpackParser(UnpackParser):
                                     "invalid value for number of image components")
 
                     # the header length = 6+2* number of image components
-                    check_condition(headerlength == 6+2*numberimagecomponents, 
+                    check_condition(headerlength == 6+2*numberimagecomponents,
                                     "invalid value for number of image components or start of scan header length")
 
                     # skip over the section
@@ -434,9 +434,9 @@ class JpegUnpackParser(UnpackParser):
                 testimg.load()
                 testimg.close()
             except OSError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
             except PIL.Image.DecompressionBombError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
         else:
             # load the JPEG data into memory
             self.infile.seek(0)
@@ -448,9 +448,9 @@ class JpegUnpackParser(UnpackParser):
                 testimg.load()
                 testimg.close()
             except OSError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
             except PIL.Image.DecompressionBombError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
     labels = ['graphics', 'jpeg']
     metadata = {}

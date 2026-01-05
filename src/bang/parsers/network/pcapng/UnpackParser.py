@@ -35,7 +35,8 @@ class PcapngUnpackParser(UnpackParser):
         try:
             self.data = pcapng.Pcapng.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
+
         section_header_seen = False
         for block in self.data.blocks:
             if block.header_type == pcapng.Pcapng.HeaderTypes.section_header:

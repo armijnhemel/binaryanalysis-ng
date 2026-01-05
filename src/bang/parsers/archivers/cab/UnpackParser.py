@@ -25,7 +25,7 @@ import stat
 import subprocess
 import tempfile
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import cab
@@ -44,7 +44,7 @@ class CabUnpackParser(UnpackParser):
         try:
             self.data = cab.Cab.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # test unpack to see if there are any cabextract errors.
         # First check if the file starts at offset 0. If not, carve

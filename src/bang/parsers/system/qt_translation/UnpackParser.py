@@ -18,7 +18,7 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import qt_translation
@@ -35,7 +35,7 @@ class QtTranslationUnpackParser(UnpackParser):
         try:
             self.data = qt_translation.QtTranslation.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         for t in self.data.tags:
             if t.tag == qt_translation.QtTranslation.TranslatorTags.messages:
@@ -44,7 +44,7 @@ class QtTranslationUnpackParser(UnpackParser):
                         try:
                             m.payload.data.decode('utf-16be')
                         except UnicodeDecodeError as e:
-                            raise UnpackParserException(e.args)
+                            raise UnpackParserException(e.args) from e
 
     labels = ['qt', 'translation', 'resource']
     metadata = {}

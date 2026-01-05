@@ -24,7 +24,7 @@ import os
 import pathlib
 import sys
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 
 
@@ -140,7 +140,7 @@ class DataUriUnpackParser(UnpackParser):
                 try:
                     self.decoded_data = base64.standard_b64decode(self.payload_data)
                 except binascii.Error as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
                 break
         self.unpacked_size = bytes_read
 
@@ -148,7 +148,7 @@ class DataUriUnpackParser(UnpackParser):
         unpacked_files = []
         out_labels = []
 
-        file_path = pathlib.Path("unpacked.%s" % self.filetype)
+        file_path = pathlib.Path(f"unpacked.{self.filetype}")
 
         with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
             outfile.write(self.decoded_data)

@@ -25,7 +25,7 @@ not include the AVB signature at the end.
 
 import os
 import pathlib
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import android_dto
@@ -46,7 +46,7 @@ class AndroidDtoUnpacker(UnpackParser):
             # has been truncated.
             #a = type(self.data.buddy_allocator_body)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def calculate_unpacked_size(self):
         self.unpacked_size = 0
@@ -56,7 +56,7 @@ class AndroidDtoUnpacker(UnpackParser):
     def unpack(self, meta_directory):
         dtb_counter = 1
         for i in self.data.entries:
-            file_path = pathlib.Path("unpacked-%d.dtb" % dtb_counter)
+            file_path = pathlib.Path(f"unpacked-{dtb_counter}.dtb")
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                 os.sendfile(outfile.fileno(), self.infile.fileno(), self.offset + i.dt_offset, i.dt_size)
                 dtb_counter += 1

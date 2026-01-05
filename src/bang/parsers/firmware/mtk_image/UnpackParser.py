@@ -20,7 +20,7 @@
 
 import pathlib
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import mtk_image
@@ -42,7 +42,7 @@ class AndroidMediatekUnpackParser(UnpackParser):
                 for img in self.data.payload.data:
                     pass
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         unpacked_files = []

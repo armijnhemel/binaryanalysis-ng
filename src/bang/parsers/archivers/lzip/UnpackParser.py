@@ -78,10 +78,10 @@ class LzipUnpackParser(UnpackParser):
             try:
                 unpackeddata = decompressor.decompress(checkbytes)
                 decompressed_size += len(unpackeddata)
-            except EOFError as e:
+            except EOFError:
                 break
             except Exception as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
             crc_computed = binascii.crc32(unpackeddata, crc_computed)
 
@@ -141,7 +141,7 @@ class LzipUnpackParser(UnpackParser):
                 try:
                     unpackeddata = decompressor.decompress(checkbytes)
                     outfile.write(unpackeddata)
-                except EOFError as e:
+                except EOFError:
                     break
 
                 if decompressor.unused_data != b'':

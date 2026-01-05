@@ -23,7 +23,7 @@ import math
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
-from . import otff as otff
+from . import otff
 
 REQUIRED_TABLES = set(['cmap', 'head', 'hhea', 'hmtx',
                        'maxp', 'name', 'OS/2', 'post'])
@@ -40,7 +40,7 @@ class OpentypeFontCollectionUnpackParser(UnpackParser):
         try:
             self.data = otff.Otff.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.unpacked_size = self.infile.tell()
 
@@ -50,7 +50,7 @@ class OpentypeFontCollectionUnpackParser(UnpackParser):
             try:
                 log_tables = int(math.log2(font.offset_table.num_tables))
             except ValueError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
             check_condition(pow(2, log_tables) * 16 == font.offset_table.search_range,
                             "number of tables does not correspond to search range")
 
@@ -98,7 +98,7 @@ class OpentypeFontCollectionUnpackParser(UnpackParser):
                     computed_checksum = computed_checksum & 4294967295
                     if dir_table_entry.tag != 'head':
                         check_condition(dir_table_entry.checksum == computed_checksum,
-                                        "invalid checksum for table %s" % dir_table_entry.tag)
+                                        f"invalid checksum for table {dir_table_entry.tag}")
                         offset_to_checksum[dir_table_entry.offset] = computed_checksum
                     else:
                         # the head table checksum is different and uses a
@@ -109,7 +109,7 @@ class OpentypeFontCollectionUnpackParser(UnpackParser):
                         checksum_adjustment = int.from_bytes(dir_table_entry.raw_value[8:12], byteorder='big')
 
             except (Exception, ValidationFailedError) as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
             check_condition(table_names.intersection(REQUIRED_TABLES) == REQUIRED_TABLES,
                             "not all required tables present")

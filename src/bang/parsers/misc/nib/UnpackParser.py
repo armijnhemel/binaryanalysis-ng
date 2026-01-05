@@ -18,7 +18,7 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import nibarchive
@@ -47,7 +47,7 @@ class NibArchiveUnpackParser(UnpackParser):
             num_class_names = len(self.data.class_names)
             self.unpacked_size = max(self.unpacked_size, self.data._debug['_m_class_names']['end'])
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def calculate_unpacked_size(self):
         pass

@@ -22,7 +22,7 @@
 
 import defusedxml
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 
@@ -40,7 +40,7 @@ class WebpUnpackParser(UnpackParser):
         try:
             self.data = webp.Webp.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     labels = ['webp', 'graphics']
 
@@ -62,7 +62,7 @@ class WebpUnpackParser(UnpackParser):
                     pass
 
         metadata['chunks'] = chunk_names
-        if xmp_data != []:
+        if xmp_data:
             metadata['xmp'] = xmp_data
 
         return metadata

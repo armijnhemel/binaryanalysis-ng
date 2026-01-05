@@ -20,7 +20,7 @@
 
 # man 5 tzfile
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import tzif
@@ -37,7 +37,7 @@ class TimezoneUnpackParser(UnpackParser):
         try:
             self.data = tzif.Tzif.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     labels = ['resource', 'timezone']
     metadata = {}

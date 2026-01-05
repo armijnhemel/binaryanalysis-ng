@@ -20,7 +20,7 @@
 
 import pathlib
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 
@@ -38,13 +38,13 @@ class QcdtUnpackParser(UnpackParser):
         try:
             self.data = qcdt.Qcdt.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         offset_to_entry = {}
         ctr = 1
         for entry in self.data.device_entries:
-            dtb_name = pathlib.Path("dtb-%d" % ctr)
+            dtb_name = pathlib.Path(f"dtb-{ctr}")
             if entry.ofs_dtb not in offset_to_entry:
                 with meta_directory.unpack_regular_file(dtb_name) as (unpacked_md, outfile):
                     outfile.write(entry.data)
@@ -73,10 +73,13 @@ class QcdtUnpackParser(UnpackParser):
                 'soc_revision': entry.soc_revision
             }
 
-            if type(entry.platform_id) == int:
-                metadata['device'][ctr]['platform_id']: entry.platform_id
+            if not isinstance(entry.platform_id, qcdt.Qcdt.SocIds):
+                metadata['device'][ctr]['platform_id'] = entry.platform_id
+                metadata['device'][ctr]['platform_id_num'] = entry.platform_id
+
             else:
-                metadata['device'][ctr]['platform_id']: entry.platform_id.name
+                metadata['device'][ctr]['platform_id'] = entry.platform_id.name
+                metadata['device'][ctr]['platform_id_num'] = entry.platform_id.value
 
             if self.data.version > 1:
                 metadata['device'][ctr] = {}

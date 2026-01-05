@@ -46,7 +46,7 @@ class ReolinkUnpackParser(UnpackParser):
                 self.unpacked_size = max(self.unpacked_size, section.ofs_section + section.len_section)
                 check_condition(len(section.section) == section.len_section, "not enough data")
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
@@ -81,7 +81,7 @@ class ReolinkLogoUnpackParser(UnpackParser):
         try:
             self.data = reolink_logo.ReolinkLogo.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         file_path = pathlib.Path('1.jpeg')

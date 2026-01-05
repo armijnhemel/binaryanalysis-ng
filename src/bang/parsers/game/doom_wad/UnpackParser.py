@@ -37,11 +37,10 @@ class DoomWadUnpackParser(UnpackParser):
         try:
             self.data = doom_wad.DoomWad.from_io(self.infile)
         # TODO: decide what exceptions to catch
-        except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
-        except BaseException as e:
-            raise UnpackParserException(e.args)
-        # this is a bit of an ugly hack to detect if the file has been
+        except (Exception, ValidationFailedError, BaseException) as e:
+            raise UnpackParserException(e.args) from e
+
+        # This is a bit of an ugly hack to detect if the file has been
         # truncated or corrupted. In certain cases (like when scanning the
         # 'magic' database) it could be that the offset would be bigger
         # than the file itself and there would be hundreds of millions of
@@ -56,7 +55,7 @@ class DoomWadUnpackParser(UnpackParser):
             for i in self.data.index:
                 pass
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def calculate_unpacked_size(self):
         self.unpacked_size = self.data.index_offset + self.data.num_index_entries * 16

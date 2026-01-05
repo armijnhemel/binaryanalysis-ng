@@ -18,7 +18,6 @@
 
 # Squashfs is a read only file system
 
-import os
 import pathlib
 import shutil
 import stat
@@ -26,7 +25,6 @@ import subprocess
 import tempfile
 
 from bang.UnpackParser import UnpackParser, check_condition
-from bang.UnpackParserException import UnpackParserException
 
 
 class SquashfsUnpackParser(UnpackParser):
@@ -48,7 +46,7 @@ class SquashfsUnpackParser(UnpackParser):
         if shutil.which('unsquashfs') is None:
             self.have_squashfs = False
 
-        have_sasquahts = True
+        self.have_sasquatch = True
         if shutil.which('sasquatch') is None:
             self.have_sasquatch = False
 

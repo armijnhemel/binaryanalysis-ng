@@ -41,7 +41,7 @@ class SunrasterUnpackParser(UnpackParser):
         try:
             self.data = sunraster.Sunraster.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         check_condition(self.data.len_image_data != 0,
                         "raster files with length 0 defined not supported")

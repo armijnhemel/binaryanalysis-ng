@@ -29,7 +29,6 @@ has a directory called "__MACOSX"
 Files starting with ._ are likely AppleDouble encoded
 '''
 
-import os
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
@@ -52,7 +51,8 @@ class AppledoubleUnpackParser(UnpackParser):
             for i in self.data.entries:
                 a = type(i.body)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
+
         check_condition(self.data.num_entries > 1, "no apple double entries")
 
     def calculate_unpacked_size(self):

@@ -310,6 +310,15 @@ larger file, unless stated otherwise.
 210. TP-Link minifs
 211. ANJVision IP camera firmware files
 212. Linux `securetty` files (whole file)
+213. EOT fonts
+214. crontab files (subset)
+215. modules.dep files
+216. host.conf files
+217. lld2d.conf files (from old Realtek SDKs)
+218. inittab files
+219. /etc/services files
+220. /etc/hosts files
+221. pppoe.conf files
 
 ## Getting started
 

@@ -61,7 +61,7 @@ class AndroidSparseUnpackParser(UnpackParser):
                     check_condition(len(chunk.body) == 0, "wrong body length")
                 self.unpacked_size += chunk.header.len_chunk
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         check_condition(self.infile.size >= self.unpacked_size, "not enough data")
         check_condition(self.data.header.version.major == 1, "unsupported major version")
         check_condition(self.data.header.block_size % 4 == 0, "unsupported block size")
@@ -82,10 +82,10 @@ class AndroidSparseUnpackParser(UnpackParser):
                     for c in range(0, chunk.header.num_body_blocks):
                         # It has already been checked that blk_sz
                         # is divisible by 4.
-                       outfile.write(chunk.body*(self.data.header.block_size//4))
+                        outfile.write(chunk.body*(self.data.header.block_size//4))
                 elif chunk.header.chunk_type == android_sparse.AndroidSparse.ChunkTypes.dont_care:
                     for c in range(0, chunk.header.num_body_blocks):
-                       outfile.write(b'\x00' * self.data.header.block_size)
+                        outfile.write(b'\x00' * self.data.header.block_size)
 
             yield unpacked_md
 

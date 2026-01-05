@@ -24,7 +24,7 @@ sequence of Ogg pages, so carving (at the end of the file) doesn't
 work.
 '''
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import ogg
@@ -41,7 +41,7 @@ class OggUnpackParser(UnpackParser):
         try:
             self.data = ogg.Ogg.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     labels = ['audio', 'ogg']
     metadata = {}

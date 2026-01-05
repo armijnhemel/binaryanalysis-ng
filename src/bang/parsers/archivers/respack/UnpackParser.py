@@ -39,14 +39,14 @@ class ResPackUnpackParser(UnpackParser):
         try:
             self.data = respack.Respack.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         try:
             self.file_metadata = json.loads(self.data.json)
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
-        check_condition(type(self.file_metadata) == dict, "invalid JSON result type")
+        check_condition(isinstance(self.file_metadata, dict), "invalid JSON result type")
 
         # offsets for files are relative to the end of the JSON data
         self.end_of_json_offset = self.infile.tell()

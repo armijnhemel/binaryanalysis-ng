@@ -40,7 +40,7 @@ class FlsUnpackParser(UnpackParser):
                 check_condition(entry.ofs_data + entry.len_data <= self.data.header.len_file,
                                 "invalid offset or data length")
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         for entry in self.data.entries:

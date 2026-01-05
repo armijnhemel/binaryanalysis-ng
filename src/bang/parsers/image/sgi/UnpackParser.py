@@ -50,7 +50,7 @@ class SgiUnpackParser(UnpackParser):
             else:
                 self.unpacked_size = self.infile.tell()
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         if self.unpacked_size == self.infile.size:
             # now load the file using PIL as an extra sanity check
@@ -60,7 +60,7 @@ class SgiUnpackParser(UnpackParser):
                 testimg.load()
                 testimg.close()
             except OSError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
         else:
             # load the SGI data into memory
             self.infile.seek(0)
@@ -72,9 +72,9 @@ class SgiUnpackParser(UnpackParser):
                 testimg.load()
                 testimg.close()
             except OSError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
             except PIL.Image.DecompressionBombError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
@@ -85,6 +85,6 @@ class SgiUnpackParser(UnpackParser):
     @property
     def metadata(self):
         metadata = {}
-        if self.data.header.name != '' and self.data.header.name != 'no name':
+        if self.data.header.name not in ['', 'no name']:
             metadata['name'] = self.data.header.name
         return metadata

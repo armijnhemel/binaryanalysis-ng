@@ -18,10 +18,7 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
-import os
-import pathlib
 import re
-import subprocess
 
 from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
@@ -39,8 +36,8 @@ class RarUnpackParser(UnpackParser):
         raise UnpackParserException("Rar not supported")
         try:
             self.data = rar.Rar.from_io(self.infile)
-        except (BaseException, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+        except (ValidationFailedError, BaseException) as e:
+            raise UnpackParserException(e.args) from e
     def unpack(self, unpack_directory):
         return []
         # TODO: (?) for multifile rar only process the .rar file and let it
@@ -55,5 +52,3 @@ class RarUnpackParser(UnpackParser):
     @classmethod
     def is_valid_extension(cls, ext):
         return ext == '.rar' or re.match(r'\.r\d\d', ext)
-
-

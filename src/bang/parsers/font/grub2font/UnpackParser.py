@@ -22,7 +22,7 @@
 Parse GRUB2 font files.
 '''
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import grub2_font
@@ -45,7 +45,7 @@ class Grub2fontUnpackParser(UnpackParser):
                         self.unpacked_size = max(self.unpacked_size,
                                                  e.ofs_definition + 10 + len(e.definition.bitmap_data))
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):

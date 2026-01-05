@@ -34,7 +34,7 @@ Erratai for 4.3: https://www.color.org/specification/ICC1-2010_Cumulative_Errata
 Test files in package "colord" on for example Fedora
 '''
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import icc
@@ -56,7 +56,7 @@ class IccUnpackParser(UnpackParser):
                 # force read data
                 elem = tag.tag_data_element
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # perhaps there are also padding bytes, as fields
         # are 4 bytes aligned

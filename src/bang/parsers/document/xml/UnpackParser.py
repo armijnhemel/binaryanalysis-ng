@@ -18,9 +18,8 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
-import xml.dom
 import defusedxml.minidom
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 
 
@@ -33,6 +32,8 @@ from bang.UnpackParserException import UnpackParserException
 class XmlUnpackParser(UnpackParser):
     extensions = ['.xml', '.xsd', '.ncx', '.opf', '.svg', '.rss']
     signatures = [
+        (0, b'<?xml version="1.0"'),
+        (0, b'\xef\xbb\xbb<?xml version="1.0"'),
     ]
     pretty_name = 'xml'
 
@@ -40,7 +41,7 @@ class XmlUnpackParser(UnpackParser):
         try:
             self.data = defusedxml.minidom.parse(self.infile)
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     labels = ['xml']
     metadata = {}

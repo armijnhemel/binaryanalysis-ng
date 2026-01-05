@@ -71,7 +71,7 @@ class CbfsUnpackParser(UnpackParser):
             try:
                 component = cbfs.Cbfs.Component.from_io(self.infile)
             except (Exception, ValidationFailedError) as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
             end_of_component = self.infile.tell()
 
@@ -89,7 +89,7 @@ class CbfsUnpackParser(UnpackParser):
                 try:
                     master_header = cbfs.Cbfs.Header.from_bytes(component.data)
                 except (Exception, ValidationFailedError) as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
 
                 # romsize
                 self.romsize = master_header.len_rom

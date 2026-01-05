@@ -48,7 +48,7 @@ class HpBdlUnpackParser(UnpackParser):
                     self.unpacked_size = max(self.unpacked_size, entry.ofs_entry + e.ofs_data + e.len_data)
                     check_condition(len(e.data) == e.len_data, "not enough data")
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):

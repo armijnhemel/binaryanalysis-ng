@@ -37,7 +37,7 @@ class RkCrcUnpackParser(UnpackParser):
         try:
             self.data = rk_crc.RkCrc.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         check_condition(len(self.data.data) > 0, "empty data section")
 
     def unpack(self, meta_directory):

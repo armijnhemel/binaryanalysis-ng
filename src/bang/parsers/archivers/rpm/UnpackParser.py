@@ -57,7 +57,7 @@ class RpmUnpackParser(UnpackParser):
                 self.infile.seek(0)
                 self.data = rpm_no_utf8.RpmNoUtf8.from_io(self.infile)
                 for i in self.data.header.index_records:
-                    if type(i.body) == self.data.RecordTypeStringArray:
+                    if isinstance(i.body, self.data.RecordTypeStringArray):
                         new_values = []
                         for v in i.body.values:
                             success = False
@@ -71,13 +71,12 @@ class RpmUnpackParser(UnpackParser):
                             check_condition(success, "cannot decode value")
                         # overwrite the old values with the new translated values
                         i.body.values = new_values
-            except (Exception, ValidationFailedError) as e:
-                raise UnpackParserException(e.args)
+            except (Exception, ValidationFailedError) as ex:
+                raise UnpackParserException(ex.args) from ex
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
-        check_condition(self.data.lead.type == self.data.RpmTypes.binary or
-                        self.data.lead.type == self.data.RpmTypes.source,
+        check_condition(self.data.lead.type in [self.data.RpmTypes.binary, self.data.RpmTypes.source],
                         "invalid RPM type")
 
         # The default compressor is either gzip or XZ (on Fedora). Other
@@ -106,29 +105,29 @@ class RpmUnpackParser(UnpackParser):
             try:
                 self.payload = decompressor.decompress(self.data.payload)
             except Exception as e:
-                raise UnpackParserException(e.args)
-        elif self.compressor == 'xz' or self.compressor == 'lzma':
+                raise UnpackParserException(e.args) from e
+        elif self.compressor in set(['lzma', 'xz']):
             try:
                 self.payload = lzma.decompress(self.data.payload)
             except Exception as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
         elif self.compressor == 'zstd':
             try:
                 reader = zstandard.ZstdDecompressor().stream_reader(self.data.payload)
                 self.payload = reader.read()
             except Exception as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
         else:
             try:
                 self.payload = gzip.decompress(self.data.payload)
             except Exception as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         if self.compressor == 'bzip2':
             decompressor = bz2.BZ2Decompressor()
             payload = decompressor.decompress(self.data.payload)
-        elif self.compressor == 'xz' or self.compressor == 'lzma':
+        elif self.compressor in set(['lzma', 'xz']):
             payload = lzma.decompress(self.data.payload)
         elif self.compressor == 'zstd':
             reader = zstandard.ZstdDecompressor().stream_reader(self.data.payload)

@@ -35,7 +35,8 @@ class DdsUnpackParser(UnpackParser):
         try:
             self.data = dds.Dds.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
+
         compatible_flags = True
         if self.data.dds_header.flags & 0x8 == 0x8 and self.data.dds_header.flags & 0x80000 == 0x80000:
             compatible_flags = False

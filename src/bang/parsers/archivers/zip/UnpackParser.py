@@ -166,7 +166,7 @@ class ZipUnpackParser(UnpackParser):
             if set(local_files) != set(central_directory_files):
                 raise UnpackParserException("local files and central directory files do not match")
             kaitai_success = True
-        except (UnpackParserException, ValidationFailedError, UnicodeDecodeError, EOFError) as e:
+        except (UnpackParserException, ValidationFailedError, UnicodeDecodeError, EOFError):
             kaitai_success = False
 
         # in case the file cannot be successfully unpacked with
@@ -215,7 +215,7 @@ class ZipUnpackParser(UnpackParser):
                         try:
                             file_header = kaitai_zip.Zip.PkSection.from_io(self.infile)
                         except (UnpackParserException, ValidationFailedError, UnicodeDecodeError, EOFError) as e:
-                            raise UnpackParserException(e.args)
+                            raise UnpackParserException(e.args) from e
 
                         order_for_headers.append(file_header.section_type)
 
@@ -255,7 +255,7 @@ class ZipUnpackParser(UnpackParser):
                                 try:
                                     file_header = kaitai_zip.Zip.PkSection64.from_io(self.infile)
                                 except (UnpackParserException, ValidationFailedError, UnicodeDecodeError, EOFError) as e:
-                                    raise UnpackParserException(e.args)
+                                    raise UnpackParserException(e.args) from e
                     else:
                         # There could be extra data in between the last local
                         # file header and the start of the central directory,
@@ -358,7 +358,7 @@ class ZipUnpackParser(UnpackParser):
                 try:
                     file_header = kaitai_zip.Zip.PkSection.from_io(self.infile)
                 except (UnpackParserException, ValidationFailedError, UnicodeDecodeError, EOFError) as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
 
                 order_for_headers.append(file_header.section_type)
                 compressed_size = file_header.body.header.len_body_compressed
@@ -683,7 +683,7 @@ class ZipUnpackParser(UnpackParser):
             if self.carved:
                 # cleanup
                 os.unlink(self.temporary_file[1])
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):
@@ -750,8 +750,7 @@ class ZipUnpackParser(UnpackParser):
                     continue
                 clean_file_path_parts.append(part)
 
-            check_condition(clean_file_path_parts != [],
-                            'invalid file name in ZIP file')
+            check_condition(clean_file_path_parts, 'invalid file name in ZIP file')
 
             file_path = pathlib.Path(*clean_file_path_parts)
 
@@ -893,7 +892,7 @@ class ZipEntryUnpackParser(UnpackParser):
         try:
             self.file_header = kaitai_zip.Zip.PkSection.from_io(self.infile)
         except (UnpackParserException, ValidationFailedError, UnicodeDecodeError, EOFError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         if self.file_header.section_type == kaitai_zip.Zip.SectionTypes.dahua_local_file:
             self.dahua = True
@@ -918,18 +917,18 @@ class ZipEntryUnpackParser(UnpackParser):
                 try:
                     self.decompressed_data = zlib.decompress(self.file_header.body.body, -15)
                 except Exception as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
             elif self.file_header.body.header.compression_method == kaitai_zip.Zip.Compression.bzip2:
                 try:
                     self.decompressed_data = bz2.decompress(self.file_header.body.body)
                 except Exception as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
             elif self.file_header.body.header.compression_method == kaitai_zip.Zip.Compression.lzma:
                 try:
                     decompressor = zipfile.LZMADecompressor()
                     self.decompressed_data = decompressor.decompress(self.file_header.body.body)
                 except Exception as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
             elif self.file_header.body.header.compression_method == kaitai_zip.Zip.Compression.none:
                 self.decompressed_data = self.file_header.body.body
             else:
@@ -949,8 +948,7 @@ class ZipEntryUnpackParser(UnpackParser):
                 continue
             clean_file_path_parts.append(part)
 
-        check_condition(clean_file_path_parts != [],
-                        'invalid file name in ZIP file')
+        check_condition(clean_file_path_parts, 'invalid file name in ZIP file')
 
         self.file_path = pathlib.Path(*clean_file_path_parts)
 

@@ -58,7 +58,7 @@ class ArUnpackParser(UnpackParser):
         # try an actual unpack
         self.unpack_directory = pathlib.Path(tempfile.mkdtemp(dir=self.configuration.temporary_directory))
 
-        p = subprocess.Popen(['ar', 'x', self.infile.name, '--output=%s' % self.unpack_directory],
+        p = subprocess.Popen(['ar', 'x', self.infile.name, f'--output={self.unpack_directory}'],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outputmsg, errormsg) = p.communicate()
 

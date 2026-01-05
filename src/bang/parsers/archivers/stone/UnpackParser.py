@@ -18,7 +18,6 @@
 # Copyright - Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
-import hashlib
 import io
 import pathlib
 
@@ -42,7 +41,7 @@ class StoneUnpackParser(UnpackParser):
         try:
             self.data = stone.Stone.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # store the types of the sections for sanity checks
         sections = []
@@ -77,7 +76,7 @@ class StoneUnpackParser(UnpackParser):
                 reader = zstandard.ZstdDecompressor().stream_reader(payload.data)
                 unpacked_payload = reader.read()
             except Exception as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
             check_condition(payload.len_usable_data == len(unpacked_payload),
                             "length mismatch")
@@ -88,17 +87,17 @@ class StoneUnpackParser(UnpackParser):
                     try:
                         self.meta = stone.Stone.MetaRecords.from_bytes(unpacked_payload)
                     except (Exception, ValidationFailedError) as e:
-                        raise UnpackParserException(e.args)
+                        raise UnpackParserException(e.args) from e
                 elif payload.type == stone.Stone.PayloadType.layout:
                     try:
                         self.layout = stone.Stone.LayoutEntries.from_bytes(unpacked_payload)
                     except (Exception, ValidationFailedError) as e:
-                        raise UnpackParserException(e.args)
+                        raise UnpackParserException(e.args) from e
                 elif payload.type == stone.Stone.PayloadType.index:
                     try:
                         self.index = stone.Stone.IndexEntries.from_bytes(unpacked_payload)
                     except (Exception, ValidationFailedError) as e:
-                        raise UnpackParserException(e.args)
+                        raise UnpackParserException(e.args) from e
                 elif payload.type == stone.Stone.PayloadType.content:
                     self.content = unpacked_payload
 
@@ -107,7 +106,7 @@ class StoneUnpackParser(UnpackParser):
                     try:
                         self.meta = stone.Stone.MetaRecords.from_bytes(unpacked_payload)
                     except (Exception, ValidationFailedError) as e:
-                        raise UnpackParserException(e.args)
+                        raise UnpackParserException(e.args) from e
 
         if self.data.header.type == stone.Stone.FileTypes.binary:
             # combine layout and index. Index contains the
@@ -132,7 +131,7 @@ class StoneUnpackParser(UnpackParser):
                     try:
                         src = l.source.rsplit(b'\x00')[0].decode()
                     except UnicodeDecodeError as e:
-                        raise UnpackParserException(e.args)
+                        raise UnpackParserException(e.args) from e
                     self.symlinks.append({'source': pathlib.Path(src), 'target': pathlib.Path(l.target)})
                 elif l.file_type == stone.Stone.LayoutEntry.FileType.directory:
                     self.directories.append(l.target)

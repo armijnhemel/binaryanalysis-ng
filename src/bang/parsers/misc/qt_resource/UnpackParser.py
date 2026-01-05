@@ -39,7 +39,7 @@ class QtResourceUnpackParser(UnpackParser):
             for entry in self.data.name_table.entries:
                 name = entry.name.decode('utf-16-be')
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         check_condition(len(self.data.data_block.entries) == len(self.data.name_table.entries),
                         "amount of names and files do not match")

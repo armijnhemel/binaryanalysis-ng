@@ -26,7 +26,7 @@ import re
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 
-RE_TTY = re.compile(r'(ttyS?\d+|pts/\d+)$')
+RE_TTY = re.compile(r'(console|[hx]vc\d+|tty[a-zA-Z]*\d+|pts/\d+|tts/\d+|vc/\d+)$')
 
 
 class SecureTTYUnpackParser(UnpackParser):
@@ -41,7 +41,7 @@ class SecureTTYUnpackParser(UnpackParser):
             securetty_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
             securetty_file.close()
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.entries = []
 
@@ -52,16 +52,22 @@ class SecureTTYUnpackParser(UnpackParser):
                 line = securetty_line.rstrip()
                 match_result = RE_TTY.match(line)
                 if not match_result:
+                    if line.startswith('#'):
+                        len_unpacked += len(securetty_line)
+                    elif line.strip() == '':
+                        len_unpacked += len(securetty_line)
+                    else:
+                        break
                     continue
                 len_unpacked += len(securetty_line)
                 self.entries.append(match_result.groups()[0])
                 data_unpacked = True
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             securetty_file.close()
 
-        check_condition(data_unpacked, "no fstab file data could be unpacked")
+        check_condition(data_unpacked, "no securetty file data could be unpacked")
         self.unpacked_size = len_unpacked
 
     # make sure that self.unpacked_size is not overwritten

@@ -43,7 +43,7 @@ class AndroidMsmBootldrUnpackParser(UnpackParser):
         try:
             self.data = android_bootldr_qcom.AndroidBootldrQcom.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         self.unpacked_size = self.data.ofs_img_bodies
         for entry in self.data.img_headers:
             self.unpacked_size += entry.len_body

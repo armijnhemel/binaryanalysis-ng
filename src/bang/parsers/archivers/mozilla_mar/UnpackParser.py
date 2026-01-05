@@ -40,10 +40,9 @@ class MozillaMar(UnpackParser):
         file_size = self.infile.size
         try:
             self.data = mozilla_mar.MozillaMar.from_io(self.infile)
-        except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
-        except EOFError as e:
-            raise UnpackParserException(e.args)
+        except (EOFError, Exception, ValidationFailedError) as e:
+            raise UnpackParserException(e.args) from e
+
         check_condition(self.data.file_size == self.data.ofs_index + 4 +
                         self.data.index.len_index_entries, "Wrong file size")
         check_condition(self.data.file_size <= file_size, "Not enough data")

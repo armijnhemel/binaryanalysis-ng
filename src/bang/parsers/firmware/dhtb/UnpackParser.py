@@ -39,7 +39,7 @@ class DhtbUnpackParser(UnpackParser):
         try:
             self.data = dhtb.Dhtb.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         sha256 = hashlib.sha256(self.data.payload)
         check_condition(sha256.hexdigest() == binascii.hexlify(self.data.header.sha256).decode(),
                         'invalid hash')

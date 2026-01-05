@@ -28,7 +28,6 @@ Section 5 describes the structure of a PNG file
 '''
 
 import binascii
-import datetime
 import json
 import pathlib
 import uuid
@@ -66,7 +65,8 @@ class PngUnpackParser(UnpackParser):
         try:
             self.data = png.Png.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
+
         check_condition(self.data.ihdr.width > 0,
                 "invalid width")
         check_condition(self.data.ihdr.height > 0,
@@ -98,7 +98,7 @@ class PngUnpackParser(UnpackParser):
         try:
             zlib.decompress(idata)
         except zlib.error as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         check_condition('IDAT' in self.chunknames,
                         "IDAT section missing")
@@ -271,7 +271,7 @@ class PngUnpackParser(UnpackParser):
                 try:
                     evernote_body = i.body.decode()
                     evernote_meta = json.loads(evernote_body)
-                    if not 'evernote' in metadata:
+                    if 'evernote' not in metadata:
                         metadata['evernote'] = {}
                     metadata['evernote']['meta'] = evernote_body
                     png_type_labels.append('evernote')
@@ -283,7 +283,7 @@ class PngUnpackParser(UnpackParser):
                 # The first 16 bytes are a uuid that is referenced in the JSON
                 # that can be found in the JSON of the skMf chunk in a URI
                 uri_uuid = uuid.UUID(bytes=i.body.uuid)
-                if not 'evernote' in metadata:
+                if 'evernote' not in metadata:
                     metadata['evernote'] = {}
                 metadata['evernote']['uri_uuid'] = uri_uuid
             elif i.type == 'atCh':

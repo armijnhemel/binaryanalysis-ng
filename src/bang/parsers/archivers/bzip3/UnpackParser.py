@@ -18,11 +18,9 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
-import os
 import pathlib
 import shutil
 import subprocess
-import tempfile
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
@@ -43,7 +41,7 @@ class Bzip3UnpackParser(UnpackParser):
         try:
             self.data = bzip3.Bzip3.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.unpacked_size = self.infile.tell()
 

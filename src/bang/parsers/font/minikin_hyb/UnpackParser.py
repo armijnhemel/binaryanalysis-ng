@@ -36,7 +36,8 @@ class MinikinHybUnpackParser(UnpackParser):
         try:
             self.data = minikin_hyb.MinikinHyb.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
+
         check_condition(self.data.file_size <= file_size, "invalid file size")
         check_condition(self.data.ofs_alphabet + 4 + self.data.alphabet.alphabet_table.size <= self.data.file_size,
                         "alphabet cannot be outside of file")

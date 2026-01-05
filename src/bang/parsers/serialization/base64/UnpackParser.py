@@ -80,7 +80,7 @@ class Base64UnpackParser(UnpackParser):
                     unpacked += len(base64_line)
                 line_counter += 1
         except UnicodeDecodeError as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             base64_file.close()
 

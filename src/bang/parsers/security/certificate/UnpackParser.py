@@ -29,7 +29,6 @@ import string
 import subprocess
 
 from bang.UnpackParser import UnpackParser, check_condition
-from bang.UnpackParserException import UnpackParserException
 
 
 class CertificateUnpackParser(UnpackParser):
@@ -44,7 +43,8 @@ class CertificateUnpackParser(UnpackParser):
         labels = []
 
         # First see if a file is in DER format # TODO binary .der files
-        p = subprocess.Popen(["openssl", "asn1parse", "-inform", "DER"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(["openssl", "asn1parse", "-inform", "DER"],
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outputmsg, errormsg) = p.communicate(cert)
         if p.returncode == 0:
             labels.append('der')
@@ -147,7 +147,7 @@ class CertificateUnpackParser(UnpackParser):
         # check the certificate
         self.infile.seek(0)
         cert = self.infile.read(end_of_certificate)
-        check_condition(list(filter(lambda x: chr(x) not in string.printable, cert)) == [],
+        check_condition(not list(filter(lambda x: chr(x) not in string.printable, cert)),
                         "text cert can only contain ASCII printable characters")
         (res, self.cert_labels) = self.extract_certificate(cert)
         check_condition(res, "not a valid certificate")

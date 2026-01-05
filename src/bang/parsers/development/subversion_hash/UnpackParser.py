@@ -40,7 +40,7 @@ class SubversionHashUnpackParser(UnpackParser):
             svn_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
             svn_file.close()
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         data_unpacked = False
         len_unpacked = 0
@@ -89,15 +89,14 @@ class SubversionHashUnpackParser(UnpackParser):
                         len_unpacked += len(svn_line)
                         end_of_previous_kv = len_unpacked
                         continue
-                    else:
-                        lineres = re.match(r'V (\d+)$', line)
-                        if lineres is None:
-                            break
-                        linelength = int(lineres.groups()[0])
-                        next_action = 'data'
+                    lineres = re.match(r'V (\d+)$', line)
+                    if lineres is None:
+                        break
+                    linelength = int(lineres.groups()[0])
+                    next_action = 'data'
                 len_unpacked += len(svn_line)
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             svn_file.close()
 

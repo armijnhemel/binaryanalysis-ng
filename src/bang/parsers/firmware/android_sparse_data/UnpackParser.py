@@ -35,7 +35,6 @@
 
 import os
 import pathlib
-import sys
 import tempfile
 import time
 
@@ -87,7 +86,7 @@ class AndroidSparseDataUnpackParser(UnpackParser):
         try:
             version_number = int(transferlistlines[0])
         except ValueError as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         check_condition(version_number <= 4, "invalid version number")
         check_condition(version_number >= 2, "only transfer list version 2-4 supported")
@@ -99,7 +98,7 @@ class AndroidSparseDataUnpackParser(UnpackParser):
         try:
             output_blocks = int(transferlistlines[1])
         except ValueError as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # then two lines related to stash entries which are only used by
         # Android during updates to prevent flash space from overflowing,
@@ -107,12 +106,12 @@ class AndroidSparseDataUnpackParser(UnpackParser):
         try:
             stash_needed = int(transferlistlines[2])
         except ValueError as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         try:
             max_stash = int(transferlistlines[2])
         except ValueError as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # a list of commands recognized
         valid_transfer_commands = set(['new', 'zero', 'erase', 'free', 'stash'])
@@ -138,7 +137,7 @@ class AndroidSparseDataUnpackParser(UnpackParser):
             try:
                 transferblockcount = int(transferblockssplit[0])
             except ValueError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
             check_condition(transferblockcount == len(transferblockssplit[1:]),
                             "invalid transfer block list in transfer list")
@@ -151,7 +150,7 @@ class AndroidSparseDataUnpackParser(UnpackParser):
                     blocks.append(blocknr)
                     self.maxblock = max(self.maxblock, blocknr)
             except ValueError as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
             # store the transfer commands
             self.transfercommands.append((transfercommand, blocks))
@@ -179,7 +178,7 @@ class AndroidSparseDataUnpackParser(UnpackParser):
                     # no data could be successfully unpacked
                     os.fdopen(self.temporary_file[0]).close()
                     os.unlink(self.temporary_file[1])
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
 
                 if decompressor.is_finished():
                     # there is no more compressed data

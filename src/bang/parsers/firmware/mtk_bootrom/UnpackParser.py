@@ -18,9 +18,7 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
-import pathlib
-
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import mtk_bootrom
@@ -37,7 +35,7 @@ class MtkBootromUnpackParser(UnpackParser):
         try:
             self.data = mtk_bootrom.MtkBootrom.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     labels = ['mediatek', 'bootrom']
     metadata = {}

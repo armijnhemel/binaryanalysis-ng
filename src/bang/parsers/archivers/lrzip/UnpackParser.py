@@ -68,7 +68,7 @@ class LrzipUnpackParser(UnpackParser):
                 self.unpacked_size += 16
 
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         check_condition(self.unpacked_size <= self.infile.size, "data cannot be outside of file")
 
@@ -79,15 +79,17 @@ class LrzipUnpackParser(UnpackParser):
         # extract the file once).
         self.havetmpfile = False
         if not (self.offset == 0 and self.infile.size == self.unpacked_size):
-            temporary_file = tempfile.mkstemp(dir=self.configuration.temporary_directory)
-            havetmpfile = True
-            os.sendfile(temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
-            os.fdopen(temporary_file[0]).close()
+            self.temporary_file = tempfile.mkstemp(dir=self.configuration.temporary_directory)
+            self.havetmpfile = True
+            os.sendfile(self.temporary_file[0], self.infile.fileno(), self.offset, self.unpacked_size)
+            os.fdopen(self.temporary_file[0]).close()
 
         if self.havetmpfile:
-            p = subprocess.Popen(['lrzip', '-d', temporary_file[1], '-o', '-'], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+            p = subprocess.Popen(['lrzip', '-d', self.temporary_file[1], '-o', '-'],
+                    stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         else:
-            p = subprocess.Popen(['lrzip', '-d', self.infile.name, '-o', '-'], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+            p = subprocess.Popen(['lrzip', '-d', self.infile.name, '-o', '-'],
+                    stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
         (outputmsg, errormsg) = p.communicate()
 
@@ -112,9 +114,11 @@ class LrzipUnpackParser(UnpackParser):
 
         with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
             if self.havetmpfile:
-                p = subprocess.Popen(['lrzip', '-d', temporary_file[1], '-o', '-'], stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
+                p = subprocess.Popen(['lrzip', '-d', self.temporary_file[1], '-o', '-'],
+                    stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
             else:
-                p = subprocess.Popen(['lrzip', '-d', self.infile.name, '-o', '-'], stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
+                p = subprocess.Popen(['lrzip', '-d', self.infile.name, '-o', '-'],
+                    stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
 
             (outputmsg, errormsg) = p.communicate()
 

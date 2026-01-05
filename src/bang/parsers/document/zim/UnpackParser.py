@@ -21,7 +21,6 @@
 import bz2
 import hashlib
 import lzma
-import os
 import pathlib
 import zlib
 
@@ -73,7 +72,7 @@ class ZimUnpackParser(UnpackParser):
                 cluster_flag = cluster.cluster.flag
             self.unpacked_size = self.data.header.checksum + 16
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # compute the checksum
         self.infile.seek(0)
@@ -108,7 +107,7 @@ class ZimUnpackParser(UnpackParser):
                     reader = zstandard.ZstdDecompressor().stream_reader(cluster.cluster.body.data)
                     cluster_data = reader.read()
                 except Exception as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
                 blobs = self.parse_cluster_data(cluster_data, offset_size)
                 blobs_per_cluster[cluster_count] = len(blobs) - 1
             elif cluster.cluster.flag.compressed == zim.Zim.Compression.xz:
@@ -116,7 +115,7 @@ class ZimUnpackParser(UnpackParser):
                 try:
                     cluster_data = decompressor.decompress(cluster.cluster.body.data)
                 except Exception as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
                 blobs = self.parse_cluster_data(cluster_data, offset_size)
                 blobs_per_cluster[cluster_count] = len(blobs) - 1
             elif cluster.cluster.flag.compressed == zim.Zim.Compression.zlib:
@@ -124,7 +123,7 @@ class ZimUnpackParser(UnpackParser):
                 try:
                     cluster_data = decompressor.decompress(cluster.cluster.body.data)
                 except Exception as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
                 blobs = self.parse_cluster_data(cluster_data, offset_size)
                 blobs_per_cluster[cluster_count] = len(blobs) - 1
             elif cluster.cluster.flag.compressed == zim.Zim.Compression.bzip2:
@@ -132,7 +131,7 @@ class ZimUnpackParser(UnpackParser):
                 try:
                     cluster_data = decompressor.decompress(cluster.cluster.body.data)
                 except Exception as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
                 blobs = self.parse_cluster_data(cluster_data, offset_size)
                 blobs_per_cluster[cluster_count] = len(blobs) - 1
             else:
@@ -148,7 +147,7 @@ class ZimUnpackParser(UnpackParser):
 
             # sanity check: a redirect should point to
             # a valid index
-            if type(entry.entry.body) == zim.Zim.Redirect:
+            if isinstance(entry.entry.body, zim.Zim.Redirect):
                 check_condition(entry.entry.body.redirect_index <= num_entries,
                                 "invalid redirect index")
             else:
@@ -202,7 +201,7 @@ class ZimUnpackParser(UnpackParser):
 
         entry_counter = 0
         for entry in self.data.url_pointers.entries:
-            if type(entry.entry.body) == zim.Zim.Redirect:
+            if isinstance(entry.entry.body, zim.Zim.Redirect):
                 if entry.entry.body.url != '':
                     name = entry.entry.body.url
                 elif entry.entry.body.title != '':

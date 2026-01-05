@@ -39,7 +39,7 @@ class LdSoConfUnpackParser(UnpackParser):
             ld_so_conf = open(self.infile.name, 'r', newline='')
         except Exception as e:
             ld_so_conf.close()
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         data_unpacked = False
         len_unpacked = 0
@@ -60,7 +60,7 @@ class LdSoConfUnpackParser(UnpackParser):
                 len_unpacked += len(ld_so_line)
                 data_unpacked = True
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             ld_so_conf.close()
 

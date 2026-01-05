@@ -38,10 +38,9 @@ class DlinkRomfsUnpackParser(UnpackParser):
         try:
             self.data = dlink_romfs.DlinkRomfs.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.unpacked_size = 0
-        ct = 0
         for entry in self.data.entries:
             self.unpacked_size = max(self.unpacked_size, entry.ofs_entry + entry.len_entry)
         check_condition(self.infile.size >= self.unpacked_size, "not enough data")

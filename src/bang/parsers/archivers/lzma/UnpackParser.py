@@ -19,7 +19,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import lzma
-import os
 import pathlib
 
 from bang.UnpackParser import UnpackParser, check_condition
@@ -75,11 +74,11 @@ class LzmaBaseUnpackParser(UnpackParser):
         while bytesread != 0:
             try:
                 decompressor.decompress(buf)
-            except EOFError as e:
+            except EOFError:
                 break
             except Exception as e:
                 # no data could be successfully unpacked
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
             self.unpacked_size += bytesread - len(decompressor.unused_data)
 

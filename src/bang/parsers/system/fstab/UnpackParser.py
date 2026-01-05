@@ -37,7 +37,7 @@ class FstabUnpackParser(UnpackParser):
             fstab_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
             fstab_file.close()
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.entries = []
 
@@ -76,7 +76,7 @@ class FstabUnpackParser(UnpackParser):
                 len_unpacked += len(fstab_line)
                 data_unpacked = True
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             fstab_file.close()
 

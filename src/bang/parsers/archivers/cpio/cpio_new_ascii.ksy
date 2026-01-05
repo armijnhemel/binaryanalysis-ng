@@ -18,10 +18,9 @@ types:
         # new ascii: The pathname is followed by NUL bytes so that the total
         # size of the fixed header plus pathname is a multiple of four.
         # Likewise, the file data is padded to a multiple of four bytes. 
-        type: str
-        encoding: ascii
+        type: strz
+        encoding: utf-8
         size: header.nsize
-        terminator: 0
       - id: filename_padding
         size: (4 - (( header.nsize + header.hsize ) % 4)) % 4
       - id: filedata 

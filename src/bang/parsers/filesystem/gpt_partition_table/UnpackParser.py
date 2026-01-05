@@ -21,9 +21,9 @@
 import os
 import uuid
 import pathlib
-from . import gpt_partition_table
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
+from . import gpt_partition_table
 
 class GptPartitionTableUnpackParser(UnpackParser):
     pretty_name = 'gpt'
@@ -37,7 +37,7 @@ class GptPartitionTableUnpackParser(UnpackParser):
                 partition_start = e.first_lba * self.data.sector_size
                 partition_end = (e.last_lba + 1) * self.data.sector_size
         except BaseException as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def calculate_unpacked_size(self):
         # According to https://web.archive.org/web/20080321063028/http://technet2.microsoft.com/windowsserver/en/library/bdeda920-1f08-4683-9ffb-7b4b50df0b5a1033.mspx?mfr=true
@@ -56,7 +56,7 @@ class GptPartitionTableUnpackParser(UnpackParser):
         try:
             self.unpacked_size = (self.data.primary.backup_lba+1)*self.data.sector_size
         except BaseException as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         all_entries_size = self.data.primary.entries_size * self.data.primary.entries_count
         self.unpacked_size = max(self.unpacked_size, self.data.primary.entries_start * self.data.sector_size + all_entries_size)
@@ -77,7 +77,7 @@ class GptPartitionTableUnpackParser(UnpackParser):
             partition_end = (e.last_lba + 1) * self.data.sector_size
             partition_ext = 'part'
 
-            outfile = "unpacked.gpt-partition%d.%s" % (partition_number, partition_ext)
+            outfile = f"unpacked.gpt-partition{partition_number,}.{partition_ext}"
             with meta_directory.unpack_regular_file(pathlib.Path(outfile)) as (unpacked_md, f):
                 os.sendfile(f.fileno(), self.infile.fileno(), partition_start, partition_end - partition_start)
                 with unpacked_md.open(open_file=False):
@@ -98,4 +98,3 @@ class GptPartitionTableUnpackParser(UnpackParser):
             metadata['partitions'].append({'uuid': guid, 'name': e.name.split('\x00')[0]})
 
         return metadata
-

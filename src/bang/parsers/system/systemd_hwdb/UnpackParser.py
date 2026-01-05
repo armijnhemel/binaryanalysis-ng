@@ -20,7 +20,7 @@
 
 import collections
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import systemd_hwdb
@@ -54,9 +54,9 @@ class SystemdHwdbUnpackParser(UnpackParser):
                             filename = v.filename
                 except IndexError:
                     break
-            
+
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     labels = ['systemd', 'resource']
     metadata = {}

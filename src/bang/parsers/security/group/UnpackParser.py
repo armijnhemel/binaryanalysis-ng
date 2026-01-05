@@ -37,7 +37,7 @@ class GroupUnpackParser(UnpackParser):
             group_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
             group_file.close()
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.entries = []
 
@@ -54,7 +54,7 @@ class GroupUnpackParser(UnpackParser):
                 try:
                     gid = int(fields[2])
                 except ValueError as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
 
                 if fields[3] != '':
                     members = fields[3].split(',')
@@ -72,7 +72,7 @@ class GroupUnpackParser(UnpackParser):
                 len_unpacked += len(group_line)
                 data_unpacked = True
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             group_file.close()
 

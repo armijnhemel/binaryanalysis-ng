@@ -18,11 +18,9 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
-import pathlib
-
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
-from kaitaistruct import ValidationFailedError, UndecidedEndiannessError
+from kaitaistruct import ValidationFailedError
 from . import btf, btf_ext
 
 
@@ -37,7 +35,7 @@ class BtfUnpackParser(UnpackParser):
         try:
             self.data = btf.Btf.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     labels = ['btf']
 
@@ -59,7 +57,7 @@ class BtfExtUnpackParser(UnpackParser):
         try:
             self.data = btf_ext.BtfExt.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     labels = ['btf_ext']
     metadata = {}

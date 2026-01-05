@@ -19,7 +19,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import collections
-import os
 import pathlib
 import shutil
 import stat
@@ -100,7 +99,7 @@ class ErofsUnpacker(UnpackParser):
                 except IndexError:
                     break
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     # make sure that self.unpacked_size is not overwritten
     def calculate_unpacked_size(self):

@@ -20,7 +20,7 @@
 
 import pathlib
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import gdfw
@@ -38,7 +38,7 @@ class GdfwUnpackParser(UnpackParser):
         try:
             self.data = gdfw.Gdfw.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         if self.data.header.len_hostfw != 0:

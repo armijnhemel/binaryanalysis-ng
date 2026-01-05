@@ -47,12 +47,12 @@ class PcfUnpackParser(UnpackParser):
             self.data = pcf_font.PcfFont.from_io(self.infile)
             check_condition(self.data.num_tables > 0,
                             "invalid number of tables")
-            # this is a bit of an ugly hack to detect if the file
-            # has been truncated.
+            # force reading the data is an ugly hack to detect
+            # if the file has been truncated
             for i in self.data.tables:
-                 a = type(i.body)
+                a = type(i.body)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def calculate_unpacked_size(self):
         self.unpacked_size = 0

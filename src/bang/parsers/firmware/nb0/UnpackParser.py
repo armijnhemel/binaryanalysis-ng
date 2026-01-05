@@ -41,7 +41,7 @@ class Nb0UnpackParser(UnpackParser):
                 # read data because Kaitai Struct evaluates instances lazily
                 len_data = len(self.data.partitions[entry].body)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         check_condition(self.unpacked_size <= self.infile.size,
                         "partitions cannot be outside of file")
 
@@ -62,7 +62,7 @@ class Nb0UnpackParser(UnpackParser):
             if partition_name in seen_partitions:
                 counter = 1
                 while True:
-                    new_partition_name = "%s-renamed-%d" % (partition_name, counter)
+                    new_partition_name = f"{partition_name}-renamed-{counter}"
                     if new_partition_name not in seen_partitions:
                         partition_name = new_partition_name
                         out_labels.append('renamed')

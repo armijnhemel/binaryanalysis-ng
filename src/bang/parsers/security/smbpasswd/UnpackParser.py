@@ -39,7 +39,7 @@ class SmbPasswdUnpackParser(UnpackParser):
             smbpasswd_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
             smbpasswd_file.close()
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.entries = []
 
@@ -54,9 +54,9 @@ class SmbPasswdUnpackParser(UnpackParser):
 
                 check_condition(len(fields) >= 6, "invalid number of entries")
                 try:
-                   uid = int(fields[1])
+                    uid = int(fields[1])
                 except ValueError as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
 
                 # next field is the LANMAN password hash, 32 hex digits, or all X
                 check_condition(len(fields[2]) == 32, "invalid LANMAN hash (wrong length)")
@@ -64,15 +64,15 @@ class SmbPasswdUnpackParser(UnpackParser):
                 if fields[2] != 32 * 'X':
                     try:
                         binascii.unhexlify(fields[2])
-                    except binascii.Error:
-                        raise UnpackParserException("invalid LANMAN hash")
+                    except binascii.Error as e:
+                        raise UnpackParserException("invalid LANMAN hash") from e
 
                 # next field is the NT password hash, 32 hex digits
                 check_condition(len(fields[3]) == 32, "invalid NT password hash (wrong length)")
                 try:
                     binascii.unhexlify(fields[3])
-                except binascii.Error:
-                    raise UnpackParserException("invalid NT password hash")
+                except binascii.Error as e:
+                    raise UnpackParserException("invalid NT password hash") from e
 
                 # next field is accountflags, always 13 characters
                 check_condition(len(fields[4]) == 13, "invalid account flags (wrong length)")
@@ -98,7 +98,7 @@ class SmbPasswdUnpackParser(UnpackParser):
                 len_unpacked += len(shadow_line)
                 data_unpacked = True
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             smbpasswd_file.close()
 

@@ -20,7 +20,7 @@
 
 import pathlib
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import tplink_tx6610v4
@@ -38,7 +38,7 @@ class TplinkkUnpackParser(UnpackParser):
         try:
             self.data = tplink.Tplink.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def calculate_unpacked_size(self):
         self.unpacked_size = self.data.header.len_image
@@ -92,7 +92,7 @@ class TplinkTx6610v4kUnpackParser(UnpackParser):
         try:
             self.data = tplink_tx6610v4.TplinkTx6610v4.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         # first the kernel

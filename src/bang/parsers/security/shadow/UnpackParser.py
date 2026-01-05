@@ -37,7 +37,7 @@ class ShadowUnpackParser(UnpackParser):
             shadow_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
             shadow_file.close()
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.entries = []
 
@@ -52,20 +52,20 @@ class ShadowUnpackParser(UnpackParser):
 
                 check_condition(len(fields) == 9, "invalid number of entries")
                 try:
-                   if fields[2] != '':
-                       date_last_change = int(fields[2])
-                   if fields[3] != '':
-                       minimum_password_age = int(fields[3])
-                   if fields[4] != '':
-                       maximmum_password_age = int(fields[4])
-                   if fields[5] != '':
-                       password_warning_period = int(fields[5])
-                   if fields[6] != '':
-                       password_inactivity_period = int(fields[6])
-                   if fields[7] != '':
-                       account_expiration_date = int(fields[7])
+                    if fields[2] != '':
+                        date_last_change = int(fields[2])
+                    if fields[3] != '':
+                        minimum_password_age = int(fields[3])
+                    if fields[4] != '':
+                        maximmum_password_age = int(fields[4])
+                    if fields[5] != '':
+                        password_warning_period = int(fields[5])
+                    if fields[6] != '':
+                        password_inactivity_period = int(fields[6])
+                    if fields[7] != '':
+                        account_expiration_date = int(fields[7])
                 except ValueError as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
 
                 # store a few entries
                 entry = {}
@@ -77,7 +77,7 @@ class ShadowUnpackParser(UnpackParser):
                 len_unpacked += len(shadow_line)
                 data_unpacked = True
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             shadow_file.close()
 

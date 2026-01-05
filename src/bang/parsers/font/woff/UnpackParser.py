@@ -48,7 +48,7 @@ class WoffUnpackParser(UnpackParser):
                     check_condition(len(data) == table.len_uncompressed_data,
                                     "invalid zlib compressed data")
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     labels = ['woff', 'font', 'resource']
     metadata = {}

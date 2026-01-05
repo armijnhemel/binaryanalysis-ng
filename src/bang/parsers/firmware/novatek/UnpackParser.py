@@ -37,7 +37,7 @@ class NovatekUnpackParser(UnpackParser):
         try:
             self.data = novatek.Novatek.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     labels = ['novatek', 'firmware']
     metadata = {}

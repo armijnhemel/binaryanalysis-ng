@@ -24,7 +24,7 @@ Extract bootloader files as found on some Android devices made by ASUS.
 
 import pathlib
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import android_bootldr_asus
@@ -41,7 +41,7 @@ class AndroidAsusBootUnpackParser(UnpackParser):
         try:
             self.data = android_bootldr_asus.AndroidBootldrAsus.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         chunk_to_files = {'IFWI!!!!': 'ifwi.bin',

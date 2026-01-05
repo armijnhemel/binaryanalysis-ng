@@ -39,7 +39,7 @@ class AndroidImgdataUnpackParser(UnpackParser):
             for image in self.data.images:
                 self.unpacked_size = max(self.unpacked_size, image.ofs_image + image.len_image)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         check_condition(self.unpacked_size <= self.infile.size, "data outside file")
 
     # make sure that self.unpacked_size is not overwritten

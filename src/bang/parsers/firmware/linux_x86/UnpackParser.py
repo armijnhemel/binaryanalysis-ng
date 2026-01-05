@@ -37,8 +37,9 @@ class LinuxX86UnpackParser(UnpackParser):
         try:
             self.data = linux_x86.LinuxX86.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         self.unpacked_size = self.infile.tell()
+        check_condition(self.data.header.version.minor >= 8, "too old to have a payload")
         if self.data.header.ofs_payload != 0:
             self.unpacked_size = self.data.header.real_mode_code_size + self.data.header.ofs_payload + self.data.header.len_payload
 

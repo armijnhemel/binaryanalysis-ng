@@ -23,13 +23,13 @@ Unpacker for Apple .DS_Store files, frequently found in archives
 created on MacOS.
 '''
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import ds_store
 
 
-class DS_Store(UnpackParser):
+class DSStoreUnpackParser(UnpackParser):
     extensions = []
     signatures = [
         (4, b'Bud1')
@@ -44,7 +44,7 @@ class DS_Store(UnpackParser):
             # has been truncated.
             a = type(self.data.buddy_allocator_body)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def calculate_unpacked_size(self):
         self.unpacked_size = self.data.buddy_allocator_header.ofs_bookkeeping_info_block + \

@@ -46,7 +46,7 @@ class SshKnownHostsUnpackParser(UnpackParser):
             ssh_file = open(self.infile.name, 'r', newline='')
         except Exception as e:
             ssh_file.close()
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         data_unpacked = False
         len_unpacked = 0
@@ -94,7 +94,7 @@ class SshKnownHostsUnpackParser(UnpackParser):
                 len_unpacked += len(ssh_line)
                 data_unpacked = True
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
         finally:
             ssh_file.close()
 

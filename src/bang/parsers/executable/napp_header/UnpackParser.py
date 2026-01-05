@@ -35,7 +35,7 @@ class NappHeaderClassUnpackParser(UnpackParser):
         try:
             self.data = android_nanoapp_header.AndroidNanoappHeader.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     labels = ['android', 'nano app']
     metadata = {}

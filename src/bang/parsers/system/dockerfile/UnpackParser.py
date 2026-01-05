@@ -18,11 +18,9 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
-import pathlib
-
 import dockerfile_parse
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 
 
@@ -40,10 +38,10 @@ class DockerfileUnpackParser(UnpackParser):
         try:
             dockerfileparser = dockerfile_parse.DockerfileParser(self.infile.name)
 
-            # as the contents are lazily evaluated force evaluation
+            # as contents are lazily evaluated by Kaitai force evaluation
             dockerfileparser.content
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.unpacked_size = self.infile.size
 

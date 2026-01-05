@@ -41,7 +41,7 @@ class RomfsUnpackParser(UnpackParser):
         try:
             self.data = romfs.Romfs.from_io(self.infile)
         except (UnicodeDecodeError, ValidationFailedError, Exception) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         next_headers = set()
         for f in self.data.files.files:
@@ -94,16 +94,16 @@ class RomfsUnpackParser(UnpackParser):
             check_condition(self.infile.tell() <= self.data.len_file,
                             "file cannot be outside of romfs")
 
-            if file_header.name != '.' and file_header.name != '..':
+            if file_header.name not in set(['.', '..']):
                 self.offset_to_name[curoffset] = curcwd / file_header.name
 
             if file_header.filetype == romfs.Romfs.Filetypes.hardlink:
                 # hard link, target is in spec.info
-                if file_header.name != '.' and file_header.name != '..':
+                if file_header.name not in set(['.', '..']):
                     check_condition(file_header.spec_info in self.offset_to_name, "invalid link")
             elif file_header.filetype == romfs.Romfs.Filetypes.directory:
                 # directory: the next header points to the first file header.
-                if file_header.name != '.' and file_header.name != '..':
+                if file_header.name not in set(['.', '..']):
                     offsets.append((file_header.spec_info, curcwd / file_header.name))
             elif file_header.filetype == romfs.Romfs.Filetypes.regular_file:
                 pass
@@ -111,7 +111,7 @@ class RomfsUnpackParser(UnpackParser):
                 try:
                     file_header.data.decode()
                 except UnicodeDecodeError as e:
-                    raise UnpackParserException(e.args)
+                    raise UnpackParserException(e.args) from e
             elif file_header.filetype == romfs.Romfs.Filetypes.block_device:
                 pass
             elif file_header.filetype == romfs.Romfs.Filetypes.character_device:
@@ -151,7 +151,7 @@ class RomfsUnpackParser(UnpackParser):
 
             if file_header.filetype == romfs.Romfs.Filetypes.hardlink:
                 # hard link, target is in spec.info
-                if file_header.name != '.' and file_header.name != '..':
+                if file_header.name not in set(['.', '..']):
 
                     # grab the name of the target, turn it into a full path
                     source_target_name = self.offset_to_name[file_header.spec_info]
@@ -164,7 +164,7 @@ class RomfsUnpackParser(UnpackParser):
                     meta_directory.unpack_hardlink(file_path, source_target_name)
 
             elif file_header.filetype == romfs.Romfs.Filetypes.directory:
-                if file_header.name != '.' and file_header.name != '..':
+                if file_header.name not in set(['.', '..']):
                     file_path = curcwd / file_header.name
                     meta_directory.unpack_directory(file_path)
                     offsets.append((file_header.spec_info, curcwd / file_header.name))

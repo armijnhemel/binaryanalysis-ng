@@ -44,7 +44,7 @@ class Minix1lUnpackParser(UnpackParser):
         try:
             self.data = minix1l.Minix1l.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.inode_to_name = {}
         self.inode_to_name[1] = pathlib.Path('')

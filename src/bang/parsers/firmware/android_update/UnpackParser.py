@@ -32,7 +32,6 @@ checks. The Protobuf generated parsers is then used to extract the data.
 import bz2
 import hashlib
 import lzma
-import os
 import pathlib
 
 from bang.UnpackParser import UnpackParser, check_condition
@@ -53,21 +52,21 @@ class AndroidUpdateUnpackParser(UnpackParser):
         try:
             self.data = android_update.AndroidUpdate.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # now parse the manifest data (version 1) or the partitions (version 2)
         try:
             self.manifest_data = update_metadata_pb2.DeltaArchiveManifest()
             self.manifest_data.ParseFromString(self.data.manifest)
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # and the signatures
         try:
             self.signatures_data = update_metadata_pb2.Signatures()
             self.signatures_data.ParseFromString(self.data.manifest_signature)
         except Exception as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         self.start_of_payload = self.infile.tell()
 
@@ -116,7 +115,7 @@ class AndroidUpdateUnpackParser(UnpackParser):
                 signatures = update_metadata_pb2.Signatures()
                 signatures.ParseFromString(self.data.manifest_signature)
             except Exception as e:
-                raise UnpackParserException(e.args)
+                raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         if self.data.major_version == 2:

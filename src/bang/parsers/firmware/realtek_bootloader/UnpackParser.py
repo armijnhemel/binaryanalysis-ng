@@ -20,7 +20,7 @@
 
 import pathlib
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import realtek_bootloader
@@ -49,7 +49,7 @@ class RealtekBootloaderUnpackParser(UnpackParser):
 
             # TODO: checksum
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # read the next 4 bytes to see if there is a root file system
         pos = self.infile.tell()
@@ -60,7 +60,7 @@ class RealtekBootloaderUnpackParser(UnpackParser):
 
                 # TODO: checksum
                 self.has_rootfs = True
-            except (Exception, ValidationFailedError) as e:
+            except (Exception, ValidationFailedError):
                 pass
 
     def unpack(self, meta_directory):

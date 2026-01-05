@@ -43,7 +43,7 @@ class ZchunkUnpackParser(UnpackParser):
         try:
             self.data = zchunk.Zchunk.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
         # check if the file starts at offset 0 as unzck expects that
         # zchunk data starts at offset 0.

@@ -19,11 +19,10 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import io
-import os
 import pathlib
 import zipfile
 
-from bang.UnpackParser import UnpackParser, check_condition
+from bang.UnpackParser import UnpackParser
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import crx
@@ -40,7 +39,7 @@ class CrxUnpackParser(UnpackParser):
         try:
             self.data = crx.Crx.from_io(self.infile)
         except (Exception, ValidationFailedError) as e:
-            raise UnpackParserException(e.args)
+            raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         zip_offset = self.data.header.len_header
@@ -61,7 +60,7 @@ class CrxUnpackParser(UnpackParser):
                 with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                     outfile.write(crx_zip.read(z))
                     yield unpacked_md
-            except Exception as e:
+            except Exception:
                 pass
 
     labels = ['crx', 'chrome']
