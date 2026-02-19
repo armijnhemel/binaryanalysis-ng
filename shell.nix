@@ -28,7 +28,7 @@ let
     mutf8
     python-lzo
     parameterized
-    pdfminer
+    pdfminer-six
     pefile
     pillow
     protobuf
