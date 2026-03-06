@@ -43,7 +43,6 @@
 # TODO: colour edges for dot/graphviz
 
 import collections
-import configparser
 import os
 import pathlib
 import pickle
@@ -251,81 +250,23 @@ def create_cypher(outputdir, binaries, linked_libraries,
 
 
 @click.command(short_help='process BANG result files and output ELF graphs')
-@click.option('--config-file', '-c', required=True, help='configuration file',
-              type=click.File('r'))
 @click.option('--directory', '-d', 'result_directory', required=True,
-              help='BANG result directory', type=click.Path(exists=True))
-@click.option('--output', '-o', 'output_format', help='output format',
+              help='BANG result directory', type=click.Path(path_type=pathlib.Path, exists=True))
+@click.option('--format', '-f', 'output_format', help='output format',
               type=click.Choice(['cypher', 'dot', 'graphviz'], case_sensitive=False))
-def main(config_file, result_directory, output_format):
-
-    bang_result_directory = pathlib.Path(result_directory)
-
-    if not bang_result_directory.is_dir():
-        print("%s is not a directory" % bang_result_directory, file=sys.stderr)
+@click.option('--output', '-o', 'output_directory', help='output directory',
+              required=True, type=click.Path(path_type=pathlib.Path, exists=True))
+def main(result_directory, output_format, output_directory):
+    if not result_directory.is_dir():
+        print(f"{result_directory} is not a directory", file=sys.stderr)
         sys.exit(1)
 
-    config = configparser.ConfigParser()
-
-    try:
-        config.read_file(config_file)
-    except Exception:
-        print("Cannot read configuration file", file=sys.stderr)
+    if not output_directory.is_dir():
+        print(f"{output_directory} is not a directory", file=sys.stderr)
         sys.exit(1)
-
-    # process the configuration file and store settings
-    config_settings = {}
-
-    outputdir = None
-    for section in config.sections():
-        if output_format == 'dot':
-            if section == 'dot':
-                try:
-                    outputdir = pathlib.Path(config.get(section, 'outputdir'))
-                except:
-                    print("Directory to write graphviz files not configured",
-                          file=sys.stderr)
-                    config_file.close()
-                    sys.exit(1)
-                if not outputdir.exists():
-                    print("Directory to write graphviz files does not exist",
-                          file=sys.stderr)
-                    config_file.close()
-                    sys.exit(1)
-                if not outputdir.is_dir():
-                    print("Directory to write graphviz files is not a directory",
-                          file=sys.stderr)
-                    config_file.close()
-                    sys.exit(1)
-        if output_format == 'cypher':
-            if section == 'cypher':
-                try:
-                    outputdir = pathlib.Path(config.get(section, 'outputdir'))
-                except:
-                    print("Directory to write Cypher files not configured",
-                          file=sys.stderr)
-                    config_file.close()
-                    sys.exit(1)
-                if not outputdir.exists():
-                    print("Directory to write Cypher files does not exist",
-                          file=sys.stderr)
-                    config_file.close()
-                    sys.exit(1)
-                if not outputdir.is_dir():
-                    print("Directory to write Cypher files is not a directory",
-                          file=sys.stderr)
-                    config_file.close()
-                    sys.exit(1)
-    config_file.close()
-
-    if output_format == 'cypher':
-        if outputdir is None:
-            print("Directory to write output files to not configured",
-                  file=sys.stderr)
-            sys.exit(1)
 
     # open the top level pickle
-    bang_pickle = bang_result_directory / 'info.pkl'
+    bang_pickle = result_directory / 'info.pkl'
     if not bang_pickle.exists():
         print("result pickle not found, exiting", file=sys.stderr)
         sys.exit(1)
@@ -435,21 +376,21 @@ def main(config_file, result_directory, output_format):
         if 'unpacked_relative_files' in bang_data:
             for unpacked_file in bang_data['unpacked_relative_files']:
                 file_meta_directory = bang_data['unpacked_relative_files'][unpacked_file]
-                file_pickle = bang_result_directory.parent / file_meta_directory / 'info.pkl'
+                file_pickle = result_directory.parent / file_meta_directory / 'info.pkl'
                 child_node_name = str(unpacked_file)
                 file_deque.append(file_pickle)
 
         if 'unpacked_absolute_files' in bang_data:
             for unpacked_file in bang_data['unpacked_absolute_files']:
                 file_meta_directory = bang_data['unpacked_absolute_files'][unpacked_file]
-                file_pickle = bang_result_directory.parent / file_meta_directory / 'info.pkl'
+                file_pickle = result_directory.parent / file_meta_directory / 'info.pkl'
                 child_node_name = str(unpacked_file)
                 file_deque.append(file_pickle)
 
         if 'extracted_files' in bang_data:
             for unpacked_file in bang_data['extracted_files']:
                 file_meta_directory = bang_data['extracted_files'][unpacked_file]
-                file_pickle = bang_result_directory.parent / file_meta_directory / 'info.pkl'
+                file_pickle = result_directory.parent / file_meta_directory / 'info.pkl'
                 child_node_name = str(unpacked_file)
                 file_deque.append(file_pickle)
 
@@ -547,11 +488,11 @@ def main(config_file, result_directory, output_format):
 
                     # now generate output
                     if output_format == 'cypher':
-                        create_cypher(outputdir, binaries, linked_libraries,
+                        create_cypher(output_directory, binaries, linked_libraries,
                                      filename_to_full_path, elf_to_exported_symbols,
                                      elf_to_imported_symbols)
                     elif output_format == 'dot':
-                        create_dot(outputdir, binaries, linked_libraries,
+                        create_dot(output_directory, binaries, linked_libraries,
                                    filename_to_full_path, elf_to_exported_symbols,
                                    elf_to_imported_symbols, hashes)
 
