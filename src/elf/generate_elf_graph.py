@@ -255,25 +255,15 @@ def create_cypher(outputdir, binaries, linked_libraries,
               type=click.File('r'))
 @click.option('--directory', '-d', 'result_directory', required=True,
               help='BANG result directory', type=click.Path(exists=True))
-@click.option('--output', '-o', help='output format')
-def main(config_file, result_directory, output):
+@click.option('--output', '-o', 'output_format', help='output format',
+              type=click.Choice(['cypher', 'dot', 'graphviz'], case_sensitive=False))
+def main(config_file, result_directory, output_format):
 
     bang_result_directory = pathlib.Path(result_directory)
 
     if not bang_result_directory.is_dir():
         print("%s is not a directory" % bang_result_directory, file=sys.stderr)
         sys.exit(1)
-
-    #supported_formats = ['text', 'cypher', 'graphviz']
-    supported_formats = ['cypher', 'dot']
-
-    # check the output format. By default it is cypher.
-    output_format = 'cypher'
-    if output is not None:
-        if output not in supported_formats:
-            print(f"Unsupported output format {output}", file=sys.stderr)
-            sys.exit(1)
-        output_format = output
 
     config = configparser.ConfigParser()
 
