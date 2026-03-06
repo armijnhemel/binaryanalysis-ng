@@ -12,12 +12,12 @@ let
     kaitaistruct
     packageurl-python
     parameterized
-    pdfminer
+    pdfminer-six
     psycopg2
     pydot
     pytest
     pyyaml
-    qiling
+    #qiling
     requests
     textual
     tlsh
@@ -33,6 +33,6 @@ pkgs.mkShell {
     openssl
     my-python
     qemu
-    utillinux
+    util-linux
   ];
 }
