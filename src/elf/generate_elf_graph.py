@@ -123,7 +123,7 @@ def create_dot(outputdir, binaries, linked_libraries,
 
 
 
-def createcypher(outputdir, binaries, linked_libraries,
+def create_cypher(outputdir, binaries, linked_libraries,
                  filename_to_full_path, elf_to_exported_symbols,
                  elf_to_imported_symbols):
     '''Create a Cypher file for each set of ELF files that belongs together'''
@@ -268,12 +268,12 @@ def main(config_file, result_directory, output):
     supported_formats = ['cypher', 'dot']
 
     # check the output format. By default it is cypher.
-    outputformat = 'cypher'
+    output_format = 'cypher'
     if output is not None:
         if output not in supported_formats:
             print(f"Unsupported output format {output}", file=sys.stderr)
             sys.exit(1)
-        outputformat = output
+        output_format = output
 
     config = configparser.ConfigParser()
 
@@ -288,7 +288,7 @@ def main(config_file, result_directory, output):
 
     outputdir = None
     for section in config.sections():
-        if outputformat == 'dot':
+        if output_format == 'dot':
             if section == 'dot':
                 try:
                     outputdir = pathlib.Path(config.get(section, 'outputdir'))
@@ -307,7 +307,7 @@ def main(config_file, result_directory, output):
                           file=sys.stderr)
                     config_file.close()
                     sys.exit(1)
-        if outputformat == 'cypher':
+        if output_format == 'cypher':
             if section == 'cypher':
                 try:
                     outputdir = pathlib.Path(config.get(section, 'outputdir'))
@@ -328,7 +328,7 @@ def main(config_file, result_directory, output):
                     sys.exit(1)
     config_file.close()
 
-    if outputformat == 'cypher':
+    if output_format == 'cypher':
         if outputdir is None:
             print("Directory to write output files to not configured",
                   file=sys.stderr)
@@ -556,11 +556,11 @@ def main(config_file, result_directory, output):
                     binaries = file_sets[f][e][b][m]
 
                     # now generate output
-                    if outputformat == 'cypher':
-                        createcypher(outputdir, binaries, linked_libraries,
+                    if output_format == 'cypher':
+                        create_cypher(outputdir, binaries, linked_libraries,
                                      filename_to_full_path, elf_to_exported_symbols,
                                      elf_to_imported_symbols)
-                    elif outputformat == 'dot':
+                    elif output_format == 'dot':
                         create_dot(outputdir, binaries, linked_libraries,
                                    filename_to_full_path, elf_to_exported_symbols,
                                    elf_to_imported_symbols, hashes)
