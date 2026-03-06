@@ -69,7 +69,7 @@ pkgs.mkShell {
     squashfsTools
     unrar
     unshield
-    utillinux
+    util-linux
     zchunk
   ];
 }
