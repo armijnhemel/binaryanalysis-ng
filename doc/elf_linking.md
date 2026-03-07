@@ -1,8 +1,8 @@
 CURRENTLY BROKEN
 
-This directory has scripts to create linking graphs for ELF files as unpacked
-by BANG. For background information either skip to the end of this file or
-read:
+The `src/elf` directory has scripts to create linking graphs for ELF files as
+unpacked by BANG. For background information either skip to the end of this
+file or read:
 
 <https://lwn.net/Articles/548216/>
 
@@ -22,39 +22,45 @@ and was adapted to work with output from BANG.
 * Neo4J (tested with 3.4.9 community edition) to load the resulting Cypher files
 * python3-pydot
 
+These can be (partially) installed by running:
+
+```
+$ nix-shell analysis.nix
+```
+
+in the top level directory.
+
 # License
 
 Licensed under the terms of the General Public License version 3
 
 SPDX-License-Identifier: GPL-3.0-only
 
-Copyright 2018-2022 - Armijn Hemel
+Copyright 2018-2026 - Armijn Hemel
 
 # Usage
 
 1. unpack a root file system of a firmware into a directory (example: /tmp/rootfs)
-2. adapt the configuration file to change the directory where Cypher files will be stored
-3. run the script
+2. run the script with the right parameters for output format and output directory
 
 This script can be used to generate graphs after unpacking a firmware with
 BANG as follows:
 
-    $ python3 generate_elf_graph.py -c /path/to/config -d /path/to/bang/result/directory -r root/in/firmware
+    $ python3 generate_elf_graph.py -d /path/to/bang/result/directory -f format -o /path/to/output/directory
 
 for example:
 
-    $ python3 generate_elf_graph.py -c graph.config -d ~/tmp/bang-scan-gpiy5nb2/ -r TEW-636APB-1002.bin-0x00150000-squashfs-1
+    $ python3 generate_elf_graph.py -d ~/tmp/bang-scan-gpiy5nb2/ -f cypher -o /tmp/cypher
 
 which creates a graph in Cypher format.
 
-To generate PNG and SVG files using Dot/graphviz supply the extra parameter
-`-o dot`:
+To generate PNG and SVG files using Dot/graphviz supply the parameter `-f dot`:
 
-    $ python3 generate_elf_graph.py -c /path/to/config -d /path/to/bang/result/directory -o dot -r root/in/firmware
+    $ python3 generate_elf_graph.py -c /path/to/config -d /path/to/bang/result/directory -f dot -o /path/to/output/directory
 
 for example:
 
-    $ python3 generate_elf_graph.py -c graph.config -d ~/tmp/bang-scan-gpiy5nb2/ -o dot -r TEW-636APB-1002.bin-0x00150000-squashfs-1
+    $ python3 generate_elf_graph.py -d ~/tmp/bang-scan-gpiy5nb2/ -f dot -o /tmp/dot
 
 # Loading graphs into Neo4J 
 
