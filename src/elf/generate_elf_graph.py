@@ -55,7 +55,7 @@ import click
 import pydot
 
 
-def createtext(outputdir, binaries, linked_libraries,
+def create_text(outputdir, binaries, linked_libraries,
                  filename_to_full_path, elf_to_exported_symbols,
                  elf_to_imported_symbols):
     '''Create a simple text output for each set of ELF files that belongs together'''
