@@ -64,7 +64,7 @@ def create_text(outputdir, binaries, linked_libraries,
     #
     # * file name
     # * list of dependencies
-    pass
+    return
 
 def create_dot(outputdir, binaries, linked_libraries,
                filename_to_full_path, elf_to_exported_symbols,
@@ -110,7 +110,7 @@ def create_dot(outputdir, binaries, linked_libraries,
                     if fl not in processed_nodes:
                         nodes_and_edges.append((lib_node, fl))
                         processed_nodes.add(fl)
-            except Exception as e:
+            except Exception:
                 break
 
         graph_filename_png = f"{filename.name}-{hashes[filename]}.png"
@@ -208,16 +208,16 @@ def create_cypher(outputdir, binaries, linked_libraries,
                 tmpexportsymbols.add((exp['name'], exp['type'], exp['binding']))
 
         for exp in tmpexportsymbols:
-            (symbolname, symboltype, symbolbinding) = exp
+            (symbol_name, symbol_type, symbol_binding) = exp
             while True:
                 placeholdername = ''.join(secrets.choice(string.ascii_letters) for i in range(8))
                 if placeholdername not in placeholder_to_symbol and placeholdername not in all_placeholder_names:
-                    placeholder_to_symbol[placeholdername] = symbolname
+                    placeholder_to_symbol[placeholdername] = symbol_name
                     break
-            symbol_to_placeholder[(symbolname, symboltype)] = placeholdername
+            symbol_to_placeholder[(symbol_name, symbol_type)] = placeholdername
             all_placeholder_names.add(placeholdername)
             cypherfileopen.write(", \n")
-            cypherfileopen.write("(%s:SYMBOL {name: '%s', type: '%s'})" % (symbol_to_placeholder[(symbolname, symboltype)], symbolname, symboltype))
+            cypherfileopen.write("(%s:SYMBOL {name: '%s', type: '%s'})" % (symbol_to_placeholder[(symbol_name, symbol_type)], symbol_name, symbol_type))
 
         # then declare for all the symbols which are exported
         for filename in binaries:
