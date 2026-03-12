@@ -129,6 +129,15 @@ for example:
 
     $ python3 generate_elf_graph.py -d ~/tmp/bang-scan-gpiy5nb2/ -f dot -o /tmp/dot
 
+# Challenges and shortcomings
+
+There are a few shortcomings when using this tool. First of all, it is
+restricted by file system and archive boundaries. Even though on a system
+files could be in different file systems that are mounted during run time
+(using different squashfs file systems has been observed, for example in Ubuntu
+snaps) it is currently not possible to properly reconstruct these mount points
+from the binary, so the scope is limited to single file systems or archives.
+
 # Loading graphs into Neo4J 
 
 To load and query the graphs in Neo4J some extra steps have to be taken.
@@ -137,7 +146,7 @@ To load and query the graphs in Neo4J some extra steps have to be taken.
 
 Get the community edition at:
 
-https://neo4j.com/download-center/
+<https://neo4j.com/download-center/>
 
 Since Neo4J tends to shuffle these download links around every once in a while
 they might not be accurate.
