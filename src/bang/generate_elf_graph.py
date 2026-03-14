@@ -54,6 +54,8 @@ import tempfile
 import click
 import pydot
 
+from .meta_directory import MetaDirectory, MetaDirectoryException
+
 
 def create_text(outputdir, binaries, linked_libraries,
                  filename_to_full_path, elf_to_exported_symbols,
