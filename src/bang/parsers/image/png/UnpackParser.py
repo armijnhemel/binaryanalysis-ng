@@ -136,8 +136,10 @@ class PngUnpackParser(UnpackParser):
                             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                                 outfile.write(zlib.decompress(i.body.data))
                                 yield unpacked_md
-                        except:
-                            pass
+                        except zlib.error as e:
+                            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                                outfile.write(i.body.data)
+                                yield unpacked_md
                     else:
                         with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                             outfile.write(i.body.data)
