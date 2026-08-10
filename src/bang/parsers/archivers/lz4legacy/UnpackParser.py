@@ -45,7 +45,7 @@ class Lz4legacyUnpackParser(UnpackParser):
         self.from_md = from_meta_directory
 
     def parse(self):
-        if shutil.which('lz4c') is None:
+        if shutil.which('lz4') is None:
             raise UnpackParserException("lz4c not installed")
         try:
             self.data = lz4_legacy.Lz4Legacy.from_io(self.infile)
@@ -81,9 +81,9 @@ class Lz4legacyUnpackParser(UnpackParser):
             os.fdopen(self.temporary_file[0]).close()
 
         if self.havetmpfile:
-            p = subprocess.Popen(['lz4c', '-cd', self.temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+            p = subprocess.Popen(['lz4', '-cd', self.temporary_file[1]], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         else:
-            p = subprocess.Popen(['lz4c', '-cd', self.infile.name], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+            p = subprocess.Popen(['lz4', '-cd', self.infile.name], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
         (outputmsg, errormsg) = p.communicate()
 
@@ -110,9 +110,9 @@ class Lz4legacyUnpackParser(UnpackParser):
 
         with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
             if self.havetmpfile:
-                p = subprocess.Popen(['lz4c', '-d', self.temporary_file[1]], stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
+                p = subprocess.Popen(['lzc', '-d', self.temporary_file[1]], stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
             else:
-                p = subprocess.Popen(['lz4c', '-cd', self.infile.name], stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
+                p = subprocess.Popen(['lz4', '-cd', self.infile.name], stdin=subprocess.PIPE, stdout=outfile, stderr=subprocess.PIPE)
 
             (outputmsg, errormsg) = p.communicate()
 
