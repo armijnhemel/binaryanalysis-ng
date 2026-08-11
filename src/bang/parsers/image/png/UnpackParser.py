@@ -50,7 +50,8 @@ KNOWN_CHUNKS = set(['IHDR', 'IDAT', 'IEND', 'PLTE', 'bKGD', 'cHRM', 'gAMA',
                     'vpAg', 'caNv', 'pCAL', 'tXMP', 'iDOT', 'prVW', 'mkBT',
                     'mkBS', 'mkTS', 'mkBF', 'orNT', 'sCAL', 'sTER', 'meTa',
                     'grAb', 'alPh', 'huBs', 'ptIc', 'snAp', 'viSt', 'pcLs',
-                    'raNd', 'dSIG', 'eXIf', 'eXif', 'skMf', 'skRf', 'atCh'])
+                    'raNd', 'dSIG', 'eXIf', 'eXif', 'skMf', 'skRf', 'atCh',
+                    'cICP', 'mDCV', 'cLLI', 'hRWL', 'caBX', 'seAl'])
 
 
 class PngUnpackParser(UnpackParser):
