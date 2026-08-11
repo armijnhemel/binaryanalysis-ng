@@ -58,7 +58,7 @@ the file `doc/kaitai-struct.md`.
 
 Additionally install `sasquatch`:
 
-<https://github.com/devttys0/sasquatch>
+<https://github.com/onekey-sec/sasquatch>
 
 ## Supported hardware
 

@@ -50,7 +50,8 @@ KNOWN_CHUNKS = set(['IHDR', 'IDAT', 'IEND', 'PLTE', 'bKGD', 'cHRM', 'gAMA',
                     'vpAg', 'caNv', 'pCAL', 'tXMP', 'iDOT', 'prVW', 'mkBT',
                     'mkBS', 'mkTS', 'mkBF', 'orNT', 'sCAL', 'sTER', 'meTa',
                     'grAb', 'alPh', 'huBs', 'ptIc', 'snAp', 'viSt', 'pcLs',
-                    'raNd', 'dSIG', 'eXIf', 'eXif', 'skMf', 'skRf', 'atCh'])
+                    'raNd', 'dSIG', 'eXIf', 'eXif', 'skMf', 'skRf', 'atCh',
+                    'cICP', 'mDCV', 'cLLI', 'hRWL', 'caBX', 'seAl'])
 
 
 class PngUnpackParser(UnpackParser):
@@ -90,8 +91,7 @@ class PngUnpackParser(UnpackParser):
                 computed_crc = binascii.crc32(i._raw_body, computed_crc)
             except:
                 computed_crc = binascii.crc32(i.body, computed_crc)
-            check_condition(computed_crc == int.from_bytes(i.crc, byteorder='big'),
-                    "invalid CRC")
+            check_condition(computed_crc == i.crc, "invalid CRC")
             self.chunknames.add(i.type)
             if i.type == 'IDAT':
                 idata += i.body
@@ -136,8 +136,10 @@ class PngUnpackParser(UnpackParser):
                             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                                 outfile.write(zlib.decompress(i.body.data))
                                 yield unpacked_md
-                        except:
-                            pass
+                        except zlib.error as e:
+                            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                                outfile.write(i.body.data)
+                                yield unpacked_md
                     else:
                         with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                             outfile.write(i.body.data)

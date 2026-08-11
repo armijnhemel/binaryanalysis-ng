@@ -28,7 +28,7 @@ let
     mutf8
     python-lzo
     parameterized
-    pdfminer
+    pdfminer-six
     pefile
     pillow
     protobuf
@@ -69,7 +69,7 @@ pkgs.mkShell {
     squashfsTools
     unrar
     unshield
-    utillinux
+    util-linux
     zchunk
   ];
 }

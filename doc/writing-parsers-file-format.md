@@ -1,4 +1,4 @@
-# Writing a parser
+# Writing a parser for a file format
 
 To support parsing or unpacking a new format it is necessary to write code
 that needs to be able to do the following:

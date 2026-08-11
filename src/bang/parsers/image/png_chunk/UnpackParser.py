@@ -43,7 +43,8 @@ KNOWN_CHUNKS = set([b'IHDR', b'IDAT', b'IEND', b'PLTE', b'bKGD', b'cHRM',
                     b'prVW', b'mkBT', b'mkBS', b'mkTS', b'mkBF', b'orNT',
                     b'sCAL', b'sTER', b'meTa', b'grAb', b'alPh', b'huBs',
                     b'ptIc', b'snAp', b'viSt', b'pcLs', b'raNd', b'dSIG',
-                    b'eXIf', b'eXif', b'skMf', b'skRf', b'atCh'])
+                    b'eXIf', b'eXif', b'skMf', b'skRf', b'atCh', b'cICP',
+                    b'mDCV', b'cLLI', b'hRWL', b'caBX', b'seAl'])
 
 
 class PngChunkUnpackParser(UnpackParser):
