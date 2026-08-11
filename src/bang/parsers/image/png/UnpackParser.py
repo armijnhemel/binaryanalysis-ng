@@ -91,8 +91,7 @@ class PngUnpackParser(UnpackParser):
                 computed_crc = binascii.crc32(i._raw_body, computed_crc)
             except:
                 computed_crc = binascii.crc32(i.body, computed_crc)
-            check_condition(computed_crc == int.from_bytes(i.crc, byteorder='big'),
-                    "invalid CRC")
+            check_condition(computed_crc == i.crc, "invalid CRC")
             self.chunknames.add(i.type)
             if i.type == 'IDAT':
                 idata += i.body
