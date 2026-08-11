@@ -16,7 +16,7 @@ doc-ref:
   - https://raw.githubusercontent.com/CyanogenMod/android_device_qcom_common/cm-14.1/dtbtool/dtbtool.txt (v3)
   - https://source.codeaurora.org/quic/kernel/skales/plain/dtbTool?id=1.6.0
   - web.archive.org/web/20160402060151if_/https://developer.qualcomm.com/qfile/28821/lm80-p0436-1_little_kernel_boot_loader_overview.pdf (section 2.4.1)
-  - https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/soc/qcom/socinfo.c?h=v5.19
+  - https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/soc/qcom/socinfo.c?id=b0bc160c311a0e7163c00a7e66116d28ce9771df
   - https://android.googlesource.com/kernel/msm/+/android-7.1.0_r0.2/drivers/soc/qcom/socinfo.c
   - https://github.com/brinlyau/P810D02_ZTE_T792_KitKat_3.4/blob/master/P810D02_ZTE_T792_KitKat_340_kernel/arch/arm/mach-msm/socinfo.c
   - https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/dt-bindings/arm/qcom,ids.h?id=f5bbbfec59b4e2fb7520a91de3df8a6174325d6a
@@ -514,6 +514,7 @@ enums:
     50: pm8350b
     51: pmr735a
     52: pmr735b
+    54: pm6350
     55: pm2250
     58: pm8450
     65: pm8010
@@ -523,3 +524,22 @@ enums:
     72: pmr735d
     73: pm8550
     74: pmk8550
+    76: pm7550ba
+    78: pmm8650au
+    79: pmm8650au_psail
+    80: pm7550
+    82: pmc8380
+    83: smb2360
+    86: pm8750b
+    87: pmd8028
+    88: pmc1020h
+    89: pmiv0104
+    90: pmiv0102
+    91: pmiv0108
+    92: pmk8850
+    93: pmh0101
+    94: pmau0102
+    95: smb2370
+    96: pmh0104
+    97: pmh0110
+    98: pmcx0102
