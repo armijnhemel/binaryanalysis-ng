@@ -393,6 +393,9 @@ def scan_signatures(scan_environment, meta_directory):
         for unpack_parser_cls in unpack_parser_classes:
             # try if the unpackparser works
             try:
+                if offset < file_scan_state.scanned_until: # we have passed this point in the file, ignore the result
+                    log.debug(f'scan_signatures[{meta_directory.md_path}]: skipping [{offset}:{file_scan_state.scanned_until}]')
+                    continue
                 unpack_parser = unpack_parser_cls(meta_directory, offset, scan_environment.configuration)
                 log.debug(f'scan_signatures[{meta_directory.md_path}]: trying parse at {meta_directory.file_path}:{offset} with {unpack_parser_cls} [{time.time_ns()}]')
                 unpack_parser.parse_from_offset()
