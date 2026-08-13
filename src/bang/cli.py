@@ -209,7 +209,7 @@ def scan(config_file, verbose, unpack_directory, temporary_directory, ignore_lis
     scan_pipeline = make_scan_pipeline()
 
     # create $jobs processes
-    processes = [ multiprocessing.Process(target = process_jobs, args = (scan_pipeline, scan_environment,)) for i in range(jobs)]
+    processes = [ multiprocessing.get_context('fork').Process(target = process_jobs, args = (scan_pipeline, scan_environment,)) for i in range(jobs)]
 
     # first create a meta directory for the file
     md = MetaDirectory(scan_environment.unpack_directory, None, True)
