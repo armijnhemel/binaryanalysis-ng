@@ -699,7 +699,7 @@ class ZipUnpackParser(UnpackParser):
                 os.unlink(self.temporary_file[1])
             return
 
-        # unpack archve comment. Archive comments (and file comments) can
+        # unpack archive comment. Archive comments (and file comments) can
         # contain binary data as the ZIP specification doesn't put any
         # restrictions on it.
         if self.zip_comment != b'':
