@@ -293,3 +293,9 @@ enums:
     0x91d3fd18:
         id: max78002
         doc: "Analog Devices MAX78002"
+    0x7d7a66ef:
+        id: py32f071_uvk5_v3
+        doc: "Quansheng UV-K5 V3 amateur radio based on Puya Semiconductor PY32F071"
+    0x3101f7c1:
+        id: esp32s31
+        doc: "ESP32-S31"
