@@ -27,6 +27,7 @@ import zstandard
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
+from . import cpio_new_ascii
 from . import rpm
 from . import rpm_no_utf8
 
@@ -93,11 +94,12 @@ class RpmUnpackParser(UnpackParser):
                 self.compressor_seen = True
                 self.compressor = i.body.values[0]
             if i.header_tag == self.data.HeaderTags.payload_format:
-                check_condition(self.payload_format == '', "duplicate compressor defined")
+                check_condition(self.payload_format == '', "duplicate payload format defined")
                 self.payload_format = i.body.values[0]
 
-        check_condition(self.payload_format in ['cpio', 'drpm'],
-                        'unsupported payload format')
+                # There are only two known payload formats
+                check_condition(self.payload_format in ['cpio', 'drpm'],
+                                'unsupported payload format')
 
         # test decompressing the payload
         if self.compressor == 'bzip2':
@@ -123,27 +125,44 @@ class RpmUnpackParser(UnpackParser):
             except Exception as e:
                 raise UnpackParserException(e.args) from e
 
-    def unpack(self, meta_directory):
-        if self.compressor == 'bzip2':
-            decompressor = bz2.BZ2Decompressor()
-            payload = decompressor.decompress(self.data.payload)
-        elif self.compressor in set(['lzma', 'xz']):
-            payload = lzma.decompress(self.data.payload)
-        elif self.compressor == 'zstd':
-            reader = zstandard.ZstdDecompressor().stream_reader(self.data.payload)
-            payload = reader.read()
-        else:
-            payload = gzip.decompress(self.data.payload)
+        if self.payload_format == 'cpio':
+            # check if this is a regular cpio or the special version for
+            # RPMv4 big files or RPMv6 by looking at the first few bytes
+            # and try to parse it to see if it is valid
+            if self.payload[:6] == b'070701':
+                try:
+                    cpio_new_ascii.CpioNewAscii.from_bytes(self.payload)
+                except (Exception, ValidationFailedError) as e:
+                    raise UnpackParserException(e.args) from e
+                except BaseException as e:
+                    raise UnpackParserException(e.args) from e
 
+
+    def unpack(self, meta_directory):
+        # Unpack the payload. Instead of relying on other unpackers (such as the 'cpio'
+        # one) it makes more sense to unpack here for a few reasons:
+        #
+        # * conceptually for the user this data is part of the RPM file
+        # * to succesfully unpack RPMv6 (and RPMv4 big files) data from the RPM header
+        #   is needed, as the CPIO archive in these files does not contain enough metadata
         if self.payload_format == 'drpm':
             file_path = pathlib.Path('drpm')
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
-                outfile.write(payload)
+                outfile.write(self.payload)
                 yield unpacked_md
         else:
+            # check if this is a regular cpio or the special version for
+            # RPMv4 big files or RPMv6 by looking at the first few bytes
+            if self.payload[:6] == b'070701':
+                # regular cpio
+                pass
+            elif self.payload[:6] == b'07070X':
+                # rpmv4 big files or rpmv6
+                pass
+
             file_path = pathlib.Path('cpio')
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
-                outfile.write(payload)
+                outfile.write(self.payload)
                 yield unpacked_md
 
     def calculate_unpacked_size(self):
@@ -151,7 +170,7 @@ class RpmUnpackParser(UnpackParser):
 
     @property
     def labels(self):
-        labels = [ 'rpm' ]
+        labels = ['rpm']
         if self.payload_format == 'drpm':
             labels.append('delta rpm')
         return labels
