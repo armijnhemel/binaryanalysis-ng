@@ -151,7 +151,7 @@ class RpmUnpackParser(UnpackParser):
 
     @property
     def labels(self):
-        labels = [ 'rpm' ]
+        labels = ['rpm']
         if self.payload_format == 'drpm':
             labels.append('delta rpm')
         return labels
