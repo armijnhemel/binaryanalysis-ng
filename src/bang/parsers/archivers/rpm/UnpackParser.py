@@ -27,6 +27,7 @@ import zstandard
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
+from . import cpio_new_ascii
 from . import rpm
 from . import rpm_no_utf8
 
@@ -124,6 +125,8 @@ class RpmUnpackParser(UnpackParser):
                 raise UnpackParserException(e.args) from e
 
         if self.payload_format == 'cpio':
+            # check if this is a regular cpio or the special version for
+            # RPMv4 big files or RPMv6 by looking at the first few bytes
             if self.payload[:6] == b'070701':
                 try:
                     cpio_new_ascii.CpioNewAscii.from_bytes(self.payload)
@@ -134,12 +137,27 @@ class RpmUnpackParser(UnpackParser):
 
 
     def unpack(self, meta_directory):
+        # Unpack the payload. Instead of relying on other unpackers (such as the 'cpio'
+        # one) it makes more sense to unpack here for a few reasons:
+        #
+        # * conceptually for the user this data is part of the RPM file
+        # * to succesfully unpack RPMv6 (and RPMv4 big files) data from the RPM header
+        #   is needed, as the CPIO archive in these files does not contain enough metadata
         if self.payload_format == 'drpm':
             file_path = pathlib.Path('drpm')
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                 outfile.write(self.payload)
                 yield unpacked_md
         else:
+            # check if this is a regular cpio or the special version for
+            # RPMv4 big files or RPMv6 by looking at the first few bytes
+            if self.payload[:6] == b'070701':
+                # regular cpio
+                pass
+            elif self.payload[:6] == b'07070X':
+                # rpmv4 big files or rpmv6
+                pass
+
             file_path = pathlib.Path('cpio')
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
                 outfile.write(self.payload)
