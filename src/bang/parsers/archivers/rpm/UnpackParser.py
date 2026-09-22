@@ -123,27 +123,26 @@ class RpmUnpackParser(UnpackParser):
             except Exception as e:
                 raise UnpackParserException(e.args) from e
 
-    def unpack(self, meta_directory):
-        if self.compressor == 'bzip2':
-            decompressor = bz2.BZ2Decompressor()
-            payload = decompressor.decompress(self.data.payload)
-        elif self.compressor in set(['lzma', 'xz']):
-            payload = lzma.decompress(self.data.payload)
-        elif self.compressor == 'zstd':
-            reader = zstandard.ZstdDecompressor().stream_reader(self.data.payload)
-            payload = reader.read()
-        else:
-            payload = gzip.decompress(self.data.payload)
+        if self.payload_format == 'cpio':
+            if self.payload[:6] == b'070701':
+                try:
+                    cpio_new_ascii.CpioNewAscii.from_bytes(self.payload)
+                except (Exception, ValidationFailedError) as e:
+                    raise UnpackParserException(e.args) from e
+                except BaseException as e:
+                    raise UnpackParserException(e.args) from e
 
+
+    def unpack(self, meta_directory):
         if self.payload_format == 'drpm':
             file_path = pathlib.Path('drpm')
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
-                outfile.write(payload)
+                outfile.write(self.payload)
                 yield unpacked_md
         else:
             file_path = pathlib.Path('cpio')
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
-                outfile.write(payload)
+                outfile.write(self.payload)
                 yield unpacked_md
 
     def calculate_unpacked_size(self):
