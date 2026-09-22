@@ -94,11 +94,12 @@ class RpmUnpackParser(UnpackParser):
                 self.compressor_seen = True
                 self.compressor = i.body.values[0]
             if i.header_tag == self.data.HeaderTags.payload_format:
-                check_condition(self.payload_format == '', "duplicate compressor defined")
+                check_condition(self.payload_format == '', "duplicate payload format defined")
                 self.payload_format = i.body.values[0]
 
-        check_condition(self.payload_format in ['cpio', 'drpm'],
-                        'unsupported payload format')
+                # There are only two known payload formats
+                check_condition(self.payload_format in ['cpio', 'drpm'],
+                                'unsupported payload format')
 
         # test decompressing the payload
         if self.compressor == 'bzip2':
@@ -127,6 +128,7 @@ class RpmUnpackParser(UnpackParser):
         if self.payload_format == 'cpio':
             # check if this is a regular cpio or the special version for
             # RPMv4 big files or RPMv6 by looking at the first few bytes
+            # and try to parse it to see if it is valid
             if self.payload[:6] == b'070701':
                 try:
                     cpio_new_ascii.CpioNewAscii.from_bytes(self.payload)
