@@ -161,19 +161,16 @@ class PngUnpackParser(UnpackParser):
         # TODO: eXif, tXMP
         for i in self.data.chunks:
             if i.type == 'eXIf':
-                # eXIf is a recent extension to PNG. ImageMagick supports it but
+                exiftag = {}
+                # eXIf is a fairly recent extension to PNG. ImageMagick supports it but
                 # there does not seem to be widespread adoption yet.
                 # http://www.imagemagick.org/discourse-server/viewtopic.php?t=31277
                 # http://ftp-osl.osuosl.org/pub/libpng/documents/proposals/eXIf/png-proposed-eXIf-chunk-2017-06-15.html
                 # TODO: there are a few images out there with chunk eXif, which
                 # was used in test implementations.
-                if not (i.body.startswith(b'MM') or i.body.startswith(b'II')):
-                    # this should never happen
-                    pass
-                else:
-                    exif_object = PIL.Image.Exif()
-                    exif_object.load(i.body)
-                    exiftags.append(dict(exif_object))
+                for tag in i.body.exif.body.ifd0.fields:
+                    exiftag[tag.tag.name] = tag.data.values
+                exiftags.append(exiftag)
             elif i.type == 'iTXt':
                 # internationalized text
                 # http://www.libpng.org/pub/png/spec/1.2/PNG-Chunks.html
@@ -229,9 +226,10 @@ class PngUnpackParser(UnpackParser):
                     # store EXIF data in hex form. python-pillow allows reading
                     # raw exif data using an Exif() object.
                     # https://github.com/python-pillow/Pillow/issues/4460
+                    # TODO: replace with the built in exif parser
                     try:
                         exif_object = PIL.Image.Exif()
-                        value = i.body.text_datastream.decode()
+                        value = i.body.text.value
                         exifdata = bytes.fromhex("".join(value.split("\n")[3:]))
                         exif_object.load(exifdata)
                         exiftags.append(dict(exif_object))
@@ -242,13 +240,13 @@ class PngUnpackParser(UnpackParser):
                     # ImageMagick used the zTXt field to store ICC data
                     # in hex form.
                     try:
-                        value = i.body.text_datastream.decode()
-                        iccdata = bytes.fromhex("".join(value.split("\n")[3:]))
+                        value = i.body.text.value
+                        icc_data = bytes.fromhex("".join(value.split("\n")[3:]))
                     except UnicodeError:
                         # TODO: what to do here?
                         pass
                 elif i.body.keyword == 'Raw profile type xmp':
-                    value = i.body.text_datastream.decode()
+                    value = i.body.text.value
                     xmpdata = bytes.fromhex("".join(value.split("\n")[3:])).decode()
                     try:
                         # XMP should be valid XML
@@ -257,9 +255,16 @@ class PngUnpackParser(UnpackParser):
                     except ExpatError:
                         # TODO: what to do here?
                         pass
+                #elif i.body.keyword == 'Raw profile type app11':
+                #    try:
+                #        value = i.body.text.value
+                #        app11_data = bytes.fromhex("".join(value.split("\n")[3:]))
+                #    except UnicodeError:
+                #        # TODO: what to do here?
+                #        pass
                 else:
                     try:
-                        value = i.body.text_datastream.decode()
+                        value = i.body.text.value
                         pngtexts.append({'key': i.body.keyword,
                                          'value': value})
                     except UnicodeError:
