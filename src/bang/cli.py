@@ -93,19 +93,20 @@ def scan_directory(ctx, config_file, verbose, unpack_directory, temporary_direct
         except (YAMLError, PermissionError, UnicodeDecodeError):
             raise click.ClickException(f"Cannot open configuration file {config_file}")
 
-    for scan_archive in sorted(path.glob('**/*')):
-        # first create a directory similar as the file name
-        scan_dir = unpack_directory / (scan_archive.name)
-        if scan_dir.exists() and not force:
-            raise click.ClickException(f"Unpacking directory {scan_dir} already exists")
-        try:
-            scan_dir.mkdir(parents=True)
-        except FileExistsError:
-            continue
+    for (top_scan_dir, scan_dirnames, scan_archives) in path.walk():
+        for scan_archive in scan_archives:
+            # first create a directory similar to the path in the archive
+            scan_dir = unpack_directory / top_scan_dir.relative_to(path) / scan_archive
 
-        ctx.invoke(scan, config_file=config_file, verbose=verbose, unpack_directory=scan_dir,
-                   temporary_directory=temporary_directory, ignore_list=ignore_list, jobs=jobs,
-                   job_wait_time=job_wait_time, force=True, path=scan_archive)
+            if scan_dir.exists() and not force:
+                raise click.ClickException(f"Unpacking directory {scan_dir} already exists")
+            scan_dir.mkdir(parents=True, exist_ok=True)
+
+            scan_path =  top_scan_dir / scan_archive
+
+            ctx.invoke(scan, config_file=config_file, verbose=verbose, unpack_directory=scan_dir,
+                       temporary_directory=temporary_directory, ignore_list=ignore_list, jobs=jobs,
+                       job_wait_time=job_wait_time, force=True, path=scan_path)
 
 
 # bang scan <input file>
