@@ -93,8 +93,8 @@ def scan_directory(ctx, config_file, verbose, unpack_directory, temporary_direct
         except (YAMLError, PermissionError, UnicodeDecodeError):
             raise click.ClickException(f"Cannot open configuration file {config_file}")
 
-    for (top_scan_dir, scan_dirnames, scan_archives) in path.walk():
-        for scan_archive in scan_archives:
+    for (top_scan_dir, _, scan_archives) in sorted(path.walk()):
+        for scan_archive in sorted(scan_archives):
             # first create a directory similar to the path in the archive
             scan_dir = unpack_directory / top_scan_dir.relative_to(path) / scan_archive
 
