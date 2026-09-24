@@ -216,6 +216,16 @@ class PngUnpackParser(UnpackParser):
                 # https://specifications.freedesktop.org/thumbnail-spec/thumbnail-spec-latest.html
                 if i.body.keyword.startswith('Thumb::'):
                     png_type_labels.append('thumbnail')
+                elif i.body.keyword == 'Raw profile type APP12':
+                    try:
+                        value = i.body.text
+                        app1_data = bytes.fromhex("".join(value.split("\n")[3:]))
+                        if app1_data.startswith(b'II') or app1_data.startswith(b'MM'):
+                            exiftag = self.process_exif(app1_data)
+                            exiftags.append(exiftag)
+                    except UnicodeError:
+                        # TODO: what to do here?
+                        pass
             elif i.type == 'tIME':
                 # tIMe chunk, should be only one but store
                 # as a list anyway
@@ -232,19 +242,15 @@ class PngUnpackParser(UnpackParser):
                 # Multiple zTXt chunks are allowed.
                 if i.body.keyword == 'Raw profile type exif':
                     # before eXIf ImageMagick used the zTXt field to
-                    # store EXIF data in hex form. python-pillow allows reading
-                    # raw exif data using an Exif() object.
-                    # https://github.com/python-pillow/Pillow/issues/4460
-                    # TODO: replace with the built in exif parser
-                    try:
-                        exif_object = PIL.Image.Exif()
-                        value = i.body.text.value
-                        exifdata = bytes.fromhex("".join(value.split("\n")[3:]))
-                        exif_object.load(exifdata)
-                        exiftags.append(dict(exif_object))
-                    except UnicodeError:
-                        # TODO: what to do here?
-                        pass
+                    # store EXIF data in hex form.
+                    exiftag = {}
+
+                    value = i.body.text.value
+                    exifdata = bytes.fromhex("".join(value.split("\n")[3:]))
+                    if exifdata.startswith(b'Exif\x00\x00'):
+                        if exifdata[6:8] in [b'II', b'MM']:
+                            exiftag = self.process_exif(exifdata[6:])
+                            exiftags.append(exiftag)
                 elif i.body.keyword == 'Raw profile type icc':
                     # ImageMagick used the zTXt field to store ICC data
                     # in hex form.
@@ -269,22 +275,14 @@ class PngUnpackParser(UnpackParser):
                         value = i.body.text.value
                         app1_data = bytes.fromhex("".join(value.split("\n")[3:]))
                         if app1_data.startswith(b'II') or app1_data.startswith(b'MM'):
-                            exiftag = {}
-                            exif_data = exif.Exif.from_bytes(app1_data)
-                            for tag in exif_data.body.ifd0.fields:
-                                if isinstance(tag.data, exif.Exif.ExifBody.AsciiString):
-                                    exiftag[tag.tag.name] = tag.data.value.decode()
-                                elif isinstance(tag.data, exif.Exif.ExifBody.Utf8String):
-                                    exiftag[tag.tag.name] = tag.data.value.decode()
-                                elif type(tag.data.values[0]) not in [int, float, str, bytes]:
-                                    # extract values for everything that is not a basic type
-                                    exiftag[tag.tag.name] = list(map(lambda x: x.value, tag.data.values))
-                                else:
-                                    exiftag[tag.tag.name] = tag.data.values
+                            exiftag = self.process_exif(app1_data)
                             exiftags.append(exiftag)
                     except UnicodeError:
                         # TODO: what to do here?
                         pass
+                elif i.body.keyword == 'Raw profile type iptc':
+                    # example: https://github.com/kaitai-io/kaitai_struct_samples/blob/master/image/png/gimp-v2.10-exif-iptc-xmp-icc-thumb.png
+                    pass
                 #elif i.body.keyword == 'Raw profile type app11':
                 else:
                     try:
@@ -394,3 +392,19 @@ class PngUnpackParser(UnpackParser):
         metadata['unknownchunks'] = unknownchunks
 
         return metadata
+
+    def process_exif(self, data):
+        '''Helper method to process Exif data'''
+        exiftag = {}
+        exif_data = exif.Exif.from_bytes(data)
+        for tag in exif_data.body.ifd0.fields:
+            if isinstance(tag.data, exif.Exif.ExifBody.AsciiString):
+                exiftag[tag.tag.name] = tag.data.value.decode()
+            elif isinstance(tag.data, exif.Exif.ExifBody.Utf8String):
+                exiftag[tag.tag.name] = tag.data.value.decode()
+            elif type(tag.data.values[0]) not in [int, float, str, bytes]:
+                # extract values for everything that is not a basic type
+                exiftag[tag.tag.name] = list(map(lambda x: x.value, tag.data.values))
+            else:
+                exiftag[tag.tag.name] = tag.data.values
+        return exiftag
