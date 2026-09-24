@@ -207,18 +207,25 @@ class PngUnpackParser(UnpackParser):
                     metatags.append(i.body.decode(encoding='utf-16'))
                 except:
                     pass
-            elif i.type == 'tEXt':
+            elif i.type in ['tEXt', 'zTXt']:
                 # tEXt contains key/value pairs with metadata about the PNG file.
                 # section 11.3.4.3
-                # Multiple tEXt chunks are allowed.
-                pngtexts.append({'key': i.body.keyword, 'value': i.body.text})
-                # check to see if the file is a thumbnail.
-                # https://specifications.freedesktop.org/thumbnail-spec/thumbnail-spec-latest.html
+                #
+                # zTXt contains key/value pairs with metadata about the PNG file,
+                # zlib compressed. (section 11.3.4.4)
+                #
+                # Multiple tEXt and zTXt chunks are allowed.
+                if i.type == 'tEXt':
+                    value = i.body.text
+                elif i.type == 'zTXt':
+                    value = i.body.text.value
+
                 if i.body.keyword.startswith('Thumb::'):
+                    # check to see if the file is a thumbnail.
+                    # https://specifications.freedesktop.org/thumbnail-spec/thumbnail-spec-latest.html
                     png_type_labels.append('thumbnail')
                 elif i.body.keyword == 'Raw profile type APP12':
                     try:
-                        value = i.body.text
                         app1_data = bytes.fromhex("".join(value.split("\n")[3:]))
                         if app1_data.startswith(b'II') or app1_data.startswith(b'MM'):
                             exiftag = self.process_exif(app1_data)
@@ -226,26 +233,11 @@ class PngUnpackParser(UnpackParser):
                     except UnicodeError:
                         # TODO: what to do here?
                         pass
-            elif i.type == 'tIME':
-                # tIMe chunk, should be only one but store
-                # as a list anyway
-                pngdate = {'year': i.body.year,
-                           'month': i.body.month,
-                           'day': i.body.day,
-                           'hour': i.body.hour,
-                           'minute': i.body.minute,
-                           'second': i.body.second}
-                timetags.append(pngdate)
-            elif i.type == 'zTXt':
-                # zTXt contains key/value pairs with metadata about the PNG file,
-                # zlib compressed. (section 11.3.4.4)
-                # Multiple zTXt chunks are allowed.
-                if i.body.keyword == 'Raw profile type exif':
+                elif i.body.keyword == 'Raw profile type exif':
                     # before eXIf ImageMagick used the zTXt field to
                     # store EXIF data in hex form.
                     exiftag = {}
 
-                    value = i.body.text.value
                     exifdata = bytes.fromhex("".join(value.split("\n")[3:]))
                     if exifdata.startswith(b'Exif\x00\x00'):
                         if exifdata[6:8] in [b'II', b'MM']:
@@ -255,13 +247,11 @@ class PngUnpackParser(UnpackParser):
                     # ImageMagick used the zTXt field to store ICC data
                     # in hex form.
                     try:
-                        value = i.body.text.value
                         icc_data = bytes.fromhex("".join(value.split("\n")[3:]))
                     except UnicodeError:
                         # TODO: what to do here?
                         pass
                 elif i.body.keyword == 'Raw profile type xmp':
-                    value = i.body.text.value
                     xmpdata = bytes.fromhex("".join(value.split("\n")[3:])).decode()
                     try:
                         # XMP should be valid XML
@@ -272,7 +262,6 @@ class PngUnpackParser(UnpackParser):
                         pass
                 elif i.body.keyword == 'Raw profile type APP1':
                     try:
-                        value = i.body.text.value
                         app1_data = bytes.fromhex("".join(value.split("\n")[3:]))
                         if app1_data.startswith(b'II') or app1_data.startswith(b'MM'):
                             exiftag = self.process_exif(app1_data)
@@ -285,13 +274,26 @@ class PngUnpackParser(UnpackParser):
                     pass
                 #elif i.body.keyword == 'Raw profile type app11':
                 else:
-                    try:
-                        value = i.body.text.value
-                        pngtexts.append({'key': i.body.keyword,
-                                         'value': value})
-                    except UnicodeError:
-                        pngtexts.append({'key': i.body.keyword,
-                                         'value': i.body.text_datastream})
+                    if i.type == 'tEXt':
+                        pngtexts.append({'key': i.body.keyword, 'value': value})
+                    else:
+                        try:
+                            pngtexts.append({'key': i.body.keyword,
+                                             'value': value})
+                        except UnicodeError:
+                            pngtexts.append({'key': i.body.keyword,
+                                             'value': i.body.text_datastream})
+
+            elif i.type == 'tIME':
+                # tIMe chunk, should be only one but store
+                # as a list anyway
+                pngdate = {'year': i.body.year,
+                           'month': i.body.month,
+                           'day': i.body.day,
+                           'hour': i.body.hour,
+                           'minute': i.body.minute,
+                           'second': i.body.second}
+                timetags.append(pngdate)
             elif i.type == 'skMf':
                 # Extract meta information from files made with Evernote/Skitch
                 # http://web.archive.org/web/20210302212148/https://discussion.evernote.com/forums/topic/88532-how-to-extract-annotation-information-from-annotated-evernoteskitch-images/
