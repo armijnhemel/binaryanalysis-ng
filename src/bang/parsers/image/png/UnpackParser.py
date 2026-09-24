@@ -40,6 +40,7 @@ import PIL.Image
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
+from . import exif
 from . import png
 
 # a list of known chunks
@@ -169,7 +170,11 @@ class PngUnpackParser(UnpackParser):
                 # TODO: there are a few images out there with chunk eXif, which
                 # was used in test implementations.
                 for tag in i.body.exif.body.ifd0.fields:
-                    if type(tag.data.values[0]) not in [int, float, str, bytes]:
+                    if isinstance(tag.data, exif.Exif.ExifBody.AsciiString):
+                        exiftag[tag.tag.name] = tag.data.value.decode()
+                    elif isinstance(tag.data, exif.Exif.ExifBody.Utf8String):
+                        exiftag[tag.tag.name] = tag.data.value.decode()
+                    elif type(tag.data.values[0]) not in [int, float, str, bytes]:
                         # extract values for everything that is not a basic type
                         exiftag[tag.tag.name] = list(map(lambda x: x.value, tag.data.values))
                     else:
@@ -259,13 +264,28 @@ class PngUnpackParser(UnpackParser):
                     except ExpatError:
                         # TODO: what to do here?
                         pass
+                elif i.body.keyword == 'Raw profile type APP1':
+                    try:
+                        value = i.body.text.value
+                        app1_data = bytes.fromhex("".join(value.split("\n")[3:]))
+                        if app1_data.startswith(b'II') or app1_data.startswith(b'MM'):
+                            exiftag = {}
+                            exif_data = exif.Exif.from_bytes(app1_data)
+                            for tag in exif_data.body.ifd0.fields:
+                                if isinstance(tag.data, exif.Exif.ExifBody.AsciiString):
+                                    exiftag[tag.tag.name] = tag.data.value.decode()
+                                elif isinstance(tag.data, exif.Exif.ExifBody.Utf8String):
+                                    exiftag[tag.tag.name] = tag.data.value.decode()
+                                elif type(tag.data.values[0]) not in [int, float, str, bytes]:
+                                    # extract values for everything that is not a basic type
+                                    exiftag[tag.tag.name] = list(map(lambda x: x.value, tag.data.values))
+                                else:
+                                    exiftag[tag.tag.name] = tag.data.values
+                            exiftags.append(exiftag)
+                    except UnicodeError:
+                        # TODO: what to do here?
+                        pass
                 #elif i.body.keyword == 'Raw profile type app11':
-                #    try:
-                #        value = i.body.text.value
-                #        app11_data = bytes.fromhex("".join(value.split("\n")[3:]))
-                #    except UnicodeError:
-                #        # TODO: what to do here?
-                #        pass
                 else:
                     try:
                         value = i.body.text.value
