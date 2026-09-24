@@ -170,7 +170,7 @@ class PngUnpackParser(UnpackParser):
                 # was used in test implementations.
                 for tag in i.body.exif.body.ifd0.fields:
                     if type(tag.data.values[0]) not in [int, float, str, bytes]:
-                        # convert
+                        # extract values for everything that is not a basic type
                         exiftag[tag.tag.name] = list(map(lambda x: x.value, tag.data.values))
                     else:
                         exiftag[tag.tag.name] = tag.data.values
