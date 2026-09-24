@@ -35,7 +35,6 @@ import zlib
 from xml.parsers.expat import ExpatError
 
 import defusedxml.minidom
-import PIL.Image
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
