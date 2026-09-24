@@ -118,7 +118,7 @@ class PngUnpackParser(UnpackParser):
 
                     # The rest of the image is the original PNG.
                     with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
-                        outfile.write(i.body.data)
+                        outfile.write(i.body.orig_img)
                         yield unpacked_md
 
         # Unpack files from PNG attach files
@@ -300,11 +300,10 @@ class PngUnpackParser(UnpackParser):
                 # test file: https://content.invisioncic.com/Mevernote/post-269465-0-70688200-1442655592.png
                 # The metadata is in JSON format.
                 try:
-                    evernote_body = i.body.decode()
-                    evernote_meta = json.loads(evernote_body)
+                    evernote_meta = json.loads(i.body.json)
                     if 'evernote' not in metadata:
                         metadata['evernote'] = {}
-                    metadata['evernote']['meta'] = evernote_body
+                    metadata['evernote']['meta'] = i.body.json
                     png_type_labels.append('evernote')
                 except UnicodeError:
                     pass
