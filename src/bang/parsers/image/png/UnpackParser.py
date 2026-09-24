@@ -35,11 +35,11 @@ import zlib
 from xml.parsers.expat import ExpatError
 
 import defusedxml.minidom
-import PIL.Image
 
 from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
+from . import exif
 from . import png
 
 # a list of known chunks
@@ -117,7 +117,7 @@ class PngUnpackParser(UnpackParser):
 
                     # The rest of the image is the original PNG.
                     with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
-                        outfile.write(i.body.data)
+                        outfile.write(i.body.orig_img)
                         yield unpacked_md
 
         # Unpack files from PNG attach files
@@ -161,19 +161,24 @@ class PngUnpackParser(UnpackParser):
         # TODO: eXif, tXMP
         for i in self.data.chunks:
             if i.type == 'eXIf':
-                # eXIf is a recent extension to PNG. ImageMagick supports it but
+                exiftag = {}
+                # eXIf is a fairly recent extension to PNG. ImageMagick supports it but
                 # there does not seem to be widespread adoption yet.
                 # http://www.imagemagick.org/discourse-server/viewtopic.php?t=31277
                 # http://ftp-osl.osuosl.org/pub/libpng/documents/proposals/eXIf/png-proposed-eXIf-chunk-2017-06-15.html
                 # TODO: there are a few images out there with chunk eXif, which
                 # was used in test implementations.
-                if not (i.body.startswith(b'MM') or i.body.startswith(b'II')):
-                    # this should never happen
-                    pass
-                else:
-                    exif_object = PIL.Image.Exif()
-                    exif_object.load(i.body)
-                    exiftags.append(dict(exif_object))
+                for tag in i.body.exif.body.ifd0.fields:
+                    if isinstance(tag.data, exif.Exif.ExifBody.AsciiString):
+                        exiftag[tag.tag.name] = tag.data.value.decode()
+                    elif isinstance(tag.data, exif.Exif.ExifBody.Utf8String):
+                        exiftag[tag.tag.name] = tag.data.value.decode()
+                    elif type(tag.data.values[0]) not in [int, float, str, bytes]:
+                        # extract values for everything that is not a basic type
+                        exiftag[tag.tag.name] = list(map(lambda x: x.value, tag.data.values))
+                    else:
+                        exiftag[tag.tag.name] = tag.data.values
+                exiftags.append(exiftag)
             elif i.type == 'iTXt':
                 # internationalized text
                 # http://www.libpng.org/pub/png/spec/1.2/PNG-Chunks.html
@@ -201,15 +206,83 @@ class PngUnpackParser(UnpackParser):
                     metatags.append(i.body.decode(encoding='utf-16'))
                 except:
                     pass
-            elif i.type == 'tEXt':
+            elif i.type in ['tEXt', 'zTXt']:
                 # tEXt contains key/value pairs with metadata about the PNG file.
                 # section 11.3.4.3
-                # Multiple tEXt chunks are allowed.
-                pngtexts.append({'key': i.body.keyword, 'value': i.body.text})
-                # check to see if the file is a thumbnail.
-                # https://specifications.freedesktop.org/thumbnail-spec/thumbnail-spec-latest.html
+                #
+                # zTXt contains key/value pairs with metadata about the PNG file,
+                # zlib compressed. (section 11.3.4.4)
+                #
+                # Multiple tEXt and zTXt chunks are allowed.
+                if i.type == 'tEXt':
+                    value = i.body.text
+                elif i.type == 'zTXt':
+                    value = i.body.text.value
+
                 if i.body.keyword.startswith('Thumb::'):
+                    # check to see if the file is a thumbnail.
+                    # https://specifications.freedesktop.org/thumbnail-spec/thumbnail-spec-latest.html
                     png_type_labels.append('thumbnail')
+                elif i.body.keyword == 'Raw profile type APP12':
+                    try:
+                        app1_data = bytes.fromhex("".join(value.split("\n")[3:]))
+                        if app1_data.startswith(b'II') or app1_data.startswith(b'MM'):
+                            exiftag = self.process_exif(app1_data)
+                            exiftags.append(exiftag)
+                    except UnicodeError:
+                        # TODO: what to do here?
+                        pass
+                elif i.body.keyword == 'Raw profile type exif':
+                    # before eXIf ImageMagick used the zTXt field to
+                    # store EXIF data in hex form.
+                    exiftag = {}
+
+                    exifdata = bytes.fromhex("".join(value.split("\n")[3:]))
+                    if exifdata.startswith(b'Exif\x00\x00'):
+                        if exifdata[6:8] in [b'II', b'MM']:
+                            exiftag = self.process_exif(exifdata[6:])
+                            exiftags.append(exiftag)
+                elif i.body.keyword == 'Raw profile type icc':
+                    # ImageMagick used the zTXt field to store ICC data
+                    # in hex form.
+                    try:
+                        icc_data = bytes.fromhex("".join(value.split("\n")[3:]))
+                    except UnicodeError:
+                        # TODO: what to do here?
+                        pass
+                elif i.body.keyword == 'Raw profile type xmp':
+                    xmpdata = bytes.fromhex("".join(value.split("\n")[3:])).decode()
+                    try:
+                        # XMP should be valid XML
+                        xmpdom = defusedxml.minidom.parseString(xmpdata)
+                        xmptags.append(xmpdata)
+                    except ExpatError:
+                        # TODO: what to do here?
+                        pass
+                elif i.body.keyword == 'Raw profile type APP1':
+                    try:
+                        app1_data = bytes.fromhex("".join(value.split("\n")[3:]))
+                        if app1_data.startswith(b'II') or app1_data.startswith(b'MM'):
+                            exiftag = self.process_exif(app1_data)
+                            exiftags.append(exiftag)
+                    except UnicodeError:
+                        # TODO: what to do here?
+                        pass
+                elif i.body.keyword == 'Raw profile type iptc':
+                    # example: https://github.com/kaitai-io/kaitai_struct_samples/blob/master/image/png/gimp-v2.10-exif-iptc-xmp-icc-thumb.png
+                    pass
+                #elif i.body.keyword == 'Raw profile type app11':
+                else:
+                    if i.type == 'tEXt':
+                        pngtexts.append({'key': i.body.keyword, 'value': value})
+                    else:
+                        try:
+                            pngtexts.append({'key': i.body.keyword,
+                                             'value': value})
+                        except UnicodeError:
+                            pngtexts.append({'key': i.body.keyword,
+                                             'value': i.body.text_datastream})
+
             elif i.type == 'tIME':
                 # tIMe chunk, should be only one but store
                 # as a list anyway
@@ -220,62 +293,16 @@ class PngUnpackParser(UnpackParser):
                            'minute': i.body.minute,
                            'second': i.body.second}
                 timetags.append(pngdate)
-            elif i.type == 'zTXt':
-                # zTXt contains key/value pairs with metadata about the PNG file,
-                # zlib compressed. (section 11.3.4.4)
-                # Multiple zTXt chunks are allowed.
-                if i.body.keyword == 'Raw profile type exif':
-                    # before eXIf ImageMagick used the zTXt field to
-                    # store EXIF data in hex form. python-pillow allows reading
-                    # raw exif data using an Exif() object.
-                    # https://github.com/python-pillow/Pillow/issues/4460
-                    try:
-                        exif_object = PIL.Image.Exif()
-                        value = i.body.text_datastream.decode()
-                        exifdata = bytes.fromhex("".join(value.split("\n")[3:]))
-                        exif_object.load(exifdata)
-                        exiftags.append(dict(exif_object))
-                    except UnicodeError:
-                        # TODO: what to do here?
-                        pass
-                elif i.body.keyword == 'Raw profile type icc':
-                    # ImageMagick used the zTXt field to store ICC data
-                    # in hex form.
-                    try:
-                        value = i.body.text_datastream.decode()
-                        iccdata = bytes.fromhex("".join(value.split("\n")[3:]))
-                    except UnicodeError:
-                        # TODO: what to do here?
-                        pass
-                elif i.body.keyword == 'Raw profile type xmp':
-                    value = i.body.text_datastream.decode()
-                    xmpdata = bytes.fromhex("".join(value.split("\n")[3:])).decode()
-                    try:
-                        # XMP should be valid XML
-                        xmpdom = defusedxml.minidom.parseString(xmpdata)
-                        xmptags.append(xmpdata)
-                    except ExpatError:
-                        # TODO: what to do here?
-                        pass
-                else:
-                    try:
-                        value = i.body.text_datastream.decode()
-                        pngtexts.append({'key': i.body.keyword,
-                                         'value': value})
-                    except UnicodeError:
-                        pngtexts.append({'key': i.body.keyword,
-                                         'value': i.body.text_datastream})
             elif i.type == 'skMf':
                 # Extract meta information from files made with Evernote/Skitch
                 # http://web.archive.org/web/20210302212148/https://discussion.evernote.com/forums/topic/88532-how-to-extract-annotation-information-from-annotated-evernoteskitch-images/
                 # test file: https://content.invisioncic.com/Mevernote/post-269465-0-70688200-1442655592.png
                 # The metadata is in JSON format.
                 try:
-                    evernote_body = i.body.decode()
-                    evernote_meta = json.loads(evernote_body)
+                    evernote_meta = json.loads(i.body.json)
                     if 'evernote' not in metadata:
                         metadata['evernote'] = {}
-                    metadata['evernote']['meta'] = evernote_body
+                    metadata['evernote']['meta'] = i.body.json
                     png_type_labels.append('evernote')
                 except UnicodeError:
                     pass
@@ -365,3 +392,19 @@ class PngUnpackParser(UnpackParser):
         metadata['unknownchunks'] = unknownchunks
 
         return metadata
+
+    def process_exif(self, data):
+        '''Helper method to process Exif data'''
+        exiftag = {}
+        exif_data = exif.Exif.from_bytes(data)
+        for tag in exif_data.body.ifd0.fields:
+            if isinstance(tag.data, exif.Exif.ExifBody.AsciiString):
+                exiftag[tag.tag.name] = tag.data.value.decode()
+            elif isinstance(tag.data, exif.Exif.ExifBody.Utf8String):
+                exiftag[tag.tag.name] = tag.data.value.decode()
+            elif type(tag.data.values[0]) not in [int, float, str, bytes]:
+                # extract values for everything that is not a basic type
+                exiftag[tag.tag.name] = list(map(lambda x: x.value, tag.data.values))
+            else:
+                exiftag[tag.tag.name] = tag.data.values
+        return exiftag
