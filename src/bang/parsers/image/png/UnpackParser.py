@@ -233,8 +233,8 @@ class PngUnpackParser(UnpackParser):
                         # TODO: what to do here?
                         pass
                 elif i.body.keyword == 'Raw profile type exif':
-                    # before eXIf ImageMagick used the zTXt field to
-                    # store EXIF data in hex form.
+                    # before eXIf ImageMagick used the tEXt and zTXt
+                    # fields to store EXIF data in hex form.
                     exiftag = {}
 
                     exifdata = bytes.fromhex("".join(value.split("\n")[3:]))
