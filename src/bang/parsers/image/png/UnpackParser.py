@@ -169,7 +169,11 @@ class PngUnpackParser(UnpackParser):
                 # TODO: there are a few images out there with chunk eXif, which
                 # was used in test implementations.
                 for tag in i.body.exif.body.ifd0.fields:
-                    exiftag[tag.tag.name] = tag.data.values
+                    if type(tag.data.values[0]) not in [int, float, str, bytes]:
+                        # convert
+                        exiftag[tag.tag.name] = list(map(lambda x: x.value, tag.data.values))
+                    else:
+                        exiftag[tag.tag.name] = tag.data.values
                 exiftags.append(exiftag)
             elif i.type == 'iTXt':
                 # internationalized text
