@@ -1,14 +1,14 @@
 meta:
   id: uimage
   title: U-Boot Image wrapper
-  ks-version: 0.11
   license: CC0-1.0
+  ks-version: '0.11'
   endian: be
 doc: |
   The new uImage format allows more flexibility in handling images of various
   types (kernel, ramdisk, etc.), it also enhances integrity protection of images
   with sha1 and md5 checksums.
-doc-ref: https://source.denx.de/u-boot/u-boot/-/raw/64fd30d3/include/image.h
+doc-ref: https://github.com/u-boot/u-boot/blob/ece349ade2973e220f524ce59e59711cc919263f/include/image.h Git tag "v2026.07"
 seq:
   - id: header
     type: uheader
@@ -61,9 +61,9 @@ types:
   name_or_asus_info:
     seq:
       - id: name
-        encoding: UTF-8
         type: strz
-        size-eos: true
+        encoding: UTF-8
+        eos-error: false
     instances:
       asus_info:
         pos: 0
@@ -184,7 +184,7 @@ enums:
       doc: EFI Firmware (e.g. GRUB2)
     29:
       id: elf
-      doc: ELF Image ((e.g. seL4)
+      doc: ELF Image (e.g. seL4)
   uimage_arch:
     0:
       id: invalid
@@ -271,24 +271,12 @@ enums:
     0:
       id: none
       doc: No Compression Used
-    1:
-      id: gzip
-      doc: gzip Compression Used
-    2:
-      id: bzip2
-      doc: bzip2 Compression Used
-    3:
-      id: lzma
-      doc: lzma Compression Used
-    4:
-      id: lzo
-      doc: lzo Compression Used
-    5:
-      id: lz4
-      doc: lz4 Compression Used
-    6:
-      id: zstd
-      doc: zstd Compression Used
+    1: gzip
+    2: bzip2
+    3: lzma
+    4: lzo
+    5: lz4
+    6: zstd
   uimage_type:
     0:
       id: invalid
@@ -418,16 +406,22 @@ enums:
       doc: Allwinner TOC0 Boot Image
     42:
       id: fdt_legacy
-      doc: Binary Flat Device Tree Blob	in a Legacy Image
+      doc: Binary Flat Device Tree Blob in a Legacy Image
     43:
       id: renesas_spkg
       doc: Renesas SPKG image
     44:
       id: starfive_spl
-      doc: StarFive SPL Image
+      doc: StarFive SPL image
     45:
       id: tfa_bl31
       doc: TFA BL31 image
+    46:
+      id: stm32image_v2
+      doc: STMicroelectronics STM32 Image V2.0
+    47:
+      id: amlimage
+      doc: Amlogic Boot Image
   magic_types:
     0x27051956:
       id: uimage
