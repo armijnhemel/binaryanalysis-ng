@@ -46,6 +46,7 @@ class ErofsUnpacker(UnpackParser):
             self.data = erofs.Erofs.from_io(self.infile)
 
             # run fsck's own tools before parsing a bit with Kaitai Struct
+            # to extract some metadata, as well as do sanity checks
             p = subprocess.Popen(['fsck.erofs', '--extract', self.infile.name], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
             (outputmsg, errormsg) = p.communicate()
@@ -106,6 +107,8 @@ class ErofsUnpacker(UnpackParser):
         self.unpacked_size = self.data.superblock.header.len_file
 
     def unpack(self, meta_directory):
+        # unpack data either by a Kaitai Struct based parser for inline
+        # files or by using fsck.erofs for all other use cases.
         if self.inline:
             inodes = collections.deque()
             inodes.append(('', '', erofs.Erofs.FileTypes.directory, self.data.root_inode))
@@ -152,7 +155,8 @@ class ErofsUnpacker(UnpackParser):
             # and copy the contents to the actual meta directory
             unpack_directory = pathlib.Path(tempfile.mkdtemp(dir=self.configuration.temporary_directory))
 
-            p = subprocess.Popen(['fsck.erofs', f'--extract={unpack_directory}', self.infile.name], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p = subprocess.Popen(['fsck.erofs', f'--extract={unpack_directory}', self.infile.name],
+                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             (outputmsg, errormsg) = p.communicate()
 

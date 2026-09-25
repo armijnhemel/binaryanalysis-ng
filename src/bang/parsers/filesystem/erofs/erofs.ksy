@@ -532,6 +532,8 @@ enums:
   compression:
     0: lz4
     1: lzma
+    2: deflate
+    3: zstd
   xattr_name_index:
     1: user
     2: posix_acl_access
