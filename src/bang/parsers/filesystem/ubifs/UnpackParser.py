@@ -26,7 +26,7 @@ import zlib
 import lzo
 import zstandard
 
-from bang.UnpackParser import UnpackParser
+from bang.UnpackParser import UnpackParser, check_condition
 from bang.UnpackParserException import UnpackParserException
 from kaitaistruct import ValidationFailedError
 from . import ubifs
@@ -48,6 +48,10 @@ class UbifsUnpackParser(UnpackParser):
             self.highest_inum = self.data.master_1.node_header.highest_inum
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args) from e
+
+        check_condition(self.data.len_image <= self.infile.size,
+                        "not enough data")
+
 
     def unpack(self, meta_directory):
         '''Unpack ubifs data by traversing the tree, starting with the root node'''
