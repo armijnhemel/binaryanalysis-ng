@@ -39,7 +39,7 @@ class Uf2UnpackParser(UnpackParser):
         except (Exception, ValidationFailedError) as e:
             raise UnpackParserException(e.args) from e
 
-        check_condition(self.data.uf2_block_start.block_number == 0,
+        check_condition(self.data.first_block.block_number == 0,
                         'invalid start block')
 
     def unpack(self, meta_directory):
@@ -54,9 +54,9 @@ class Uf2UnpackParser(UnpackParser):
             file_path = pathlib.Path("unpacked_from_uf2")
 
         with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
-            outfile.write(self.data.uf2_block_start.data)
-            for uf2_block in self.data.uf2_blocks:
-                outfile.write(uf2_block.data)
+            outfile.write(self.data.first_block.data.payload)
+            for uf2_block in self.data.blocks:
+                outfile.write(uf2_block.data.payload)
             yield unpacked_md
 
     labels = ['uf2', 'firmware']
@@ -64,5 +64,5 @@ class Uf2UnpackParser(UnpackParser):
     @property
     def metadata(self):
         return {
-            'platform': self.data.uf2_block_start.family_id.name
+            'platform': self.data.first_block.family_id.name
         }
