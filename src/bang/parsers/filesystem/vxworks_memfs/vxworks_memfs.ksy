@@ -1,7 +1,7 @@
 meta:
   id: vxworks_memfs
   title: VxWorks memfs
-  license: CC0-.10
+  license: MIT
   endian: be
   encoding: UTF-8
 doc-ref:
