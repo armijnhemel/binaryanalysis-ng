@@ -41,24 +41,24 @@ class MinifsUnpackParser(UnpackParser):
             raise UnpackParserException(e.args) from e
 
         # test decompress all LZMA blobs
-        for blob in self.data.lzma_blobs:
+        for blob in self.data.body.lzma_metas:
             try:
-                lzma.decompress(blob.data)
+                lzma.decompress(blob.blob)
             except lzma.LZMAError as e:
                 raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         cached_lzma = b''
         last_blob = 0
-        for entry in self.data.inodes:
-            file_path = pathlib.Path(entry.directory_name) / entry.filename
+        for entry in self.data.body.inodes:
+            file_path = pathlib.Path(entry.directory_path) / entry.file_name
 
             # decompress the LZMA blob, unless it has been cached
             if cached_lzma == b'' or entry.lzma_blob != last_blob:
-                cached_lzma = lzma.decompress(self.data.lzma_blobs[entry.lzma_blob].data)
+                cached_lzma = lzma.decompress(self.data.body.lzma_metas[entry.lzma_blob].blob)
                 last_blob = entry.lzma_blob
             with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
-                outfile.write(cached_lzma[entry.ofs_file:entry.ofs_file + entry.size])
+                outfile.write(cached_lzma[entry.ofs_file:entry.ofs_file + entry.len_file])
                 yield unpacked_md
 
     labels = ['tp-link', 'filesystem', 'minifs']
