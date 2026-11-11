@@ -56,7 +56,7 @@ class Services(UnpackParser):
                     continue
 
                 protocol = RE_SERVICES.match(line).group('protocol')
-                if protocol not in ['tcp', 'udp', 'ddp']:
+                if protocol not in ['tcp', 'udp', 'ddp', 'sctp']:
                     break
 
                 len_unpacked += len_conf_line
