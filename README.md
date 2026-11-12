@@ -321,6 +321,7 @@ larger file, unless stated otherwise.
 221. pppoe.conf files
 222. WDK file system (D-Link DIR100, certain revisions)
 223. AIH0 firmware header (various old D-Link devices, perhaps others)
+224. AH00 firmware header (various old NETGEAR routers, perhaps others)
 
 ## Getting started
 
