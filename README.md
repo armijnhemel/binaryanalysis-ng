@@ -320,6 +320,7 @@ larger file, unless stated otherwise.
 220. /etc/hosts files
 221. pppoe.conf files
 222. WDK file system (D-Link DIR100, certain revisions)
+223. AIH0 firmware header (various old D-Link devices, perhaps others)
 
 ## Getting started
 
