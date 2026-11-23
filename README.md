@@ -319,6 +319,10 @@ larger file, unless stated otherwise.
 219. /etc/services files
 220. /etc/hosts files
 221. pppoe.conf files
+222. WDK file system (D-Link DIR100, certain revisions)
+223. AIH0 firmware header (various old D-Link devices, perhaps others)
+224. AH00 firmware header (various old NETGEAR routers, perhaps others)
+225. D-Link FPKG firmware
 
 ## Getting started
 

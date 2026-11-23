@@ -219,10 +219,11 @@ Currently the following parsers are potentially affected because `_io.size`
 is used in the "main" stream.
 
 1. `au`
-2. `cpio_old_binary`
-3. `git_index`
-4. `gpt_partition_table`
-5. `quicktime`
+1. `cpio_old_binary`
+1. `fpkg`
+1. `git_index`
+1. `gpt_partition_table`
+1. `quicktime`
 
 ### Handling parse errors
 
