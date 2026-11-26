@@ -18,6 +18,7 @@
 # Copyright Armijn Hemel
 # SPDX-License-Identifier: GPL-3.0-only
 
+import binascii
 import lzma
 import pathlib
 
@@ -47,6 +48,17 @@ class MinifsUnpackParser(UnpackParser):
                     lzma.decompress(entry.blob)
                 except lzma.LZMAError as e:
                     raise UnpackParserException(e.args) from e
+        elif self.data.header.version == 2:
+            for entry in self.data.body.files_area.files:
+                if entry.compression == tplink_minifs.TplinkMinifs.CompressionType.raw:
+                    continue
+                elif entry.compression == tplink_minifs.TplinkMinifs.CompressionType.lzma:
+                    try:
+                        lzma.decompress(entry.data)
+                    except lzma.LZMAError as e:
+                        raise UnpackParserException(e.args) from e
+                elif entry.compression == tplink_minifs.TplinkMinifs.CompressionType.lzma_2014:
+                    raise UnpackParserException("Unsupported compression lzma_2014")
         elif self.data.header.version == 3:
             for entry in self.data.body.lzma_metas:
                 try:
@@ -57,22 +69,34 @@ class MinifsUnpackParser(UnpackParser):
     def unpack(self, meta_directory):
         cached_lzma = b''
         last_blob = 0
-        for entry in self.data.body.inodes:
-            if self.data.header.version == 1:
-                file_path = pathlib.Path(entry.path)
-                with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
-                    outfile.write(lzma.decompress(entry.blob))
-                    yield unpacked_md
-            elif self.data.header.version == 3:
-                file_path = pathlib.Path(entry.directory_path) / entry.file_name
+        if self.data.header.version in [1, 3]:
+            for entry in self.data.body.inodes:
+                if self.data.header.version == 1:
+                    file_path = pathlib.Path(entry.path)
+                    with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                        outfile.write(lzma.decompress(entry.blob))
+                        yield unpacked_md
+                elif self.data.header.version == 3:
+                    file_path = pathlib.Path(entry.directory_path) / entry.file_name
 
-                # decompress the LZMA blob, unless it has been cached
-                if cached_lzma == b'' or entry.lzma_blob != last_blob:
-                    cached_lzma = lzma.decompress(self.data.body.lzma_metas[entry.lzma_blob].blob)
-                    last_blob = entry.lzma_blob
-                with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
-                    outfile.write(cached_lzma[entry.ofs_file:entry.ofs_file + entry.len_file])
-                    yield unpacked_md
+                    # decompress the LZMA blob, unless it has been cached
+                    if cached_lzma == b'' or entry.lzma_blob != last_blob:
+                        cached_lzma = lzma.decompress(self.data.body.lzma_metas[entry.lzma_blob].blob)
+                        last_blob = entry.lzma_blob
+                    with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                        outfile.write(cached_lzma[entry.ofs_file:entry.ofs_file + entry.len_file])
+                        yield unpacked_md
+        elif self.data.header.version == 2:
+            for entry in self.data.body.files_area.files:
+                file_path = pathlib.Path(binascii.hexlify(entry.path_md5).decode())
+                if entry.compression == tplink_minifs.TplinkMinifs.CompressionType.raw:
+                    with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                        outfile.write(entry.data)
+                        yield unpacked_md
+                elif entry.compression == tplink_minifs.TplinkMinifs.CompressionType.lzma:
+                    with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                        outfile.write(lzma.decompress(entry.data))
+                        yield unpacked_md
 
     labels = ['tp-link', 'filesystem', 'minifs']
     metadata = {}
