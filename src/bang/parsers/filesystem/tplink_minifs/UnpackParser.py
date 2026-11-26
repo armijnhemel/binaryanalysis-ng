@@ -41,25 +41,38 @@ class MinifsUnpackParser(UnpackParser):
             raise UnpackParserException(e.args) from e
 
         # test decompress all LZMA blobs
-        for blob in self.data.body.lzma_metas:
-            try:
-                lzma.decompress(blob.blob)
-            except lzma.LZMAError as e:
-                raise UnpackParserException(e.args) from e
+        if self.data.header.version == 1:
+            for entry in self.data.body.inodes:
+                try:
+                    lzma.decompress(entry.blob)
+                except lzma.LZMAError as e:
+                    raise UnpackParserException(e.args) from e
+        elif self.data.header.version == 3:
+            for entry in self.data.body.lzma_metas:
+                try:
+                    lzma.decompress(entry.blob)
+                except lzma.LZMAError as e:
+                    raise UnpackParserException(e.args) from e
 
     def unpack(self, meta_directory):
         cached_lzma = b''
         last_blob = 0
         for entry in self.data.body.inodes:
-            file_path = pathlib.Path(entry.directory_path) / entry.file_name
+            if self.data.header.version == 1:
+                file_path = pathlib.Path(entry.path)
+                with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                    outfile.write(lzma.decompress(entry.blob))
+                    yield unpacked_md
+            elif self.data.header.version == 3:
+                file_path = pathlib.Path(entry.directory_path) / entry.file_name
 
-            # decompress the LZMA blob, unless it has been cached
-            if cached_lzma == b'' or entry.lzma_blob != last_blob:
-                cached_lzma = lzma.decompress(self.data.body.lzma_metas[entry.lzma_blob].blob)
-                last_blob = entry.lzma_blob
-            with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
-                outfile.write(cached_lzma[entry.ofs_file:entry.ofs_file + entry.len_file])
-                yield unpacked_md
+                # decompress the LZMA blob, unless it has been cached
+                if cached_lzma == b'' or entry.lzma_blob != last_blob:
+                    cached_lzma = lzma.decompress(self.data.body.lzma_metas[entry.lzma_blob].blob)
+                    last_blob = entry.lzma_blob
+                with meta_directory.unpack_regular_file(file_path) as (unpacked_md, outfile):
+                    outfile.write(cached_lzma[entry.ofs_file:entry.ofs_file + entry.len_file])
+                    yield unpacked_md
 
     labels = ['tp-link', 'filesystem', 'minifs']
     metadata = {}
