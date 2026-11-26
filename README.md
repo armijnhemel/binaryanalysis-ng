@@ -307,7 +307,7 @@ larger file, unless stated otherwise.
 207. certain VxWorks memfs file systems
 208. Realtek bootloader (subset of files)
 209. Linux kernel x86 images
-210. TP-Link minifs
+210. TP-Link minifs (v1, v2, v3 8-byte and 12-byte variants)
 211. ANJVision IP camera firmware files
 212. Linux `securetty` files (whole file)
 213. EOT fonts
